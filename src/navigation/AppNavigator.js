@@ -1,0 +1,38 @@
+// src/navigation/AppNavigator.js
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import LoginScreen from '../../screens/Loginscreen';
+import RegisterScreen from '../../screens/RegisterScreen';
+import CompleteProfileScreen from '../../screens/CompleteProfileScreen';
+import ProfilePhotoScreen from '../../screens/ProfilePhotoScreen';
+import UserInfoScreen from '../../screens/UserInfoScreen';
+import SettingsScreen from '../../screens/SettingsScreen';   // 👈 NUEVO
+import TabNavigator from './TabNavigator';
+import LocationPickerScreen from '../../screens/LocationPickerScreen'; // 👈 nuevo
+
+
+const Stack = createNativeStackNavigator();
+
+const AppNavigator = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="Login"
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+
+      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
+
+      <Stack.Screen name="UserInfo" component={UserInfoScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      
+      <Stack.Screen name="MainTabs" component={TabNavigator} />
+    </Stack.Navigator>
+  );
+};
+
+export default AppNavigator;
