@@ -1,5 +1,6 @@
 // screens/HomeScreen.js
 import React, { useState, useCallback } from 'react';
+import { useTheme } from '../src/themes/ThemeContext';
 import {
   View,
   Text,
@@ -22,32 +23,26 @@ const HomeScreen = ({ navigation }) => {
   const [photoUri, setPhotoUri] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // Cargar usuario + foto cada vez que la pantalla gana foco
+  const { theme, darkMode } = useTheme();
+
   useFocusEffect(
     useCallback(() => {
       const loadUser = async () => {
         try {
           setLoadingUser(true);
           const stored = await getUserFromStorage();
-          if (!stored) {
-            setUser(null);
-            setPhotoUri(null);
-            return;
-          }
 
-          setUser(stored);
+          setUser(stored || null);
 
-          // foto local
-          if (stored.id) {
+          if (stored?.id) {
             const localPhoto = await AsyncStorage.getItem(
               `@userPhoto_${stored.id}`
             );
-            if (localPhoto) {
-              setPhotoUri(localPhoto);
-            } else {
-              setPhotoUri(null);
-            }
+            setPhotoUri(localPhoto || null);
+          } else {
+            setPhotoUri(null);
           }
+
         } catch (error) {
           console.log('Error al cargar usuario en HomeScreen:', error);
         } finally {
@@ -59,45 +54,45 @@ const HomeScreen = ({ navigation }) => {
     }, [])
   );
 
-  const handleOpenSettings = () => {
-    navigation.navigate('Settings');
-  };
-
-  const handleOpenProfile = () => {
-    navigation.navigate('UserInfo');
-  };
+  const handleOpenSettings = () => navigation.navigate('Settings');
+  const handleOpenProfile = () => navigation.navigate('UserInfo');
 
   const displayName =
     (user && (user.nombre || user.username || user.nombres)) || 'Usuario';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+
       {/* HEADER */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.helloText}>Hola,</Text>
+          <Text style={[styles.helloText, { color: theme.textSecondary }]}>Hola,</Text>
+
           {loadingUser ? (
-            <ActivityIndicator size="small" color="#365b6d" />
+            <ActivityIndicator size="small" color={theme.accent} />
           ) : (
             <View style={styles.nameRow}>
-              <Text style={styles.nameText}>{displayName}</Text>
+              <Text style={[styles.nameText, { color: theme.textPrimary }]}>
+                {displayName}
+              </Text>
               <Text style={styles.wave}> 👋</Text>
             </View>
           )}
         </View>
 
         <View style={styles.headerRight}>
-          {/* Botón Configuración */}
+          
+          {/* Settings */}
           <TouchableOpacity
-            style={styles.iconCircle}
+            style={[styles.iconCircle, { backgroundColor: theme.card }]}
             onPress={handleOpenSettings}
           >
-            <Ionicons name="settings-outline" size={20} color="#365b6d" />
+            <Ionicons name="settings-outline" size={20} color={theme.accent} />
           </TouchableOpacity>
 
-          {/* Avatar usuario */}
+          {/* Avatar */}
           <TouchableOpacity
-            style={[styles.iconCircle, { marginLeft: 8 }]}
+            style={[styles.iconCircle, { backgroundColor: theme.card, marginLeft: 8 }]}
             onPress={handleOpenProfile}
           >
             <Image
@@ -108,12 +103,16 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* CONTENIDO */}
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Tarjeta principal de cuidado de mascotas */}
-        <View style={styles.mainCard}>
-          <Text style={styles.mainCardTitle}>Cuidado de tus mascotas</Text>
-          <Text style={styles.mainCardSubtitle}>
+
+        {/* Card principal */}
+        <View style={[styles.mainCard, { backgroundColor: theme.card }]}>
+          <Text style={[styles.mainCardTitle, { color: theme.textPrimary }]}>
+            Cuidado de tus mascotas
+          </Text>
+
+          <Text style={[styles.mainCardSubtitle, { color: theme.textSecondary }]}>
             Revisa sus vacunas, próximas citas y recomendaciones de bienestar.
           </Text>
 
@@ -125,54 +124,87 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Aquí puedes mantener tus secciones de "Tu próxima cita", "Accesos rápidos", etc.
-           Yo dejo una estructura base para que no pierdas nada de diseño. */}
+        {/* Sección próxima cita */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+          Tu próxima cita
+        </Text>
 
-        <Text style={styles.sectionTitle}>Tu próxima cita</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.card }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Consulta general</Text>
-            <Text style={styles.cardSubtitle}>Con Max 🐶</Text>
-            <Text style={styles.cardDetail}>Lunes 15 · 10:30 AM</Text>
-            <Text style={styles.cardDetail}>Clínica PetHealthy</Text>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+              Consulta general
+            </Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+              Con Max 🐶
+            </Text>
+            <Text style={[styles.cardDetail, { color: theme.textSecondary }]}>
+              Lunes 15 · 10:30 AM
+            </Text>
+            <Text style={[styles.cardDetail, { color: theme.textSecondary }]}>
+              Clínica PetHealthy
+            </Text>
           </View>
-          <View style={styles.cardIconWrapper}>
-            <Ionicons name="calendar-outline" size={22} color="#365b6d" />
+
+          <View style={[styles.cardIconWrapper, { backgroundColor: theme.background }]}>
+            <Ionicons name="calendar-outline" size={22} color={theme.accent} />
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
+        {/* Accesos rápidos */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+          Accesos rápidos
+        </Text>
+
         <View style={styles.quickRow}>
-          <TouchableOpacity style={styles.quickCard}>
-            <Ionicons name="add-circle-outline" size={22} color="#4CAF50" />
-            <Text style={styles.quickText}>Agregar mascota</Text>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="add-circle-outline" size={22} color={theme.accent} />
+            <Text style={[styles.quickText, { color: theme.textPrimary }]}>
+              Agregar mascota
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickCard}>
-            <Ionicons name="medkit-outline" size={22} color="#1E88E5" />
-            <Text style={styles.quickText}>Vacunas</Text>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="medkit-outline" size={22} color={theme.accent} />
+            <Text style={[styles.quickText, { color: theme.textPrimary }]}>
+              Vacunas
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickCard}>
-            <Ionicons name="time-outline" size={22} color="#FFB300" />
-            <Text style={styles.quickText}>Próximas citas</Text>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="time-outline" size={22} color={theme.accent} />
+            <Text style={[styles.quickText, { color: theme.textPrimary }]}>
+              Próximas citas
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Resumen de salud</Text>
+        {/* Resumen de salud */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+          Resumen de salud
+        </Text>
+
         <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Ionicons name="heart-outline" size={22} color="#E91E63" />
-            <Text style={styles.summaryTitle}>Vacunas al día</Text>
-            <Text style={styles.summaryValue}>4 / 5</Text>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="heart-outline" size={22} color={theme.accent} />
+            <Text style={[styles.summaryTitle, { color: theme.textSecondary }]}>
+              Vacunas al día
+            </Text>
+            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>
+              4 / 5
+            </Text>
           </View>
 
-          <View style={styles.summaryCard}>
-            <Ionicons name="chatbubbles-outline" size={22} color="#00796B" />
-            <Text style={styles.summaryTitle}>Consultas este año</Text>
-            <Text style={styles.summaryValue}>3</Text>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
+            <Ionicons name="chatbubbles-outline" size={22} color={theme.accent} />
+            <Text style={[styles.summaryTitle, { color: theme.textSecondary }]}>
+              Consultas este año
+            </Text>
+            <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>
+              3
+            </Text>
           </View>
         </View>
+
       </ScrollView>
     </View>
   );
@@ -181,10 +213,7 @@ const HomeScreen = ({ navigation }) => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E3F2FD',
-  },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -194,62 +223,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Platform.OS === 'ios' ? 40 : 0,
   },
-  helloText: {
-    fontSize: 14,
-    color: '#607D8B',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  nameText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#263238',
-  },
-  wave: {
-    fontSize: 20,
-    marginLeft: 4,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  helloText: { fontSize: 14 },
+  nameRow: { flexDirection: 'row', alignItems: 'center' },
+  nameText: { fontSize: 20, fontWeight: '700' },
+  wave: { fontSize: 20, marginLeft: 4 },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
   },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
+  avatar: { width: 28, height: 28, borderRadius: 14 },
+  content: { paddingHorizontal: 20, paddingBottom: 24 },
   mainCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
     elevation: 3,
   },
-  mainCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#263238',
-  },
-  mainCardSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: '#607D8B',
-  },
+  mainCardTitle: { fontSize: 16, fontWeight: '700' },
+  mainCardSubtitle: { marginTop: 4, fontSize: 13 },
   mainCardButton: {
     marginTop: 12,
     backgroundColor: '#4CAF50',
@@ -266,15 +262,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 6,
   },
-  sectionTitle: {
-    marginTop: 8,
-    marginBottom: 6,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#365b6d',
-  },
+  sectionTitle: { marginTop: 8, marginBottom: 6, fontSize: 14, fontWeight: '600' },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
@@ -282,69 +271,35 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     elevation: 2,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#263238',
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: '#607D8B',
-  },
-  cardDetail: {
-    fontSize: 12,
-    color: '#90A4AE',
-  },
+  cardTitle: { fontSize: 15, fontWeight: '600' },
+  cardSubtitle: { fontSize: 13 },
+  cardDetail: { fontSize: 12 },
   cardIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quickRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
+  quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
   quickCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 10,
     alignItems: 'center',
     marginHorizontal: 4,
     elevation: 2,
   },
-  quickText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#455A64',
-    textAlign: 'center',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+  quickText: { marginTop: 4, fontSize: 12, textAlign: 'center' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 10,
     alignItems: 'center',
     marginHorizontal: 4,
     elevation: 2,
   },
-  summaryTitle: {
-    fontSize: 12,
-    color: '#607D8B',
-    marginTop: 4,
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#263238',
-    marginTop: 2,
-  },
+  summaryTitle: { fontSize: 12, marginTop: 4 },
+  summaryValue: { fontSize: 16, fontWeight: '700', marginTop: 2 },
 });

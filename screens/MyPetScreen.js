@@ -16,7 +16,7 @@ const MyPetScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER SOLO CON SETTINGS */}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mis mascotas</Text>
 

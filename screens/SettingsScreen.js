@@ -1,95 +1,117 @@
 // screens/SettingsScreen.js
 import React from 'react';
+import { useTheme } from '../src/themes/ThemeContext';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Alert,             // 👈 IMPORTAMOS Alert
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearUserFromStorage } from '../src/utils/storage';
 
 const SettingsScreen = ({ navigation }) => {
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  const { theme, toggleTheme } = useTheme();
 
-  const handleOpenProfile = () => {
-    navigation.navigate('UserInfo');
-  };
+  const handleBack = () => navigation.goBack();
+  const handleOpenProfile = () => navigation.navigate('UserInfo');
 
   const handleLogout = async () => {
-    try {
-      // Opcional: preguntar confirmación
-      Alert.alert(
-        'Cerrar sesión',
-        '¿Seguro que deseas salir de tu cuenta?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Cerrar sesión',
-            style: 'destructive',
-            onPress: async () => {
-              await clearUserFromStorage(); // Borra @userData
-              await AsyncStorage.clear();   // (opcional) limpia todo lo demás
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Seguro que deseas salir de tu cuenta?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await clearUserFromStorage();
+            await AsyncStorage.clear();
 
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-            },
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
           },
-        ]
-      );
-    } catch (error) {
-      console.log('Error al cerrar sesión:', error);
-      Alert.alert(
-        'Error',
-        'No se pudo cerrar la sesión. Inténtalo más tarde.'
-      );
-    }
+        },
+      ]
+    );
   };
 
   return (
-    <View style={styles.container}>
-      {/* top bar */}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+
+      {/* Top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={handleBack} style={styles.topIconButton}>
-          <Ionicons name="arrow-back" size={22} color="#365b6d" />
+        <TouchableOpacity
+          onPress={handleBack}
+          style={[styles.topIconButton, { backgroundColor: theme.card }]}
+        >
+          <Ionicons name="arrow-back" size={22} color={theme.accent} />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>Configuración</Text>
+        <Text style={[styles.topTitle, { color: theme.textPrimary }]}>
+          Configuración
+        </Text>
 
         <View style={styles.topIconButton} />
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Cuenta</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          Cuenta
+        </Text>
 
+        {/* Perfil */}
         <TouchableOpacity
-          style={styles.optionCard}
+          style={[styles.optionCard, { backgroundColor: theme.card }]}
           onPress={handleOpenProfile}
         >
-          <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
+          <Ionicons name="person-circle-outline" size={24} color={theme.accent} />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Perfil</Text>
-            <Text style={styles.optionSubtitle}>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>
+              Perfil
+            </Text>
+            <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
               Ver y editar tu información personal.
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Sesión</Text>
-
+        {/* Cambiar tema */}
         <TouchableOpacity
-          style={[styles.optionCard, { backgroundColor: '#FFEBEE' }]}
+          style={[styles.optionCard, { backgroundColor: theme.card }]}
+          onPress={toggleTheme}
+        >
+          <Ionicons name="contrast-outline" size={24} color={theme.accent} />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>
+              Cambiar tema
+            </Text>
+            <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
+              Alternar entre modo claro y oscuro.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          Sesión
+        </Text>
+
+        {/* Cerrar sesión */}
+        <TouchableOpacity
+          style={[
+            styles.optionCard,
+            { backgroundColor: '#FFEBEE', borderColor: '#C62828', borderWidth: 1 },
+          ]}
           onPress={handleLogout}
         >
-          <Ionicons name="log-out-outline" size={24} color="#E53935" />
+          <Ionicons name="log-out-outline" size={24} color="#D32F2F" />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={[styles.optionTitle, { color: '#C62828' }]}>
               Cerrar sesión
@@ -99,6 +121,7 @@ const SettingsScreen = ({ navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -107,11 +130,7 @@ const SettingsScreen = ({ navigation }) => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E3F2FD',
-    marginTop: Platform.OS === 'ios' ? 40 : 0,
-  },
+  container: { flex: 1, marginTop: Platform.OS === 'ios' ? 40 : 0 },
   topBar: {
     paddingTop: 18,
     paddingHorizontal: 14,
@@ -123,12 +142,10 @@ const styles = StyleSheet.create({
   topIconButton: {
     padding: 6,
     borderRadius: 999,
-    backgroundColor: '#E0E9F5',
   },
   topTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#365b6d',
   },
   content: {
     paddingHorizontal: 20,
@@ -137,27 +154,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#607D8B',
     marginBottom: 8,
     marginTop: 12,
   },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
     elevation: 2,
   },
-  optionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#263238',
-  },
-  optionSubtitle: {
-    fontSize: 12,
-    color: '#607D8B',
-  },
+  optionTitle: { fontSize: 14, fontWeight: '600' },
+  optionSubtitle: { fontSize: 12 },
 });
