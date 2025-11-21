@@ -74,6 +74,10 @@ const RegisterScreen = ({ navigation }) => {
   const [errorPassword, setErrorPassword] = useState('');
   const [errorPassword2, setErrorPassword2] = useState('');
 
+  // ✅ nuevos estados para términos
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [errorTerminos, setErrorTerminos] = useState('');
+
   const passwordScore = evaluatePasswordStrength(password);
   const { label: strengthLabel, color: strengthColor } =
     password.length > 0
@@ -97,6 +101,7 @@ const RegisterScreen = ({ navigation }) => {
     setErrorEmail('');
     setErrorPassword('');
     setErrorPassword2('');
+    setErrorTerminos('');
   };
 
   const validateForm = () => {
@@ -134,6 +139,14 @@ const RegisterScreen = ({ navigation }) => {
       valid = false;
     } else if (password && password !== password2) {
       setErrorPassword2('Las contraseñas no coinciden.');
+      valid = false;
+    }
+
+    // ✅ validación de aceptación de términos
+    if (!aceptaTerminos) {
+      setErrorTerminos(
+        'Debes aceptar los Términos y Condiciones antes de registrarte.'
+      );
       valid = false;
     }
 
@@ -333,10 +346,41 @@ const RegisterScreen = ({ navigation }) => {
               <Text style={styles.errorText}>{errorPassword2}</Text>
             ) : null}
 
+            {/* Aceptar términos */}
+            <View style={styles.termsContainer}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setAceptaTerminos(prev => !prev)}
+              >
+                <Ionicons
+                  name={aceptaTerminos ? 'checkbox-outline' : 'square-outline'}
+                  size={22}
+                  color="#43A047"
+                />
+              </TouchableOpacity>
+
+              <Text style={styles.termsText}>
+                Acepto los{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('Terms')}
+                >
+                  Términos y Condiciones
+                </Text>
+                {' '}de la aplicación.
+              </Text>
+            </View>
+            {errorTerminos ? (
+              <Text style={styles.errorText}>{errorTerminos}</Text>
+            ) : null}
+
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[
+                styles.primaryButton,
+                (!aceptaTerminos || loading) && { opacity: 0.6 }, // se ve desactivado
+              ]}
               onPress={handleRegister}
-              disabled={loading}
+              disabled={loading || !aceptaTerminos}              // bloquea si no acepta
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
@@ -344,6 +388,7 @@ const RegisterScreen = ({ navigation }) => {
                 <Text style={styles.primaryButtonText}>Registrarme</Text>
               )}
             </TouchableOpacity>
+
 
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.linkText}>
@@ -502,6 +547,25 @@ const styles = StyleSheet.create({
     color: '#90A4AE',
     textAlign: 'center',
     marginTop: 8,
+  },
+  // ✅ estilos para términos
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  checkbox: {
+    marginRight: 8,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#455A64',
+  },
+  termsLink: {
+    color: '#1E88E5',
+    fontWeight: '600',
   },
 });
 
