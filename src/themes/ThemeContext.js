@@ -11,6 +11,7 @@ const lightTheme = {
 const darkTheme = {
   background: "#121212",
   card: "#1E1E1E",
+  card2: "#4f4c4cff",
   textPrimary: "#FFFFFF",
   textSecondary: "#B0B0B0",
   accent: "#90CAF9",

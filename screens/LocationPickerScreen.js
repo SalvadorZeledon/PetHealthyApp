@@ -11,8 +11,9 @@ import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
-
+import { useTheme } from '../src/themes/ThemeContext';
 const LocationPickerScreen = ({ navigation, route }) => {
+   const { theme, darkMode } = useTheme();
   const onSelectLocation = route.params?.onSelectLocation;
 
   const [loading, setLoading] = useState(true);
@@ -162,7 +163,7 @@ const LocationPickerScreen = ({ navigation, route }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={handleBack} style={styles.topIconButton}>

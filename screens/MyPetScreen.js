@@ -8,14 +8,16 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../src/themes/ThemeContext';
 
 const MyPetScreen = ({ navigation }) => {
+   const { theme, darkMode } = useTheme();
   const handleOpenSettings = () => {
     navigation.navigate('Settings');
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { color: theme.backgroundColor }]}>
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mis mascotas</Text>
@@ -30,7 +32,7 @@ const MyPetScreen = ({ navigation }) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Aquí ya luego metemos la lógica real de mascotas */}
-        <View style={styles.placeholderCard}>
+        <View Style={[styles.container, { backgroundColor: theme.background }]}>
           <Ionicons name="paw-outline" size={40} color="#4CAF50" />
           <Text style={styles.placeholderTitle}>Tus mascotas</Text>
           <Text style={styles.placeholderText}>

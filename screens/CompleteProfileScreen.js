@@ -15,13 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 import { doc, updateDoc } from 'firebase/firestore';
 import * as Location from 'expo-location';
-
+import { useTheme } from '../src/themes/ThemeContext';
 import { db } from '../firebase/config';
 import { COL_USUARIOS } from '../src/utils/collections';
 
 const CompleteProfileScreen = ({ route, navigation }) => {
   const { userId } = route.params;
-
+ const { theme, darkMode } = useTheme();
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [edad, setEdad] = useState('');
@@ -254,7 +254,7 @@ const CompleteProfileScreen = ({ route, navigation }) => {
       style={{ flex: 1, backgroundColor: '#E3F2FD' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.header}>
           <Text style={styles.title}>Completar perfil</Text>
           <Text style={styles.subtitle}>

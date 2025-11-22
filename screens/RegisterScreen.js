@@ -22,6 +22,7 @@ import {
   getDocs,
   serverTimestamp,
 } from 'firebase/firestore';
+import { useTheme } from '../src/themes/ThemeContext';
 import { db } from '../firebase/config';
 import { COL_USUARIOS } from '../src/utils/collections';
 import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
@@ -55,6 +56,7 @@ const getStrengthLabelAndColor = (score) => {
 };
 
 const RegisterScreen = ({ navigation }) => {
+   const { theme, darkMode } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
   });
@@ -205,7 +207,7 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.inner}>

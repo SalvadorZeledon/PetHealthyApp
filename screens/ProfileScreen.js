@@ -12,8 +12,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 const avatarPlaceholder = require('../assets/logo.png');
-
+import { useTheme } from '../src/themes/ThemeContext';
 const ProfileScreen = ({ navigation }) => {
+    const { theme, toggleTheme } = useTheme();
   const handleOpenUserInfo = () => {
     navigation.navigate('UserInfo');
   };
@@ -23,7 +24,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mi perfil</Text>

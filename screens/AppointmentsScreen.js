@@ -8,14 +8,15 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useTheme } from '../src/themes/ThemeContext';
 const AppointmentsScreen = ({ navigation }) => {
+   const { theme, darkMode } = useTheme();
   const handleOpenSettings = () => {
     navigation.navigate('Settings');
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Citas</Text>
@@ -30,10 +31,10 @@ const AppointmentsScreen = ({ navigation }) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Diseño de ejemplo para futuras citas */}
-        <View style={styles.placeholderCard}>
+        <View style={[styles.placeholderCard, { backgroundColor: theme.card }]}>
           <Ionicons name="calendar-outline" size={40} color="#1E88E5" />
-          <Text style={styles.placeholderTitle}>Tus citas médicas</Text>
-          <Text style={styles.placeholderText}>
+          <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Tus citas médicas</Text>
+          <Text style={[styles.placeholderText, { color: theme.textPrimary }]}>
             Revisa y administra las consultas, vacunas y controles de tus
             mascotas.
           </Text>
@@ -44,12 +45,12 @@ const AppointmentsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.card }]}>
           <View>
-            <Text style={styles.cardTitle}>Consulta general</Text>
-            <Text style={styles.cardSubtitle}>Con Max 🐶</Text>
-            <Text style={styles.cardDetail}>Lunes 15 · 10:30 AM</Text>
-            <Text style={styles.cardDetail}>Clínica PetHealthy</Text>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Consulta general</Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>Con Max 🐶</Text>
+            <Text style={[styles.cardDetail, { color: theme.accent }]}>Lunes 15 · 10:30 AM</Text>
+            <Text style={[styles.cardDetail, { color: theme.accent }]}>Clínica PetHealthy</Text>
           </View>
           <View style={styles.cardIconWrapper}>
             <Ionicons name="time-outline" size={22} color="#365b6d" />

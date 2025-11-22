@@ -8,8 +8,9 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useTheme } from '../src/themes/ThemeContext';
 const ChatbotScreen = ({ navigation }) => {
+   const { theme, darkMode } = useTheme();
   const handleOpenSettings = () => {
     navigation.navigate('Settings');
   };
@@ -18,7 +19,7 @@ const ChatbotScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat de consultas</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Chat de consultas</Text>
 
         <TouchableOpacity
           style={styles.iconCircle}
@@ -28,18 +29,18 @@ const ChatbotScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.placeholderCard}>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.placeholderCard, { backgroundColor: theme.card }]}>
           <Ionicons name="chatbubbles-outline" size={40} color="#00796B" />
-          <Text style={styles.placeholderTitle}>Asistente virtual</Text>
-          <Text style={styles.placeholderText}>
+          <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Asistente virtual</Text>
+          <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
             Próximamente podrás hacer consultas rápidas sobre la salud de tus
             mascotas y recibir recomendaciones.
           </Text>
 
-          <View style={styles.chatBubble}>
-            <Text style={styles.chatBotLabel}>PetHealthyBot</Text>
-            <Text style={styles.chatBotText}>
+          <View style={[styles.chatBubble, { backgroundColor: theme.card2 }]}>
+            <Text style={[styles.chatBotLabel, { color: theme.textPrimary }]}>PetHealthyBot</Text>
+            <Text style={[styles.chatBotText, { color: theme.textSecondary }]}>
               Hola 🐾, pronto podré ayudarte con dudas sobre vacunas, citas y
               cuidados generales.
             </Text>

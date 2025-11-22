@@ -1,5 +1,6 @@
 // screens/UserInfoScreen.js
 import React, { useEffect, useState } from 'react';
+import { useTheme } from '../src/themes/ThemeContext';
 import {
   View,
   Text,
@@ -26,7 +27,7 @@ const avatarPlaceholder = require('../assets/logo.png');
 
 const UserInfoScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
-
+ const { theme, darkMode } = useTheme();
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
 
@@ -480,7 +481,7 @@ const UserInfoScreen = ({ navigation }) => {
 
   if (loadingInitial || !userData) {
     return (
-      <View style={styles.loadingContainer}>
+      <View tyle={[styles.loadingContainer, { color: theme.backgroundColor }]}>
         <ActivityIndicator size="large" color="#365b6d" />
         <Text style={styles.loadingText}>Cargando información...</Text>
       </View>
@@ -488,14 +489,14 @@ const UserInfoScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Barra superior */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={handleGoBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>Información de usuario</Text>
+        <Text style={[styles.topTitle, { color: theme.textPrimary }]}>Información de usuario</Text>
 
         <TouchableOpacity onPress={handleToggleEdit} style={styles.topIconButton}>
           <Ionicons
@@ -539,15 +540,15 @@ const UserInfoScreen = ({ navigation }) => {
               Toca la foto para cambiar tu imagen de perfil.
             </Text>
           )}
-        </View>
+        </View>style
 
         {/* Datos */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Datos personales</Text>
+        <View tyle={[styles.card, { color: theme.card2 }]}>
+          <Text  style={[styles.cardTitle, { color: theme.textPrimary }]}>Datos personales</Text>
 
           {/* Usuario */}
           <View style={styles.field}>
-            <Text style={styles.label}>Nombre de usuario</Text>
+            <Text ={[styles.label, { color: theme.textSecondary }]}>Nombre de usuario</Text>
             {isEditing ? (
               <TextInput
                 style={styles.input}

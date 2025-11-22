@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useTheme } from '../src/themes/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -22,7 +23,7 @@ const logo = require('../assets/logologin.png');
 
 const ProfilePhotoScreen = ({ route, navigation }) => {
   const { userId } = route.params;
-
+ const { theme, darkMode } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
   });
@@ -129,11 +130,11 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.logoContainer, { backgroundColor: theme.background }]}>
       {/* header con logo */}
-      <View style={styles.logoContainer}>
+      <View Style={[styles.container, { backgroundColor: theme.background }]}>
         <Image source={logo} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.appName}>PetHealthyApp</Text>
+        <Text style={[styles.appName, { color: theme.textPrimary }]}>PetHealthyApp</Text>
         <Text style={styles.appSubtitle}>
           Una última cosa: elige una foto para reconocerte mejor 🐾
         </Text>

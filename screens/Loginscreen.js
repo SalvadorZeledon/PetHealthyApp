@@ -20,7 +20,7 @@ import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { saveUserToStorage } from '../src/utils/storage';
-
+import { useTheme } from '../src/themes/ThemeContext';
 
 const logo = require('../assets/logologin.png');
 
@@ -28,7 +28,7 @@ const LoginScreen = ({ navigation }) => {
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
   });
-
+ const { theme, darkMode } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -194,7 +194,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.inner}>
