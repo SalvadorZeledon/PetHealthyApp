@@ -11,8 +11,11 @@ import SettingsScreen from '../../screens/SettingsScreen';
 import TabNavigator from './TabNavigator';
 import LocationPickerScreen from '../../screens/LocationPickerScreen';
 
-// 👇 IMPORTA TU TermsScreen
+// IMPORTA TU TermsScreen
 import TermsScreen from '../../screens/TermsScreen';
+
+// 👉 NUEVO: importa la pantalla Acerca de nosotros
+import AboutUsScreen from '../../screens/AboutUsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,12 +36,19 @@ const AppNavigator = () => {
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
 
       <Stack.Screen name="MainTabs" component={TabNavigator} />
-      
-      {/* 👇 AGREGA LA PANTALLA DE TÉRMINOS */}
+
+      {/* Términos y condiciones */}
       <Stack.Screen
         name="Terms"
         component={TermsScreen}
-        options={{ headerShown: true, title: "Términos y Condiciones" }}
+        options={{ headerShown: true, title: 'Términos y Condiciones' }}
+      />
+
+      {/* 👉 NUEVA PANTALLA: Acerca de nosotros */}
+      <Stack.Screen
+        name="AboutUs"
+        component={AboutUsScreen}
+        options={{ headerShown: true, title: 'Acerca de nosotros' }}
       />
     </Stack.Navigator>
   );

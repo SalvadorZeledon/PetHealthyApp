@@ -74,7 +74,7 @@ const RegisterScreen = ({ navigation }) => {
   const [errorPassword, setErrorPassword] = useState('');
   const [errorPassword2, setErrorPassword2] = useState('');
 
-  // ✅ nuevos estados para términos
+  // nuevos estados para términos
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [errorTerminos, setErrorTerminos] = useState('');
 
@@ -142,7 +142,7 @@ const RegisterScreen = ({ navigation }) => {
       valid = false;
     }
 
-    // ✅ validación de aceptación de términos
+    //  validación de aceptación de términos
     if (!aceptaTerminos) {
       setErrorTerminos(
         'Debes aceptar los Términos y Condiciones antes de registrarte.'

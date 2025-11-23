@@ -43,25 +43,39 @@ const TermsScreen = () => {
 
         <Text style={styles.sectionTitle}>5. Datos personales:</Text>
         <Text style={styles.paragraph}>
-          La aplicación podrá recopilar datos estrictamente necesarios para su funcionamiento, como información de usuario y mascotas.
-          Estos datos serán utilizados únicamente para los fines establecidos dentro de la app y no serán compartidos con terceros no autorizados.
+          La aplicación podrá recopilar datos estrictamente necesarios para su funcionamiento, como información 
+          de usuario, veterinarios y mascotas. Estos datos serán utilizados únicamente para los fines establecidos 
+          dentro de la app y no serán compartidos con terceros no autorizados.
         </Text>
 
-        <Text style={styles.sectionTitle}>6. Limitación de responsabilidad:</Text>
+        <Text style={styles.sectionTitle}>6. Uso de la cámara y la ubicación (GPS):</Text>
+        <Text style={styles.paragraph}>
+          PetCare podrá solicitar acceso a la cámara y a la ubicación actual del dispositivo. Estos permisos se 
+          utilizan exclusivamente para funciones esenciales, como capturar fotografías clínicas de mascotas, 
+          adjuntar imágenes a consultas veterinarias y mostrar veterinarias cercanas según la posición del usuario.{"\n\n"}
+          PetCare no utiliza la cámara ni la ubicación para monitoreo permanente, vigilancia, recopilación de datos 
+          innecesarios ni con fines publicitarios. La app solo accederá a dichos permisos cuando el usuario lo autorice 
+          y durante el uso de la función correspondiente. En ningún caso se compartirá información de ubicación o 
+          imágenes con terceros sin consentimiento expreso del usuario.
+        </Text>
+
+        <Text style={styles.sectionTitle}>7. Limitación de responsabilidad:</Text>
         <Text style={styles.paragraph}>
           Los desarrolladores no garantizan que la aplicación esté libre de errores o interrupciones.
           El uso de la app es bajo responsabilidad del usuario.
         </Text>
 
-        <Text style={styles.sectionTitle}>7. Modificaciones:</Text>
+        <Text style={styles.sectionTitle}>8. Modificaciones:</Text>
         <Text style={styles.paragraph}>
           PetCare se reserva el derecho de modificar o actualizar estos términos en cualquier momento sin previo aviso.
+          El uso continuo de la app implica la aceptación de dichas modificaciones.
         </Text>
 
-        <Text style={styles.sectionTitle}>8. Legislación aplicable:</Text>
+        <Text style={styles.sectionTitle}>9. Legislación aplicable:</Text>
         <Text style={styles.paragraph}>
           Estos Términos y Condiciones se rigen por las leyes de la República de El Salvador.
         </Text>
+
       </ScrollView>
     </View>
   );

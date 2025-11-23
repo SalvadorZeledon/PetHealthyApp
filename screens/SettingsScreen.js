@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Alert,             // 👈 IMPORTAMOS Alert
+  Alert, // IMPORTAMOS Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,9 +21,13 @@ const SettingsScreen = ({ navigation }) => {
     navigation.navigate('UserInfo');
   };
 
+  //  NUEVO: abrir pantalla "Acerca de nosotros"
+  const handleOpenAboutUs = () => {
+    navigation.navigate('AboutUs'); // Debe existir en tu AppNavigator
+  };
+
   const handleLogout = async () => {
     try {
-      // Opcional: preguntar confirmación
       Alert.alert(
         'Cerrar sesión',
         '¿Seguro que deseas salir de tu cuenta?',
@@ -69,6 +73,7 @@ const SettingsScreen = ({ navigation }) => {
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Cuenta</Text>
 
+        {/* Perfil */}
         <TouchableOpacity
           style={styles.optionCard}
           onPress={handleOpenProfile}
@@ -78,6 +83,21 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={styles.optionTitle}>Perfil</Text>
             <Text style={styles.optionSubtitle}>
               Ver y editar tu información personal.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+       
+        <TouchableOpacity
+          style={styles.optionCard}
+          onPress={handleOpenAboutUs}
+        >
+          <Ionicons name="information-circle-outline" size={24} color="#365b6d" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Acerca de nosotros</Text>
+            <Text style={styles.optionSubtitle}>
+              Conoce más sobre PetHealthy y el equipo detrás de la app.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
