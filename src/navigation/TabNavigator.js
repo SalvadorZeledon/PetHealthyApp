@@ -3,23 +3,31 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-import Homescreen from '../../screens/Homescreen';
 import MyPetScreen from '../../screens/MyPetScreen';
 import AppointmentsScreen from '../../screens/AppointmentsScreen';
 import ChatbotScreen from '../../screens/ChatbotScreen';
+import HomeScreen from '../../screens/Homescreen';
+import { useTheme } from '../themes/ThemeContext';
+
 
 const Tab = createBottomTabNavigator();
 
 const TabNavigator = () => {
+const { theme, darkMode } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#365b6d',
-        tabBarInactiveTintColor: '#90A4AE',
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E0E0E0',
+          backgroundColor: darkMode ? theme.card2 : theme.card,
+          borderTopColor: darkMode ? '#444' : '#E0E0E0',
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
         tabBarIcon: ({ color, size, focused }) => {
           let iconName = 'home-outline';
@@ -40,7 +48,7 @@ const TabNavigator = () => {
     >
       <Tab.Screen
         name="Home"
-        component={Homescreen}
+        component={HomeScreen}
         options={{ title: 'Inicio' }}
       />
       <Tab.Screen
@@ -61,5 +69,6 @@ const TabNavigator = () => {
     </Tab.Navigator>
   );
 };
+
 
 export default TabNavigator;

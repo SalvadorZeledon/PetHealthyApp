@@ -84,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
           
           {/* Settings */}
           <TouchableOpacity
-            style={[styles.iconCircle, { backgroundColor: theme.card }]}
+            style={[styles.iconCircle, { backgroundColor: darkMode ? theme.card2 : theme.card }]}
             onPress={handleOpenSettings}
           >
             <Ionicons name="settings-outline" size={20} color={theme.accent} />
@@ -92,7 +92,10 @@ const HomeScreen = ({ navigation }) => {
 
           {/* Avatar */}
           <TouchableOpacity
-            style={[styles.iconCircle, { backgroundColor: theme.card, marginLeft: 8 }]}
+            style={[styles.iconCircle, { 
+              backgroundColor: darkMode ? theme.card2 : theme.card, 
+              marginLeft: 8 
+            }]}
             onPress={handleOpenProfile}
           >
             <Image
@@ -107,7 +110,7 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.content}>
 
         {/* Card principal */}
-        <View style={[styles.mainCard, { backgroundColor: theme.card }]}>
+        <View style={[styles.mainCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <Text style={[styles.mainCardTitle, { color: theme.textPrimary }]}>
             Cuidado de tus mascotas
           </Text>
@@ -129,7 +132,7 @@ const HomeScreen = ({ navigation }) => {
           Tu próxima cita
         </Text>
 
-        <View style={[styles.card, { backgroundColor: theme.card }]}>
+        <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
               Consulta general
@@ -156,21 +159,21 @@ const HomeScreen = ({ navigation }) => {
         </Text>
 
         <View style={styles.quickRow}>
-          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="add-circle-outline" size={22} color={theme.accent} />
             <Text style={[styles.quickText, { color: theme.textPrimary }]}>
               Agregar mascota
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="medkit-outline" size={22} color={theme.accent} />
             <Text style={[styles.quickText, { color: theme.textPrimary }]}>
               Vacunas
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.quickCard, { backgroundColor: theme.card }]}>
+          <TouchableOpacity style={[styles.quickCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="time-outline" size={22} color={theme.accent} />
             <Text style={[styles.quickText, { color: theme.textPrimary }]}>
               Próximas citas
@@ -184,7 +187,7 @@ const HomeScreen = ({ navigation }) => {
         </Text>
 
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.summaryCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="heart-outline" size={22} color={theme.accent} />
             <Text style={[styles.summaryTitle, { color: theme.textSecondary }]}>
               Vacunas al día
@@ -194,7 +197,7 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.summaryCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="chatbubbles-outline" size={22} color={theme.accent} />
             <Text style={[styles.summaryTitle, { color: theme.textSecondary }]}>
               Consultas este año

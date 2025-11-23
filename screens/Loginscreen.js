@@ -200,27 +200,31 @@ const LoginScreen = ({ navigation }) => {
         <View style={styles.inner}>
           <View style={styles.logoContainer}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.appName}>PetHealthyApp</Text>
-            <Text style={styles.appSubtitle}>
+            <Text style={[styles.appName, { color: theme.textPrimary }]}>PetHealthyApp</Text>
+            <Text style={[styles.appSubtitle, { color: theme.textSecondary }]}>
               Tu clínica veterinaria en el bolsillo 🐶💚
             </Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <View style={styles.pawBackground}>
-              <Ionicons name="paw" size={80} color="#90A4AE" />
+              <Ionicons name="paw" size={80} color={theme.textSecondary} />
             </View>
 
-            <Text style={styles.cardTitle}>Iniciar sesión</Text>
-            <Text style={styles.cardSubtitle}>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Iniciar sesión</Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
               Ingresa con tu correo para ver la información de tus mascotas y sus
               consultas.
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Correo electrónico"
-              placeholderTextColor="#7a8b8c"
+              placeholderTextColor={theme.textSecondary}
               value={email}
               onChangeText={text => {
                 setEmail(text);
@@ -234,12 +238,15 @@ const LoginScreen = ({ navigation }) => {
             />
             {errorEmail ? <Text style={styles.errorText}>{errorEmail}</Text> : null}
 
-            <View style={styles.inputPasswordContainer}>
+            <View style={[styles.inputPasswordContainer, { 
+              backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+              borderColor: darkMode ? '#444' : '#CFD8DC'
+            }]}>
               <TextInput
                 ref={passwordInputRef}
-                style={styles.inputPassword}
+                style={[styles.inputPassword, { color: theme.textPrimary }]}
                 placeholder="Contraseña"
-                placeholderTextColor="#7a8b8c"
+                placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={text => {
                   setPassword(text);
@@ -256,7 +263,7 @@ const LoginScreen = ({ navigation }) => {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#90A4AE"
+                  color={theme.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -277,31 +284,32 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: theme.textSecondary }]}>
                 ¿Es tu primera vez?{' '}
-                <Text style={styles.linkTextBold}>Crea una cuenta</Text>
+                <Text style={[styles.linkTextBold, { color: theme.accent }]}>Crea una cuenta</Text>
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleVetLoginInfo} style={{ marginTop: 8 }}>
-              <Text style={styles.vetLinkText}>
+              <Text style={[styles.vetLinkText, { color: theme.textSecondary }]}>
                 ¿Eres veterinario?{' '}
-                <Text style={styles.vetLinkBold}>Acceso profesional</Text>
+                <Text style={[styles.vetLinkBold, { color: '#00897B' }]}>Acceso profesional</Text>
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
               Al iniciar sesión podrás ver el historial de vacunas y consultas de
               tus mascotas.
             </Text>
           </View>
 
-          <Text style={styles.footerText}>Hecho con ❤️ para tus mascotas</Text>
+          <Text style={[styles.footerText, { color: theme.textSecondary }]}>Hecho con ❤️ para tus mascotas</Text>
         </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
 };
+
 
 const styles = StyleSheet.create({
   fontLoadingContainer: {

@@ -16,21 +16,21 @@ const ChatbotScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Chat de consultas</Text>
 
-        <TouchableOpacity
-          style={styles.iconCircle}
-          onPress={handleOpenSettings}
-        >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
-        </TouchableOpacity>
+      <TouchableOpacity
+                style={[styles.iconCircle, { backgroundColor: darkMode ? theme.card2 : '#FFFFFF' }]}
+                onPress={handleOpenSettings}
+              >
+                <Ionicons name="settings-outline" size={20} color="#365b6d" />
+              </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={[styles.placeholderCard, { backgroundColor: theme.card }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.placeholderCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <Ionicons name="chatbubbles-outline" size={40} color="#00796B" />
           <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Asistente virtual</Text>
           <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
@@ -38,7 +38,7 @@ const ChatbotScreen = ({ navigation }) => {
             mascotas y recibir recomendaciones.
           </Text>
 
-          <View style={[styles.chatBubble, { backgroundColor: theme.card2 }]}>
+          <View style={[styles.chatBubble, { backgroundColor: darkMode ? '#2A3A3A' : '#E0F2F1' }]}>
             <Text style={[styles.chatBotLabel, { color: theme.textPrimary }]}>PetHealthyBot</Text>
             <Text style={[styles.chatBotText, { color: theme.textSecondary }]}>
               Hola 🐾, pronto podré ayudarte con dudas sobre vacunas, citas y
@@ -50,6 +50,7 @@ const ChatbotScreen = ({ navigation }) => {
     </View>
   );
 };
+
 
 export default ChatbotScreen;
 

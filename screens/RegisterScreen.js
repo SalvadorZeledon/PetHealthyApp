@@ -204,7 +204,7 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
-  return (
+return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: theme.background }]}
@@ -213,27 +213,31 @@ const RegisterScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.inner}>
           <View style={styles.logoContainer}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.appName}>PetHealthyApp</Text>
-            <Text style={styles.appSubtitle}>
+            <Text style={[styles.appName, { color: theme.textPrimary }]}>PetHealthyApp</Text>
+            <Text style={[styles.appSubtitle, { color: theme.textSecondary }]}>
               Crea tu cuenta y acompáñanos en el cuidado de tus mascotas.
             </Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <View style={styles.pawBackground}>
-              <Ionicons name="paw" size={90} color="#90A4AE" />
+              <Ionicons name="paw" size={90} color={theme.textSecondary} />
             </View>
 
-            <Text style={styles.cardTitle}>Crear cuenta</Text>
-            <Text style={styles.cardSubtitle}>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Crear cuenta</Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
               Registra tus datos para llevar control de vacunas, consultas y más.
             </Text>
 
             {/* Nombre */}
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Nombre de usuario"
-              placeholderTextColor="#7a8b8c"
+              placeholderTextColor={theme.textSecondary}
               value={nombre}
               onChangeText={text => {
                 setNombre(text);
@@ -250,9 +254,13 @@ const RegisterScreen = ({ navigation }) => {
             {/* Email */}
             <TextInput
               ref={emailInputRef}
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Correo electrónico"
-              placeholderTextColor="#7a8b8c"
+              placeholderTextColor={theme.textSecondary}
               value={email}
               onChangeText={text => {
                 setEmail(text);
@@ -266,12 +274,15 @@ const RegisterScreen = ({ navigation }) => {
             {errorEmail ? <Text style={styles.errorText}>{errorEmail}</Text> : null}
 
             {/* Password */}
-            <View style={styles.inputPasswordContainer}>
+            <View style={[styles.inputPasswordContainer, { 
+              backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+              borderColor: darkMode ? '#444' : '#CFD8DC'
+            }]}>
               <TextInput
                 ref={passwordInputRef}
-                style={styles.inputPassword}
+                style={[styles.inputPassword, { color: theme.textPrimary }]}
                 placeholder="Contraseña"
-                placeholderTextColor="#7a8b8c"
+                placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={text => {
                   setPassword(text);
@@ -288,7 +299,7 @@ const RegisterScreen = ({ navigation }) => {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#90A4AE"
+                  color={theme.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -297,7 +308,7 @@ const RegisterScreen = ({ navigation }) => {
                 <View
                   style={[styles.strengthBar, { backgroundColor: strengthColor }]}
                 />
-                <Text style={styles.strengthLabel}>{strengthLabel}</Text>
+                <Text style={[styles.strengthLabel, { color: theme.textSecondary }]}>{strengthLabel}</Text>
               </View>
             )}
             {errorPassword ? (
@@ -305,12 +316,16 @@ const RegisterScreen = ({ navigation }) => {
             ) : null}
 
             {/* Confirm password */}
-            <View style={[styles.inputPasswordContainer, { marginTop: 8 }]}>
+            <View style={[styles.inputPasswordContainer, { 
+              marginTop: 8,
+              backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+              borderColor: darkMode ? '#444' : '#CFD8DC'
+            }]}>
               <TextInput
                 ref={password2InputRef}
-                style={styles.inputPassword}
+                style={[styles.inputPassword, { color: theme.textPrimary }]}
                 placeholder="Confirmar contraseña"
-                placeholderTextColor="#7a8b8c"
+                placeholderTextColor={theme.textSecondary}
                 value={password2}
                 onChangeText={text => {
                   setPassword2(text);
@@ -327,7 +342,7 @@ const RegisterScreen = ({ navigation }) => {
                 <Ionicons
                   name={showPassword2 ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#90A4AE"
+                  color={theme.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -348,13 +363,13 @@ const RegisterScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: theme.textSecondary }]}>
                 ¿Ya tienes cuenta?{' '}
-                <Text style={styles.linkTextBold}>Inicia sesión</Text>
+                <Text style={[styles.linkTextBold, { color: theme.accent }]}>Inicia sesión</Text>
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.helperText}>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
               Solo tú y tu veterinario de confianza verán la información de tus
               mascotas.
             </Text>
@@ -364,7 +379,6 @@ const RegisterScreen = ({ navigation }) => {
     </TouchableWithoutFeedback>
   );
 };
-
 const styles = StyleSheet.create({
   fontLoadingContainer: {
     flex: 1,

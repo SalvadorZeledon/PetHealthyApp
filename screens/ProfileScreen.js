@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 const avatarPlaceholder = require('../assets/logo.png');
 import { useTheme } from '../src/themes/ThemeContext';
 const ProfileScreen = ({ navigation }) => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme,darkMode } = useTheme();
   const handleOpenUserInfo = () => {
     navigation.navigate('UserInfo');
   };
@@ -23,78 +23,95 @@ const ProfileScreen = ({ navigation }) => {
     console.log('Ir a Configuración');
   };
 
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+   
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mi perfil</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Mi perfil</Text>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleOpenSettings} style={styles.iconButton}>
+          <TouchableOpacity 
+            onPress={handleOpenSettings} 
+            style={[styles.iconButton, { backgroundColor: darkMode ? theme.card2 : '#E0E9F5' }]}
+          >
             <Ionicons name="settings-outline" size={22} color="#365b6d" />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleOpenUserInfo}>
-            <Image source={avatarPlaceholder} style={styles.avatar} />
+            <Image 
+              source={avatarPlaceholder} 
+              style={[styles.avatar, { 
+                borderColor: theme.background,
+                backgroundColor: darkMode ? theme.card2 : '#ffffff'
+              }]} 
+            />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.profileCard}>
-          <Image source={avatarPlaceholder} style={styles.bigAvatar} />
-          <Text style={styles.name}>Pepito Cliente</Text>
-          <Text style={styles.email}>pepito@correo.com</Text>
-          <Text style={styles.role}>Cliente • Propietario de mascotas</Text>
+        <View style={[styles.profileCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
+          <Image 
+            source={avatarPlaceholder} 
+            style={[styles.bigAvatar, { 
+              borderColor: theme.background,
+              backgroundColor: darkMode ? theme.card : '#ffffff'
+            }]} 
+          />
+          <Text style={[styles.name, { color: theme.textPrimary }]}>Pepito Cliente</Text>
+          <Text style={[styles.email, { color: theme.textSecondary }]}>pepito@correo.com</Text>
+          <Text style={[styles.role, { color: '#558B2F' }]}>Cliente • Propietario de mascotas</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Tu actividad</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Tu actividad</Text>
 
         <View style={styles.row}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="paw-outline" size={22} color="#4CAF50" />
-            <Text style={styles.statLabel}>Mascotas registradas</Text>
-            <Text style={styles.statValue}>3</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Mascotas registradas</Text>
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>3</Text>
           </View>
 
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
             <Ionicons name="calendar-outline" size={22} color="#1E88E5" />
-            <Text style={styles.statLabel}>Citas realizadas</Text>
-            <Text style={styles.statValue}>5</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Citas realizadas</Text>
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>5</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Opciones</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Opciones</Text>
 
         <TouchableOpacity
-          style={styles.optionCard}
+          style={[styles.optionCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}
           onPress={handleOpenUserInfo}
         >
           <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Información de usuario</Text>
-            <Text style={styles.optionSubtitle}>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>Información de usuario</Text>
+            <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
               Ver y editar tus datos personales.
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.optionCard}>
+        <TouchableOpacity style={[styles.optionCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <Ionicons name="notifications-outline" size={24} color="#365b6d" />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Notificaciones</Text>
-            <Text style={styles.optionSubtitle}>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>Notificaciones</Text>
+            <Text style={[styles.optionSubtitle, { color: theme.textSecondary }]}>
               Configura recordatorios de vacunas y citas.
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 };
-
 export default ProfileScreen;
 
 const styles = StyleSheet.create({

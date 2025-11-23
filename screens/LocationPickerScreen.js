@@ -162,17 +162,17 @@ const LocationPickerScreen = ({ navigation, route }) => {
     );
   }
 
-  return (
+ return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={handleBack} style={styles.topIconButton}>
+        <TouchableOpacity onPress={handleBack} style={[styles.topIconButton, { backgroundColor: darkMode ? theme.card2 : '#E0E9F5' }]}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>Seleccionar ubicación</Text>
+        <Text style={[styles.topTitle, { color: theme.textPrimary }]}>Seleccionar ubicación</Text>
 
-        <View style={styles.topIconButton} />
+        <View style={[styles.topIconButton, { backgroundColor: darkMode ? theme.card2 : '#E0E9F5' }]} />
       </View>
 
       <MapView
@@ -189,9 +189,9 @@ const LocationPickerScreen = ({ navigation, route }) => {
         )}
       </MapView>
 
-      <View style={styles.bottomCard}>
-        <Text style={styles.addressLabel}>Dirección seleccionada</Text>
-        <Text style={styles.addressValue}>
+      <View style={[styles.bottomCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
+        <Text style={[styles.addressLabel, { color: theme.textSecondary }]}>Dirección seleccionada</Text>
+        <Text style={[styles.addressValue, { color: theme.textPrimary }]}>
           {address || 'Toca en el mapa para elegir una ubicación.'}
         </Text>
 
@@ -202,7 +202,6 @@ const LocationPickerScreen = ({ navigation, route }) => {
     </View>
   );
 };
-
 export default LocationPickerScreen;
 
 const styles = StyleSheet.create({

@@ -15,14 +15,15 @@ const AppointmentsScreen = ({ navigation }) => {
     navigation.navigate('Settings');
   };
 
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Citas</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Citas</Text>
 
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={[styles.iconCircle, { backgroundColor: darkMode ? theme.card2 : '#FFFFFF' }]}
           onPress={handleOpenSettings}
         >
           <Ionicons name="settings-outline" size={20} color="#365b6d" />
@@ -31,10 +32,10 @@ const AppointmentsScreen = ({ navigation }) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Diseño de ejemplo para futuras citas */}
-        <View style={[styles.placeholderCard, { backgroundColor: theme.card }]}>
+        <View style={[styles.placeholderCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <Ionicons name="calendar-outline" size={40} color="#1E88E5" />
           <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Tus citas médicas</Text>
-          <Text style={[styles.placeholderText, { color: theme.textPrimary }]}>
+          <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
             Revisa y administra las consultas, vacunas y controles de tus
             mascotas.
           </Text>
@@ -45,14 +46,14 @@ const AppointmentsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.card }]}>
+        <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <View>
             <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Consulta general</Text>
             <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>Con Max 🐶</Text>
             <Text style={[styles.cardDetail, { color: theme.accent }]}>Lunes 15 · 10:30 AM</Text>
             <Text style={[styles.cardDetail, { color: theme.accent }]}>Clínica PetHealthy</Text>
           </View>
-          <View style={styles.cardIconWrapper}>
+          <View style={[styles.cardIconWrapper, { backgroundColor: theme.background }]}>
             <Ionicons name="time-outline" size={22} color="#365b6d" />
           </View>
         </View>
@@ -60,6 +61,7 @@ const AppointmentsScreen = ({ navigation }) => {
     </View>
   );
 };
+
 
 export default AppointmentsScreen;
 

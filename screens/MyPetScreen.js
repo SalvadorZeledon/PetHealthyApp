@@ -16,26 +16,27 @@ const MyPetScreen = ({ navigation }) => {
     navigation.navigate('Settings');
   };
 
+
   return (
-    <View style={[styles.container, { color: theme.backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis mascotas</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Mis mascotas</Text>
 
-        <TouchableOpacity
-          style={styles.iconCircle}
-          onPress={handleOpenSettings}
-        >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
-        </TouchableOpacity>
+       <TouchableOpacity
+                 style={[styles.iconCircle, { backgroundColor: darkMode ? theme.card2 : '#FFFFFF' }]}
+                 onPress={handleOpenSettings}
+               >
+                 <Ionicons name="settings-outline" size={20} color="#365b6d" />
+               </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Aquí ya luego metemos la lógica real de mascotas */}
-        <View Style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.placeholderCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           <Ionicons name="paw-outline" size={40} color="#4CAF50" />
-          <Text style={styles.placeholderTitle}>Tus mascotas</Text>
-          <Text style={styles.placeholderText}>
+          <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Tus mascotas</Text>
+          <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
             Aquí podrás ver, agregar y administrar las fichas de tus mascotas.
           </Text>
 

@@ -249,26 +249,31 @@ const CompleteProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  return (
+return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#E3F2FD' }}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Completar perfil</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>Completar perfil</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Cuéntanos un poco más sobre ti para personalizar tu experiencia.
           </Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
           {/* Nombres */}
-          <View className="field" style={styles.field}>
-            <Text style={styles.label}>Nombres</Text>
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Nombres</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Ej. Carlos Eduardo"
+              placeholderTextColor={theme.textSecondary}
               value={nombres}
               onChangeText={(text) => {
                 setNombres(text);
@@ -282,10 +287,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
 
           {/* Apellidos */}
           <View style={styles.field}>
-            <Text style={styles.label}>Apellidos</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Apellidos</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Ej. López Sánchez"
+              placeholderTextColor={theme.textSecondary}
               value={apellidos}
               onChangeText={(text) => {
                 setApellidos(text);
@@ -300,10 +310,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
           {/* Edad y teléfono */}
           <View style={styles.row}>
             <View style={[styles.field, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>Edad</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Edad</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 placeholder="Ej. 28"
+                placeholderTextColor={theme.textSecondary}
                 value={edad}
                 onChangeText={handleChangeEdad}
                 keyboardType="number-pad"
@@ -314,10 +329,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
             </View>
 
             <View style={[styles.field, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>Teléfono</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Teléfono</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 placeholder="1234-5678"
+                placeholderTextColor={theme.textSecondary}
                 value={telefono}
                 onChangeText={handleChangeTelefono}
                 keyboardType="phone-pad"
@@ -330,10 +350,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
 
           {/* DUI */}
           <View style={styles.field}>
-            <Text style={styles.label}>DUI</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>DUI</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="00000000-0"
+              placeholderTextColor={theme.textSecondary}
               value={dui}
               onChangeText={handleChangeDui}
               keyboardType="number-pad"
@@ -343,10 +368,16 @@ const CompleteProfileScreen = ({ route, navigation }) => {
 
           {/* Dirección + botones de ubicación */}
           <View style={styles.field}>
-            <Text style={styles.label}>Dirección</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Dirección</Text>
             <TextInput
-              style={[styles.input, { minHeight: 48 }]}
+              style={[styles.input, { 
+                minHeight: 48,
+                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                borderColor: darkMode ? '#444' : '#CFD8DC',
+                color: theme.textPrimary 
+              }]}
               placeholder="Ej. Colonia, ciudad, país"
+              placeholderTextColor={theme.textSecondary}
               value={direccion}
               onChangeText={(text) => {
                 setDireccion(text);
@@ -360,7 +391,9 @@ const CompleteProfileScreen = ({ route, navigation }) => {
 
             <View style={styles.locationButtonsRow}>
               <TouchableOpacity
-                style={styles.locationButton}
+                style={[styles.locationButton, { 
+                  backgroundColor: darkMode ? '#2A3A3A' : '#E0F7FA' 
+                }]}
                 onPress={handleUseLocation}
                 disabled={loadingLocation}
               >
@@ -381,7 +414,10 @@ const CompleteProfileScreen = ({ route, navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.locationButtonOutline}
+                style={[styles.locationButtonOutline, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#FFFFFF',
+                  borderColor: darkMode ? '#444' : '#B0BEC5'
+                }]}
                 onPress={handleOpenLocationPicker}
               >
                 <Ionicons name="map-outline" size={18} color="#365b6d" />

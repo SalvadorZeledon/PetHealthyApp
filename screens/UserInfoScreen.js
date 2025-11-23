@@ -27,6 +27,7 @@ const avatarPlaceholder = require('../assets/logo.png');
 
 const UserInfoScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
+  
  const { theme, darkMode } = useTheme();
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -490,15 +491,22 @@ const UserInfoScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+  
       {/* Barra superior */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={handleGoBack} style={styles.topIconButton}>
+     <View style={styles.topBar}>
+        <TouchableOpacity 
+          onPress={handleGoBack} 
+          style={[styles.topIconButton, { backgroundColor: darkMode ? theme.card2 : '#E0E9F5' }]}
+        >
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
 
         <Text style={[styles.topTitle, { color: theme.textPrimary }]}>Información de usuario</Text>
 
-        <TouchableOpacity onPress={handleToggleEdit} style={styles.topIconButton}>
+        <TouchableOpacity 
+          onPress={handleToggleEdit} 
+          style={[styles.topIconButton, { backgroundColor: darkMode ? theme.card2 : '#E0E9F5' }]}
+        >
           <Ionicons
             name={isEditing ? 'close-outline' : 'create-outline'}
             size={22}
@@ -507,8 +515,9 @@ const UserInfoScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Cabecera con foto */}
+         {/* Cabecera con foto */}
         <View style={styles.profileHeader}>
           <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8}>
             <View>
@@ -529,68 +538,83 @@ const UserInfoScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.username}>@{userData.username}</Text>
-          <Text style={styles.fullName}>
+          <Text style={[styles.username, { color: theme.textSecondary }]}>@{userData.username}</Text>
+          <Text style={[styles.fullName, { color: theme.textPrimary }]}>
             {userData.nombres} {userData.apellidos}
           </Text>
-          <Text style={styles.email}>{userData.email}</Text>
+          <Text style={[styles.email, { color: theme.textSecondary }]}>{userData.email}</Text>
 
           {isEditing && (
-            <Text style={styles.photoHint}>
+            <Text style={[styles.photoHint, { color: theme.textSecondary }]}>
               Toca la foto para cambiar tu imagen de perfil.
             </Text>
           )}
-        </View>style
+        </View>
+
 
         {/* Datos */}
-        <View tyle={[styles.card, { color: theme.card2 }]}>
-          <Text  style={[styles.cardTitle, { color: theme.textPrimary }]}>Datos personales</Text>
+ <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Datos personales</Text>
 
           {/* Usuario */}
-          <View style={styles.field}>
-            <Text ={[styles.label, { color: theme.textSecondary }]}>Nombre de usuario</Text>
+           <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Nombre de usuario</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 value={userData.username}
                 onChangeText={(text) => handleChangeField('username', text)}
               />
             ) : (
-              <Text style={styles.value}>@{userData.username}</Text>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>@{userData.username}</Text>
             )}
             {errorUsername ? (
               <Text style={styles.errorText}>{errorUsername}</Text>
             ) : null}
           </View>
 
+
           {/* Nombres */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Nombres</Text>
+           <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Nombres</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 value={userData.nombres}
                 onChangeText={(text) => handleChangeField('nombres', text)}
               />
             ) : (
-              <Text style={styles.value}>{userData.nombres}</Text>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.nombres}</Text>
             )}
             {errorNombres ? (
               <Text style={styles.errorText}>{errorNombres}</Text>
             ) : null}
           </View>
 
+
           {/* Apellidos */}
           <View style={styles.field}>
-            <Text style={styles.label}>Apellidos</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Apellidos</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 value={userData.apellidos}
                 onChangeText={(text) => handleChangeField('apellidos', text)}
               />
             ) : (
-              <Text style={styles.value}>{userData.apellidos}</Text>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.apellidos}</Text>
             )}
             {errorApellidos ? (
               <Text style={styles.errorText}>{errorApellidos}</Text>
@@ -598,18 +622,22 @@ const UserInfoScreen = ({ navigation }) => {
           </View>
 
           {/* Email */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Correo electrónico</Text>
+           <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Correo electrónico</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 value={userData.email}
                 onChangeText={(text) => handleChangeField('email', text)}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             ) : (
-              <Text style={styles.value}>{userData.email}</Text>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.email}</Text>
             )}
             {errorEmail ? (
               <Text style={styles.errorText}>{errorEmail}</Text>
@@ -617,18 +645,22 @@ const UserInfoScreen = ({ navigation }) => {
           </View>
 
           {/* Edad y teléfono */}
-          <View style={styles.fieldRow}>
+           <View style={styles.fieldRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.label}>Edad</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Edad</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                    borderColor: darkMode ? '#444' : '#CFD8DC',
+                    color: theme.textPrimary 
+                  }]}
                   value={userData.edad}
                   onChangeText={handleChangeEdad}
                   keyboardType="number-pad"
                 />
               ) : (
-                <Text style={styles.value}>{userData.edad} años</Text>
+                <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.edad} años</Text>
               )}
               {errorEdad ? (
                 <Text style={styles.errorText}>{errorEdad}</Text>
@@ -636,16 +668,20 @@ const UserInfoScreen = ({ navigation }) => {
             </View>
 
             <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.label}>Teléfono</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Teléfono</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                    borderColor: darkMode ? '#444' : '#CFD8DC',
+                    color: theme.textPrimary 
+                  }]}
                   value={userData.telefono}
                   onChangeText={handleChangeTelefono}
                   keyboardType="phone-pad"
                 />
               ) : (
-                <Text style={styles.value}>{userData.telefono}</Text>
+                <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.telefono}</Text>
               )}
               {errorTelefono ? (
                 <Text style={styles.errorText}>{errorTelefono}</Text>
@@ -655,35 +691,47 @@ const UserInfoScreen = ({ navigation }) => {
 
           {/* DUI */}
           <View style={styles.field}>
-            <Text style={styles.label}>DUI</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>DUI</Text>
             {isEditing ? (
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                  borderColor: darkMode ? '#444' : '#CFD8DC',
+                  color: theme.textPrimary 
+                }]}
                 value={userData.dui}
                 onChangeText={handleChangeDui}
                 keyboardType="number-pad"
               />
             ) : (
-              <Text style={styles.value}>{userData.dui}</Text>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>{userData.dui}</Text>
             )}
             {errorDui ? <Text style={styles.errorText}>{errorDui}</Text> : null}
           </View>
 
           {/* Dirección */}
           <View style={styles.field}>
-            <Text style={styles.label}>Dirección</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Dirección</Text>
             {isEditing ? (
               <>
                 <TextInput
-                  style={[styles.input, { minHeight: 48 }]}
+                  style={[styles.input, { 
+                    minHeight: 48,
+                    backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+                    borderColor: darkMode ? '#444' : '#CFD8DC',
+                    color: theme.textPrimary 
+                  }]}
                   value={userData.direccion}
                   onChangeText={(text) => handleChangeField('direccion', text)}
                   placeholder="Ej. Colonia, ciudad, país"
+                  placeholderTextColor={theme.textSecondary}
                   multiline
                 />
                 <View style={styles.locationButtonsRow}>
                   <TouchableOpacity
-                    style={styles.locationButton}
+                    style={[styles.locationButton, { 
+                      backgroundColor: darkMode ? '#2A3A3A' : '#E0F7FA' 
+                    }]}
                     onPress={handleUseLocation}
                     disabled={loadingLocation}
                   >
@@ -704,7 +752,10 @@ const UserInfoScreen = ({ navigation }) => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.locationButtonOutline}
+                    style={[styles.locationButtonOutline, { 
+                      backgroundColor: darkMode ? '#2A2A2A' : '#FFFFFF',
+                      borderColor: darkMode ? '#444' : '#B0BEC5'
+                    }]}
                     onPress={handleOpenLocationPicker}
                   >
                     <Ionicons name="map-outline" size={18} color="#365b6d" />
@@ -715,7 +766,7 @@ const UserInfoScreen = ({ navigation }) => {
                 </View>
               </>
             ) : (
-              <Text style={styles.value}>
+              <Text style={[styles.value, { color: theme.textPrimary }]}>
                 {userData.direccion || 'Sin dirección registrada'}
               </Text>
             )}
@@ -723,7 +774,6 @@ const UserInfoScreen = ({ navigation }) => {
               <Text style={styles.errorText}>{errorDireccion}</Text>
             ) : null}
           </View>
-
           {isEditing && (
             <TouchableOpacity
               style={styles.saveButton}

@@ -129,29 +129,36 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
     }
   };
 
+
   return (
-    <View style={[styles.logoContainer, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* header con logo */}
-      <View Style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.logoContainer}>
         <Image source={logo} style={styles.logo} resizeMode="contain" />
         <Text style={[styles.appName, { color: theme.textPrimary }]}>PetHealthyApp</Text>
-        <Text style={styles.appSubtitle}>
+        <Text style={[styles.appSubtitle, { color: theme.textSecondary }]}>
           Una última cosa: elige una foto para reconocerte mejor 🐾
         </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Foto de perfil</Text>
-        <Text style={styles.subtitle}>
+      <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Foto de perfil</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           Esta foto solo se usará en esta app para identificarte junto a tus
           mascotas.
         </Text>
 
-        <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+        <TouchableOpacity 
+          style={[styles.imageContainer, { 
+            backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
+            borderColor: darkMode ? '#444' : '#CFD8DC'
+          }]} 
+          onPress={pickImage}
+        >
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.image} />
           ) : (
-            <Text style={styles.imagePlaceholderText}>
+            <Text style={[styles.imagePlaceholderText, { color: theme.textSecondary }]}>
               Toca para elegir una foto
             </Text>
           )}
@@ -172,6 +179,7 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   fontLoadingContainer: {
