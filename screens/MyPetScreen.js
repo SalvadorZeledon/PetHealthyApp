@@ -37,7 +37,7 @@ const MyPetScreen = ({ navigation }) => {
             Aquí podrás ver, agregar y administrar las fichas de tus mascotas.
           </Text>
 
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('RegistroMascota1')}>
             <Ionicons name="add-outline" size={18} color="#FFFFFF" />
             <Text style={styles.primaryButtonText}>Agregar mascota</Text>
           </TouchableOpacity>

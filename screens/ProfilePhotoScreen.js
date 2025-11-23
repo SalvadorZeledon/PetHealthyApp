@@ -16,6 +16,8 @@ import { COL_USUARIOS } from '../src/utils/collections';
 import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadImageToCloudinary } from '../src/services/cloudinary';
+
 
 
 const logo = require('../assets/logologin.png');
@@ -57,7 +59,7 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: [ImagePicker.MediaType.IMAGE],
         quality: 0.7,
         allowsEditing: true,
         aspect: [1, 1],
@@ -92,20 +94,24 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
     try {
       setSaving(true);
 
-      // Aquí solo marcamos en Firestore que ya configuró la foto.
-      // Más adelante, cuando uses Storage, podrás guardar la URL real.
+      // 1) Subir la imagen a Cloudinary
+      const imageUrl = await uploadImageToCloudinary(imageUri);
+
+      // 2) Actualizar al usuario en Firestore con la URL de Cloudinary
       const userRef = doc(db, COL_USUARIOS, userId);
-      await AsyncStorage.setItem(`@userPhoto_${userId}`, imageUri);
       await updateDoc(userRef, {
-        tieneFotoLocal: true,       // flag para saltarse este paso la próxima vez
-        fotoPerfilUrl: null,        // de momento sin URL en la nube
+        tieneFotoLocal: true,        // sigue indicando que ya configuró foto
+        fotoPerfilUrl: imageUrl,     // ahora sí, URL en la nube
       });
+
+      // 3) Guardar también la foto local en AsyncStorage (para uso offline/rápido)
+      await AsyncStorage.setItem(`@userPhoto_${userId}`, imageUri);
 
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
         title: 'Foto configurada',
         textBody:
-          'Guardamos tu preferencia de foto en este dispositivo. Más adelante podrás sincronizarla en la nube.',
+          'Tu foto se guardó correctamente. Podrás verla en tu perfil y cambiarla cuando quieras.',
         button: 'Continuar',
         onHide: () => {
           navigation.reset({

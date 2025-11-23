@@ -10,6 +10,10 @@ import UserInfoScreen from '../../screens/UserInfoScreen';
 import SettingsScreen from '../../screens/SettingsScreen';   // 👈 NUEVO
 import TabNavigator from './TabNavigator';
 import LocationPickerScreen from '../../screens/LocationPickerScreen'; // 👈 nuevo
+import DogBasicInfoScreen from '../../screens/DogBasicInfoScreen';
+import RegistroMascota1 from '../../screens/RegistroMascota1';
+import RegistroMascota2 from '../../screens/RegistroMascota2';
+
 
 
 const Stack = createNativeStackNavigator();
@@ -18,13 +22,19 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator
       initialRouteName="Login"
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false }} 
     >
+
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
 
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
+      <Stack.Screen name="DogBasicInfo" component={DogBasicInfoScreen} />
+      
+      <Stack.Screen name="RegistroMascota1" component={RegistroMascota1} />
+      <Stack.Screen name="RegistroMascota2" component={RegistroMascota2} />
+
 
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
