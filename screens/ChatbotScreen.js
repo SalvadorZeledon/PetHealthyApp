@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+// screens/ChatbotScreen.js
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +9,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getAIResponse } from "../src/services/groqService";
@@ -18,36 +20,69 @@ const ChatbotScreen = ({ navigation }) => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const scrollViewRef = useRef();   // 👈 AUTO-SCROLL
+  const scrollViewRef = useRef();
+
+  const MEDICATION_KEYWORDS = [
+    'medicamento', 'medicina', 'pastilla', 'tableta', 'inyección', 'inyectable',
+    'antibiótico', 'analgésico', 'antiinflamatorio', 'dosis', 'mg', 'ml',
+    'paracetamol', 'ibuprofeno', 'aspirina', 'penicilina', 'vacuna', 'tratamiento',
+    'receta', 'fármaco', 'droga', 'comprimido', 'cápsula', 'jarabe', 'pomada',
+    'crema', 'gotas', 'supositorio', 'antiparasitario', 'desparasitante'
+  ];
+
+  const containsMedicationKeywords = (text) => {
+    const lowerText = text.toLowerCase();
+    return MEDICATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
+  };
 
   const sendMessage = async () => {
     if (!input.trim()) return;
 
     const userText = input.trim();
+
+    if (containsMedicationKeywords(userText)) {
+      Alert.alert(
+        "⚠️ Consulta importante",
+        "Para temas relacionados con medicamentos, debes consultar directamente con un veterinario. Puedo ayudarte con consejos generales de cuidado y bienestar.",
+        [{ text: "Entendido", style: "default" }]
+      );
+      return;
+    }
+
     setInput("");
-
-    const newMessages = [
-      ...messages,
-      { sender: "user", text: userText }
-    ];
-
+    const newMessages = [...messages, { sender: "user", text: userText }];
     setMessages(newMessages);
     setLoading(true);
 
     const botResponse = await getAIResponse(newMessages);
-
-    setMessages(prev => [
-      ...prev,
-      { sender: "ai", text: botResponse }
-    ]);
-
+    setMessages(prev => [...prev, { sender: "ai", text: botResponse }]);
     setLoading(false);
   };
 
-  // 🔥 BOTÓN para limpiar chat
+
   const clearChat = () => {
-    setMessages([]);
+    Alert.alert(
+      "¿Eliminar conversación?",
+      "Se eliminarán todos los mensajes del chat actual.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Sí, eliminar", 
+          style: "destructive",
+          onPress: () => setMessages([]) 
+        }
+      ]
+    );
   };
+
+  // 🔹 Ventana emergente al entrar a la pantalla
+  useEffect(() => {
+    Alert.alert(
+      "¡Hola! 👋",
+      "Soy PetHealthyBot, tu asistente para consultas de bienestar animal. Puedo darte consejos generales y guiarte con información útil sobre tus mascotas.",
+      [{ text: "¡Aceptar!", style: "default" }]
+    );
+  }, []);
 
   return (
     <KeyboardAvoidingView
@@ -131,7 +166,7 @@ export default ChatbotScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#E3F2FD" },
-  
+
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -168,7 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     marginBottom: 4,
-    color: "#004D40"
+    color: "#004D40",
   },
 
   chatText: { fontSize: 14, color: "#004D40" },

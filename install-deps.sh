@@ -38,6 +38,11 @@ npx expo install expo-location
 echo "Instalando React Native Maps para acceder a los mapas..-"
 npx expo install react-native-maps
 
+echo "Instalando librería para copiar al portapapeles..."
+npm install expo-clipboard
+
+echo "Instalando Axios para hacer solicitudes HTTP..."
+npm install axios
 
 
 echo "✅ Listo. Todas las dependencias deberían estar instaladas."
