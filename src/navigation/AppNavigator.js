@@ -11,13 +11,15 @@ import SettingsScreen from '../../screens/SettingsScreen';
 import LocationPickerScreen from '../../screens/LocationPickerScreen';
 import TabNavigator from './TabNavigator';
 
-// Directorio
+// --- TUS PANTALLAS (Directorio y Veterinarias) ---
 import DirectorioScreen from '../../screens/DirectorioScreen';
 import DirectorioDetailScreen from '../../screens/DirectorioDetailScreen';
-
-// Veterinarias (NUEVO)
 import VetFinderScreen from '../../screens/VetFinderScreen';
 import VetDetailScreen from '../../screens/VetDetailScreen';
+
+// --- PANTALLAS DE IVÁN (Términos y AboutUs) ---
+import TermsScreen from '../../screens/TermsScreen';
+import AboutUsScreen from '../../screens/AboutUsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,15 +39,26 @@ const AppNavigator = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
 
-      {/* Directorio */}
+      {/* --- TUS RUTAS --- */}
       <Stack.Screen name="Directorio" component={DirectorioScreen} />
       <Stack.Screen name="DirectorioDetail" component={DirectorioDetailScreen} />
-
-      {/* Veterinarias cercanas — NUEVO */}
       <Stack.Screen name="VetFinder" component={VetFinderScreen} />
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
 
+      {/* --- RUTAS COMUNES --- */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
+
+      {/* --- RUTAS DE IVÁN --- */}
+      <Stack.Screen
+        name="Terms"
+        component={TermsScreen}
+        options={{ headerShown: true, title: 'Términos y Condiciones' }}
+      />
+      <Stack.Screen
+        name="AboutUs"
+        component={AboutUsScreen}
+        options={{ headerShown: true, title: 'Acerca de nosotros' }}
+      />
     </Stack.Navigator>
   );
 };

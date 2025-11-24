@@ -1,4 +1,3 @@
-// screens/SettingsScreen.js
 import React from 'react';
 import {
   View,
@@ -22,12 +21,18 @@ const SettingsScreen = ({ navigation }) => {
     navigation.navigate('UserInfo');
   };
 
+  // --- FUNCIONALIDAD DE IVÁN ---
+  const handleOpenAboutUs = () => {
+    navigation.navigate('AboutUs'); 
+  };
+
+  // --- TUS FUNCIONALIDADES ---
   const handleOpenDirectory = () => {
     navigation.navigate('Directorio');
   };
 
   const handleOpenVetFinder = () => {
-    navigation.navigate('VetFinder'); // <- NUEVA RUTA
+    navigation.navigate('VetFinder');
   };
 
   const handleLogout = async () => {
@@ -88,8 +93,20 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
+        {/* BOTÓN DE IVÁN INTEGRADO AQUÍ */}
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
+          <Ionicons name="information-circle-outline" size={24} color="#365b6d" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Acerca de nosotros</Text>
+            <Text style={styles.optionSubtitle}>
+              Conoce más sobre PetHealthy.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
 
-        {/* SECCIÓN SERVICIOS EXTERNOS */}
+
+        {/* SECCIÓN SERVICIOS EXTERNOS (TUS BOTONES) */}
         <Text style={styles.sectionTitle}>Servicios externos</Text>
 
         {/* DIRECTORIO */}
@@ -98,19 +115,19 @@ const SettingsScreen = ({ navigation }) => {
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.optionTitle}>Directorio</Text>
             <Text style={styles.optionSubtitle}>
-              Instituciones para denuncias de maltrato animal.
+              Instituciones para denuncias.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
-        {/* VETERINARIAS CERCANAS — NUEVO */}
+        {/* VETERINARIAS CERCANAS */}
         <TouchableOpacity style={styles.optionCard} onPress={handleOpenVetFinder}>
           <Ionicons name="medkit-outline" size={24} color="#365b6d" />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Veterinarias y Agroservicios cercanos</Text>
+            <Text style={styles.optionTitle}>Veterinarias cercanas</Text>
             <Text style={styles.optionSubtitle}>
-              Encuentra clínicas veterinarias cerca de tu ubicación.
+              Encuentra clínicas cerca de ti.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
@@ -141,7 +158,6 @@ const SettingsScreen = ({ navigation }) => {
 };
 
 export default SettingsScreen;
-
 
 const styles = StyleSheet.create({
   container: {
