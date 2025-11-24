@@ -18,8 +18,9 @@ import { PET_SEX_OPTIONS } from '../src/utils/petConstants';
 // Solo letras (con acentos), ñ y espacios
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/;
 
-const RegistroMascota1 = ({ navigation }) => {
+const RegistroMascota1 = ({ navigation, route }) => {
   const [imageUri, setImageUri] = useState(null);
+  const initialSpecies = route?.params?.initialSpecies || 'perro';
 
   const [name, setName] = useState('');
   const [sex, setSex] = useState('macho');
@@ -82,22 +83,24 @@ const RegistroMascota1 = ({ navigation }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleContinue = () => {
-    if (!validate()) return;
+const handleContinue = () => {
+  if (!validate()) return;
 
-    const draftPetStep1 = {
-      nombre: name.trim(),
-      sexo: sex,
-      tieneMicrochip: hasMicrochip,
-      identificadorMicrochip: microchipId.trim() || null,
-      poseeTatuaje: hasTattoo,
-      edadValor: Number(ageValue),
-      edadTipo: ageType,
-      imageUri: imageUri || null,
-    };
-
-    navigation.navigate('RegistroMascota2', { draftPet: draftPetStep1 });
+  const draftPetStep1 = {
+    especie: initialSpecies,            // 👈 NUEVO
+    nombre: name.trim(),
+    sexo: sex,
+    tieneMicrochip: hasMicrochip,
+    identificadorMicrochip: microchipId.trim() || null,
+    poseeTatuaje: hasTattoo,
+    edadValor: Number(ageValue),
+    edadTipo: ageType,
+    imageUri: imageUri || null,
   };
+
+  navigation.navigate('RegistroMascota2', { draftPet: draftPetStep1 });
+};
+
 
   const renderSexOption = (option) => {
     const isSelected = sex === option.value;

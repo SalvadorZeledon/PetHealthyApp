@@ -9,12 +9,17 @@ import {
   TextInput,
   Platform,
   Image,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ALERT_TYPE, Dialog } from 'react-native-alert-notification';
+import { createPetWithHistory } from '../src/services/petsService'; // 👈 NUEVO
+import { getUserFromStorage } from '../src/utils/storage';  
 
 const RegistroMascota3 = ({ navigation, route }) => {
   const draftPet = route?.params?.draftPet || {};
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   /* ======================================================
      ESTADO: CONVIVENCIA CON OTROS ANIMALES
@@ -73,111 +78,153 @@ const RegistroMascota3 = ({ navigation, route }) => {
   /* ======================================================
      HANDLER FINALIZAR REGISTRO
      ====================================================== */
-  const handleFinish = () => {
-    // 1) Convivencia con otros animales
-    if (livesWithOthers === null) {
+const handleFinish = async () => {
+  // 1) Convivencia con otros animales
+  if (livesWithOthers === null) {
+    showWarning(
+      'Convivencia',
+      'Indica si tu mascota vive o no con otros animales.'
+    );
+    return;
+  }
+
+  if (livesWithOthers === true) {
+    if (!othersRelation) {
       showWarning(
         'Convivencia',
-        'Indica si tu mascota vive o no con otros animales.'
+        'Describe cómo es la relación entre tus mascotas.'
       );
       return;
     }
 
-    if (livesWithOthers === true) {
-      if (!othersRelation) {
-        showWarning(
-          'Convivencia',
-          'Describe cómo es la relación entre tus mascotas.'
-        );
-        return;
-      }
-
-      if (!othersDescription.trim()) {
-        showWarning(
-          'Convivencia',
-          'Por favor describe brevemente cómo conviven tus mascotas.'
-        );
-        return;
-      }
-    }
-
-    // 2) Agresividad
-    if (isAggressive === null) {
+    if (!othersDescription.trim()) {
       showWarning(
-        'Agresividad',
-        'Responde si tu mascota es agresiva o no.'
+        'Convivencia',
+        'Describe brevemente la convivencia con otros animales.'
       );
       return;
     }
+  }
 
-    if (isAggressive === true && !aggressionDescription.trim()) {
-      showWarning(
-        'Agresividad',
-        'Describe en qué situaciones tu mascota suele mostrarse agresiva.'
-      );
+  // 2) Agresividad
+  if (isAggressive === null) {
+    showWarning(
+      'Agresividad',
+      'Indica si tu mascota es agresiva o no.'
+    );
+    return;
+  }
+
+  if (isAggressive === true && !aggressionDescription.trim()) {
+    showWarning(
+      'Agresividad',
+      'Describe en qué situaciones tu mascota suele mostrarse agresiva.'
+    );
+    return;
+  }
+
+  // Compromiso veracidad
+  if (!honestyChecked) {
+    showWarning(
+      'Compromiso de veracidad',
+      'Debes confirmar que la información proporcionada es verdadera.'
+    );
+    return;
+  }
+
+  // 3) Viajes
+  if (travelsRegularly === null) {
+    showWarning(
+      'Viajes',
+      'Indica si tu mascota viaja regularmente o no.'
+    );
+    return;
+  }
+
+  if (travelsRegularly === true && !travelDescription.trim()) {
+    showWarning(
+      'Viajes',
+      'Describe a dónde sueles viajar con tu mascota.'
+    );
+    return;
+  }
+
+  // 4) Construir objeto comportamiento
+  const comportamiento = {
+    viveConOtrosAnimales: livesWithOthers === true,
+    relacionConOtrosAnimales: othersRelation,
+    descripcionConvivencia: othersDescription.trim(),
+
+    esAgresivo: isAggressive,
+    descripcionAgresividad: aggressionDescription.trim(),
+
+    viajaRegularmente: travelsRegularly,
+    descripcionViajes: travelDescription.trim(),
+
+    compromisoVeracidad: honestyChecked,
+  };
+
+  const draftPetStep3 = {
+    ...draftPet,
+    comportamiento,
+  };
+
+  setIsSubmitting(true);
+
+  try {
+    // Obtener usuario actual
+    const user = await getUserFromStorage();
+
+    if (!user || !user.id) {
+      setIsSubmitting(false);
+      Dialog.show({
+        type: ALERT_TYPE.DANGER,
+        title: 'Sesión expirada',
+        textBody: 'Vuelve a iniciar sesión para registrar tu mascota.',
+        button: 'Ir al inicio',
+        onPressButton: () => {
+          Dialog.hide();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        },
+      });
       return;
     }
 
-    // Check de honestidad (obligatorio siempre)
-    if (!honestyChecked) {
-      showWarning(
-        'Compromiso de veracidad',
-        'Debes confirmar que la información proporcionada es verdadera.'
-      );
-      return;
-    }
-
-    // 3) Viajes
-    if (travelsRegularly === null) {
-      showWarning(
-        'Viajes',
-        'Indica si tu mascota viaja regularmente o no.'
-      );
-      return;
-    }
-
-    if (travelsRegularly === true && !travelDescription.trim()) {
-      showWarning(
-        'Viajes',
-        'Describe a dónde sueles viajar con tu mascota.'
-      );
-      return;
-    }
-
-    // Si todo está OK, armamos el objeto de comportamiento
-    const comportamiento = {
-      viveConOtrosAnimales: livesWithOthers === true,
-      relacionConOtrosAnimales: othersRelation,
-      descripcionConvivencia: othersDescription.trim(),
-
-      esAgresivo: isAggressive,
-      descripcionAgresividad: aggressionDescription.trim(),
-
-      viajaRegularmente: travelsRegularly,
-      descripcionViajes: travelDescription.trim(),
-
-      compromisoVeracidad: honestyChecked,
-    };
-
-    const draftPetStep3 = {
-      ...draftPet,
-      comportamiento,
-    };
-
-    console.log('🐶 draftPet completo:', draftPetStep3);
+    // Guardar en Firestore + Cloudinary
+    await createPetWithHistory(user.id, draftPetStep3);
 
     Dialog.show({
       type: ALERT_TYPE.SUCCESS,
       title: 'Registro completado',
-      textBody: 'La información de tu mascota se ha registrado correctamente.',
+      textBody: 'La información de tu mascota se ha guardado correctamente.',
       button: 'Continuar',
       onPressButton: () => {
         Dialog.hide();
-        // Ajusta esta navegación a lo que quieras hacer después:
-        navigation.popToTop?.();
+        // Llevar al usuario a sus mascotas o al home principal
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
       },
     });
-  };
+  } catch (error) {
+    console.error('Error al registrar mascota:', error);
+    Dialog.show({
+      type: ALERT_TYPE.DANGER,
+      title: 'Error',
+      textBody:
+        error.message ||
+        'Ocurrió un error al guardar la información de tu mascota. Inténtalo nuevamente.',
+      button: 'Entendido',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   /* ======================================================
      RENDER
@@ -360,11 +407,29 @@ const RegistroMascota3 = ({ navigation, route }) => {
             )}
           </View>
 
-          {/* BOTÓN FINALIZAR (CENTRADO) */}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleFinish}>
+         
+        {/* BOTÓN FINALIZAR (CENTRADO) */}
+        <TouchableOpacity
+        style={[
+            styles.primaryButton,
+            isSubmitting && { opacity: 0.8 },
+        ]}
+        onPress={handleFinish}
+        disabled={isSubmitting}
+        >
+        {isSubmitting ? (
+            <>
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.primaryButtonText}>Guardando...</Text>
+            </>
+        ) : (
+            <>
             <Text style={styles.primaryButtonText}>Finalizar registro</Text>
             <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
+            </>
+        )}
+        </TouchableOpacity>
+
         </View>
 
         <View style={{ height: 30 }} />

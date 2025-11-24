@@ -5,33 +5,29 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   ScrollView,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
 
 const SPECIES_OPTIONS = [
-  { id: 'perro',  label: 'Perro',  iconName: 'dog',        family: 'FontAwesome5',          enabled: true },
-  { id: 'gato',   label: 'Gato',   iconName: 'cat',        family: 'FontAwesome5',          enabled: true },
-  { id: 'ave',    label: 'Ave',    iconName: 'crow',       family: 'FontAwesome5',          enabled: false },
-  { id: 'roedor', label: 'Roedor', iconName: 'otter',      family: 'FontAwesome5',          enabled: false },
+  { id: 'perro',  label: 'Perro',  iconName: 'dog',        family: 'FontAwesome5',           enabled: true },
+  { id: 'gato',   label: 'Gato',   iconName: 'cat',        family: 'FontAwesome5',           enabled: true },
+  { id: 'ave',    label: 'Ave',    iconName: 'crow',       family: 'FontAwesome5',           enabled: false },
+  { id: 'roedor', label: 'Roedor', iconName: 'otter',      family: 'FontAwesome5',           enabled: false },
   { id: 'reptil', label: 'Reptil', iconName: 'turtle',     family: 'MaterialCommunityIcons', enabled: false },
-  { id: 'otro',   label: 'Otro',   iconName: 'ellipsis-h', family: 'FontAwesome5',          enabled: false },
+  { id: 'otro',   label: 'Otro',   iconName: 'ellipsis-h', family: 'FontAwesome5',           enabled: false },
 ];
 
-const RegistroMascota = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
+const RegistroMascota = ({ navigation, route }) => {
   const [selectedSpecies, setSelectedSpecies] = useState(null);
 
-  const userName = route.params?.userName || '';
+  const userName = route?.params?.userName || '';
 
   const handleContinue = () => {
     if (!selectedSpecies) {
-      // Seguridad extra, aunque el botón está deshabilitado
       Dialog.show({
         type: ALERT_TYPE.WARNING,
         title: 'Selecciona una especie',
@@ -164,6 +160,7 @@ const RegistroMascota = () => {
 };
 
 export default RegistroMascota;
+
 
 const styles = StyleSheet.create({
   safeArea: {
