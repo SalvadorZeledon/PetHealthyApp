@@ -44,6 +44,11 @@ npm i cloudinary
 echo "Instalando libreria para manejo de fechas..."
 npm install @react-native-community/datetimepicker
 
+echo "Instalando libreria para copiar en portapapeles..."
+npm install expo-clipboard
+
+echo "Realizar peticiones http..."
+npm install axios
 
 
 echo "✅ Listo. Todas las dependencias deberían estar instaladas."

@@ -10,7 +10,6 @@ import UserInfoScreen from '../../screens/UserInfoScreen';
 import SettingsScreen from '../../screens/SettingsScreen';
 import LocationPickerScreen from '../../screens/LocationPickerScreen';
 import TabNavigator from './TabNavigator';
-import LocationPickerScreen from '../../screens/LocationPickerScreen'; // 👈 nuevo
 import DogBasicInfoScreen from '../../screens/DogBasicInfoScreen';
 import RegistroMascota from '../../screens/RegistroMascota';
 import RegistroMascota1 from '../../screens/RegistroMascota1';
