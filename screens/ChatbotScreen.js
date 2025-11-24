@@ -1,122 +1,236 @@
-import React from 'react';
+// screens/ChatbotScreen.js
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+  Platform,
+  KeyboardAvoidingView,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { getAIResponse } from "../src/services/groqService";
 
 const ChatbotScreen = ({ navigation }) => {
-  const handleOpenSettings = () => {
-    navigation.navigate('Settings');
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const scrollViewRef = useRef();
+
+  const MEDICATION_KEYWORDS = [
+    'medicamento', 'medicina', 'pastilla', 'tableta', 'inyección', 'inyectable',
+    'antibiótico', 'analgésico', 'antiinflamatorio', 'dosis', 'mg', 'ml',
+    'paracetamol', 'ibuprofeno', 'aspirina', 'penicilina', 'vacuna', 'tratamiento',
+    'receta', 'fármaco', 'droga', 'comprimido', 'cápsula', 'jarabe', 'pomada',
+    'crema', 'gotas', 'supositorio', 'antiparasitario', 'desparasitante'
+  ];
+
+  const containsMedicationKeywords = (text) => {
+    const lowerText = text.toLowerCase();
+    return MEDICATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
   };
 
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const userText = input.trim();
+
+    if (containsMedicationKeywords(userText)) {
+      Alert.alert(
+        "⚠️ Consulta importante",
+        "Para temas relacionados con medicamentos, debes consultar directamente con un veterinario. Puedo ayudarte con consejos generales de cuidado y bienestar.",
+        [{ text: "Entendido", style: "default" }]
+      );
+      return;
+    }
+
+    setInput("");
+    const newMessages = [...messages, { sender: "user", text: userText }];
+    setMessages(newMessages);
+    setLoading(true);
+
+    const botResponse = await getAIResponse(newMessages);
+    setMessages(prev => [...prev, { sender: "ai", text: botResponse }]);
+    setLoading(false);
+  };
+
+
+  const clearChat = () => {
+    Alert.alert(
+      "¿Eliminar conversación?",
+      "Se eliminarán todos los mensajes del chat actual.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Sí, eliminar", 
+          style: "destructive",
+          onPress: () => setMessages([]) 
+        }
+      ]
+    );
+  };
+
+  // 🔹 Ventana emergente al entrar a la pantalla
+  useEffect(() => {
+    Alert.alert(
+      "¡Hola! 👋",
+      "Soy PetHealthyBot, tu asistente para consultas de bienestar animal. Puedo darte consejos generales y guiarte con información útil sobre tus mascotas.",
+      [{ text: "¡Aceptar!", style: "default" }]
+    );
+  }, []);
+
   return (
-    <View style={styles.container}>
-      {/* HEADER SOLO CON SETTINGS */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat de consultas</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
+      <View style={styles.container}>
+        
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Chat de consultas</Text>
 
-        <TouchableOpacity
-          style={styles.iconCircle}
-          onPress={handleOpenSettings}
-        >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
-        </TouchableOpacity>
-      </View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity style={styles.iconCircle} onPress={clearChat}>
+              <Ionicons name="trash-outline" size={20} color="#d9534f" />
+            </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.placeholderCard}>
-          <Ionicons name="chatbubbles-outline" size={40} color="#00796B" />
-          <Text style={styles.placeholderTitle}>Asistente virtual</Text>
-          <Text style={styles.placeholderText}>
-            Próximamente podrás hacer consultas rápidas sobre la salud de tus
-            mascotas y recibir recomendaciones.
-          </Text>
-
-          <View style={styles.chatBubble}>
-            <Text style={styles.chatBotLabel}>PetHealthyBot</Text>
-            <Text style={styles.chatBotText}>
-              Hola 🐾, pronto podré ayudarte con dudas sobre vacunas, citas y
-              cuidados generales.
-            </Text>
+            <TouchableOpacity
+              style={styles.iconCircle}
+              onPress={() => navigation.navigate("Settings")}
+            >
+              <Ionicons name="settings-outline" size={20} color="#365b6d" />
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </View>
+
+        {/* MENSAJES */}
+        <ScrollView
+          ref={scrollViewRef}
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: true })
+          }
+          contentContainerStyle={styles.content}
+        >
+          {messages.map((msg, index) => (
+            <View
+              key={index}
+              style={[
+                styles.chatBubble,
+                msg.sender === "user" ? styles.userBubble : styles.aiBubble,
+              ]}
+            >
+              <Text style={styles.chatSender}>
+                {msg.sender === "user" ? "Tú" : "PetHealthyBot"}
+              </Text>
+              <Text style={styles.chatText}>{msg.text}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* INPUT */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Escribe tu consulta..."
+            style={styles.input}
+            multiline
+          />
+
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={sendMessage}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Ionicons name="send" size={20} color="white" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 export default ChatbotScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E3F2FD',
-  },
+  container: { flex: 1, backgroundColor: "#E3F2FD" },
+
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 40 : 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: Platform.OS === "ios" ? 40 : 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#263238',
-  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#263238" },
+
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 3,
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
-  placeholderCard: {
-    marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    alignItems: 'flex-start',
-    elevation: 3,
-  },
-  placeholderTitle: {
-    marginTop: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#263238',
-  },
-  placeholderText: {
-    marginTop: 4,
-    fontSize: 13,
-    color: '#607D8B',
-  },
+
+  content: { paddingHorizontal: 20, paddingBottom: 24 },
+
   chatBubble: {
-    marginTop: 14,
-    backgroundColor: '#E0F2F1',
-    borderRadius: 16,
+    marginTop: 10,
     padding: 12,
+    borderRadius: 14,
+    maxWidth: "80%",
   },
-  chatBotLabel: {
+  aiBubble: { backgroundColor: "#E0F2F1", alignSelf: "flex-start" },
+  userBubble: { backgroundColor: "#42A5F5", alignSelf: "flex-end" },
+
+  chatSender: {
     fontSize: 11,
-    color: '#00796B',
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
+    color: "#004D40",
   },
-  chatBotText: {
-    fontSize: 13,
-    color: '#004D40',
+
+  chatText: { fontSize: 14, color: "#004D40" },
+
+  inputContainer: {
+    flexDirection: "row",
+    padding: 10,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderColor: "#ccc",
+  },
+
+  input: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#bbb",
+  },
+
+  sendButton: {
+    marginLeft: 8,
+    backgroundColor: "#00796B",
+    padding: 12,
+    borderRadius: 50,
   },
 });

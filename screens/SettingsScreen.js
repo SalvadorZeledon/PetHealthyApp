@@ -1,4 +1,3 @@
-// screens/SettingsScreen.js
 import React from 'react';
 import {
   View,
@@ -6,13 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Alert,             // 👈 IMPORTAMOS Alert
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearUserFromStorage } from '../src/utils/storage';
 
 const SettingsScreen = ({ navigation }) => {
+  
   const handleBack = () => {
     navigation.goBack();
   };
@@ -21,9 +21,22 @@ const SettingsScreen = ({ navigation }) => {
     navigation.navigate('UserInfo');
   };
 
+  // --- FUNCIONALIDAD DE IVÁN ---
+  const handleOpenAboutUs = () => {
+    navigation.navigate('AboutUs'); 
+  };
+
+  // --- TUS FUNCIONALIDADES ---
+  const handleOpenDirectory = () => {
+    navigation.navigate('Directorio');
+  };
+
+  const handleOpenVetFinder = () => {
+    navigation.navigate('VetFinder');
+  };
+
   const handleLogout = async () => {
     try {
-      // Opcional: preguntar confirmación
       Alert.alert(
         'Cerrar sesión',
         '¿Seguro que deseas salir de tu cuenta?',
@@ -33,8 +46,8 @@ const SettingsScreen = ({ navigation }) => {
             text: 'Cerrar sesión',
             style: 'destructive',
             onPress: async () => {
-              await clearUserFromStorage(); // Borra @userData
-              await AsyncStorage.clear();   // (opcional) limpia todo lo demás
+              await clearUserFromStorage();
+              await AsyncStorage.clear();
 
               navigation.reset({
                 index: 0,
@@ -46,16 +59,14 @@ const SettingsScreen = ({ navigation }) => {
       );
     } catch (error) {
       console.log('Error al cerrar sesión:', error);
-      Alert.alert(
-        'Error',
-        'No se pudo cerrar la sesión. Inténtalo más tarde.'
-      );
+      Alert.alert('Error', 'No se pudo cerrar la sesión. Inténtalo más tarde.');
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* top bar */}
+      
+      {/* TOP BAR */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={handleBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
@@ -67,12 +78,11 @@ const SettingsScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.content}>
+
+        {/* SECCIÓN CUENTA */}
         <Text style={styles.sectionTitle}>Cuenta</Text>
 
-        <TouchableOpacity
-          style={styles.optionCard}
-          onPress={handleOpenProfile}
-        >
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenProfile}>
           <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.optionTitle}>Perfil</Text>
@@ -83,6 +93,48 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
+        {/* BOTÓN DE IVÁN INTEGRADO AQUÍ */}
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
+          <Ionicons name="information-circle-outline" size={24} color="#365b6d" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Acerca de nosotros</Text>
+            <Text style={styles.optionSubtitle}>
+              Conoce más sobre PetHealthy.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+
+        {/* SECCIÓN SERVICIOS EXTERNOS (TUS BOTONES) */}
+        <Text style={styles.sectionTitle}>Servicios externos</Text>
+
+        {/* DIRECTORIO */}
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenDirectory}>
+          <Ionicons name="book-outline" size={24} color="#365b6d" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Directorio</Text>
+            <Text style={styles.optionSubtitle}>
+              Instituciones para denuncias.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+        {/* VETERINARIAS CERCANAS */}
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenVetFinder}>
+          <Ionicons name="medkit-outline" size={24} color="#365b6d" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Veterinarias cercanas</Text>
+            <Text style={styles.optionSubtitle}>
+              Encuentra clínicas cerca de ti.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+
+        {/* SECCIÓN SESIÓN */}
         <Text style={styles.sectionTitle}>Sesión</Text>
 
         <TouchableOpacity
@@ -99,6 +151,7 @@ const SettingsScreen = ({ navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -161,3 +214,4 @@ const styles = StyleSheet.create({
     color: '#607D8B',
   },
 });
+
