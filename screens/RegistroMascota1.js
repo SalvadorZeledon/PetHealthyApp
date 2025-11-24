@@ -399,7 +399,7 @@ export default RegistroMascota1;
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#ECEFF4',
+    backgroundColor: '#D0E8F2'
   },
   headerRow: {
     paddingHorizontal: 20,

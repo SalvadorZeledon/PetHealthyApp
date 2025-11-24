@@ -1064,7 +1064,7 @@ const styles = StyleSheet.create({
      ================================ */
   screen: {
     flex: 1,
-    backgroundColor: '#ECEFF4',
+    backgroundColor: '#DBF4E8'  ,
   },
   headerRow: {
     paddingHorizontal: 20,

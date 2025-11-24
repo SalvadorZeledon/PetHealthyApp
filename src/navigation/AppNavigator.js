@@ -11,8 +11,10 @@ import SettingsScreen from '../../screens/SettingsScreen';   // 👈 NUEVO
 import TabNavigator from './TabNavigator';
 import LocationPickerScreen from '../../screens/LocationPickerScreen'; // 👈 nuevo
 import DogBasicInfoScreen from '../../screens/DogBasicInfoScreen';
+import RegistroMascota from '../../screens/RegistroMascota';
 import RegistroMascota1 from '../../screens/RegistroMascota1';
 import RegistroMascota2 from '../../screens/RegistroMascota2';
+import RegistroMascota3 from '../../screens/RegistroMascota3';
 
 
 
@@ -31,9 +33,11 @@ const AppNavigator = () => {
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
       <Stack.Screen name="DogBasicInfo" component={DogBasicInfoScreen} />
-      
+
+      <Stack.Screen name="RegistroMascota" component={RegistroMascota} />
       <Stack.Screen name="RegistroMascota1" component={RegistroMascota1} />
       <Stack.Screen name="RegistroMascota2" component={RegistroMascota2} />
+      <Stack.Screen name="RegistroMascota3" component={RegistroMascota3} />
 
 
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
