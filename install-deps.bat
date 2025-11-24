@@ -38,11 +38,12 @@ npx expo install expo-location
 echo "Instalando React Native Maps para acceder a los mapas..-"
 npx expo install react-native-maps
 
-echo "Instalando librería para copiar al portapapeles..."
-npm install expo-clipboard
+echo "Instalando React Native Maps para acceder a los mapas..-"
+npm i cloudinary
 
-echo "Instalando Axios para hacer solicitudes HTTP..."
-npm install axios
+echo "Instalando libreria para manejo de fechas..."
+npm install @react-native-community/datetimepicker
+
 
 
 echo "✅ Listo. Todas las dependencias deberían estar instaladas."

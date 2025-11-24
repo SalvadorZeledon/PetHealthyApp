@@ -16,7 +16,6 @@ const AppointmentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Citas</Text>
 

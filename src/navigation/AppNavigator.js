@@ -10,6 +10,14 @@ import UserInfoScreen from '../../screens/UserInfoScreen';
 import SettingsScreen from '../../screens/SettingsScreen';
 import LocationPickerScreen from '../../screens/LocationPickerScreen';
 import TabNavigator from './TabNavigator';
+import LocationPickerScreen from '../../screens/LocationPickerScreen'; // 👈 nuevo
+import DogBasicInfoScreen from '../../screens/DogBasicInfoScreen';
+import RegistroMascota from '../../screens/RegistroMascota';
+import RegistroMascota1 from '../../screens/RegistroMascota1';
+import RegistroMascota2 from '../../screens/RegistroMascota2';
+import RegistroMascota3 from '../../screens/RegistroMascota3';
+import PetProfileScreen from '../../screens/PetProfileScreen';
+
 
 // --- TUS PANTALLAS (Directorio y Veterinarias) ---
 import DirectorioScreen from '../../screens/DirectorioScreen';
@@ -27,13 +35,22 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator
       initialRouteName="Login"
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false }} 
     >
+
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
 
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
+      <Stack.Screen name="DogBasicInfo" component={DogBasicInfoScreen} />
+      <Stack.Screen name="PetProfile" component={PetProfileScreen} />
+
+      <Stack.Screen name="RegistroMascota" component={RegistroMascota} />
+      <Stack.Screen name="RegistroMascota1" component={RegistroMascota1} />
+      <Stack.Screen name="RegistroMascota2" component={RegistroMascota2} />
+      <Stack.Screen name="RegistroMascota3" component={RegistroMascota3} />
+
 
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
