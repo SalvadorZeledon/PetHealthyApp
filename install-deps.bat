@@ -50,5 +50,10 @@ npm install expo-clipboard
 echo "Realizar peticiones http..."
 npm install axios
 
+echo "Instalando EAS CLI..."
+npm install -g eas-cli
+
+echo "Instalando libreria para manejar teclado y scroll..."
+npm install react-native-keyboard-aware-scroll-view
 
 echo "✅ Listo. Todas las dependencias deberían estar instaladas."

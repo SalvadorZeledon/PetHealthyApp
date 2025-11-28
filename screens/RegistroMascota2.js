@@ -1,5 +1,5 @@
 // screens/RegistroMascota2.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,22 +9,22 @@ import {
   TextInput,
   Platform,
   Modal,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
-import { ALERT_TYPE, Dialog } from 'react-native-alert-notification';
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 
 const COMMON_VACCINES = [
-  'Parvovirus',
-  'Moquillo',
-  'Antirrábica',
-  'Adenovirus',
-  'Parainfluenza',
-  'Leptospira',
-  'Bordetella',
+  "Parvovirus",
+  "Moquillo",
+  "Antirrábica",
+  "Adenovirus",
+  "Parainfluenza",
+  "Leptospira",
+  "Bordetella",
 ];
 
-const DEWORM_TYPES = ['Interna', 'Externa'];
+const DEWORM_TYPES = ["Interna", "Externa"];
 
 const RegistroMascota2 = ({ navigation, route }) => {
   const draftPet = route?.params?.draftPet;
@@ -54,7 +54,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
   /* ======================================================
      OTROS CAMPOS
      ====================================================== */
-  const [conditions, setConditions] = useState('');
+  const [conditions, setConditions] = useState("");
   const [housing, setHousing] = useState(null);
   const [walkFrequency, setWalkFrequency] = useState(null);
 
@@ -74,8 +74,8 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
   const formatDate = (iso) => {
     const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
   };
@@ -87,9 +87,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
     if (!selectedVaccine) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Vacuna requerida',
-        textBody: 'Selecciona una vacuna antes de continuar.',
-        button: 'Cerrar',
+        title: "Vacuna requerida",
+        textBody: "Selecciona una vacuna antes de continuar.",
+        button: "Cerrar",
       });
       return;
     }
@@ -97,9 +97,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
     if (isFutureDate(vaccineDate)) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Fecha no válida',
-        textBody: 'La fecha de la vacuna no puede ser futura.',
-        button: 'Entendido',
+        title: "Fecha no válida",
+        textBody: "La fecha de la vacuna no puede ser futura.",
+        button: "Entendido",
       });
       return;
     }
@@ -118,9 +118,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
       if (noChanges) {
         Dialog.show({
           type: ALERT_TYPE.INFO,
-          title: 'Sin cambios',
-          textBody: 'No se realizaron cambios en la vacuna.',
-          button: 'Ok',
+          title: "Sin cambios",
+          textBody: "No se realizaron cambios en la vacuna.",
+          button: "Ok",
         });
 
         setShowVaccineModal(false);
@@ -139,9 +139,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
-        title: 'Vacuna actualizada',
-        textBody: 'Los cambios se guardaron correctamente.',
-        button: 'Perfecto',
+        title: "Vacuna actualizada",
+        textBody: "Los cambios se guardaron correctamente.",
+        button: "Perfecto",
       });
 
       setShowVaccineModal(false);
@@ -166,9 +166,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
     Dialog.show({
       type: ALERT_TYPE.SUCCESS,
-      title: 'Vacuna registrada',
-      textBody: 'La vacuna se agregó correctamente.',
-      button: 'Listo',
+      title: "Vacuna registrada",
+      textBody: "La vacuna se agregó correctamente.",
+      button: "Listo",
     });
   };
 
@@ -178,19 +178,19 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
     Dialog.show({
       type: ALERT_TYPE.DANGER,
-      title: 'Eliminar vacuna',
-      textBody: `¿Seguro que deseas eliminar la vacuna "${v.nombre}" con fecha ${formatDate(
-        v.fecha
-      )}?`,
-      button: 'Eliminar',
+      title: "Eliminar vacuna",
+      textBody: `¿Seguro que deseas eliminar la vacuna "${
+        v.nombre
+      }" con fecha ${formatDate(v.fecha)}?`,
+      button: "Eliminar",
       onPressButton: () => {
         setVaccines((prev) => prev.filter((_, i) => i !== index));
         Dialog.hide();
         Dialog.show({
           type: ALERT_TYPE.SUCCESS,
-          title: 'Vacuna eliminada',
-          textBody: 'La vacuna se eliminó correctamente.',
-          button: 'Ok',
+          title: "Vacuna eliminada",
+          textBody: "La vacuna se eliminó correctamente.",
+          button: "Ok",
         });
       },
     });
@@ -203,9 +203,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
     if (!selectedDewormType) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Tipo requerido',
-        textBody: 'Selecciona un tipo de desparasitación.',
-        button: 'Cerrar',
+        title: "Tipo requerido",
+        textBody: "Selecciona un tipo de desparasitación.",
+        button: "Cerrar",
       });
       return;
     }
@@ -213,9 +213,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
     if (isFutureDate(dewormDate)) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Fecha no válida',
-        textBody: 'La fecha de desparasitación no puede ser futura.',
-        button: 'Entendido',
+        title: "Fecha no válida",
+        textBody: "La fecha de desparasitación no puede ser futura.",
+        button: "Entendido",
       });
       return;
     }
@@ -234,9 +234,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
       if (noChanges) {
         Dialog.show({
           type: ALERT_TYPE.INFO,
-          title: 'Sin cambios',
-          textBody: 'No se realizaron cambios en la desparasitación.',
-          button: 'Ok',
+          title: "Sin cambios",
+          textBody: "No se realizaron cambios en la desparasitación.",
+          button: "Ok",
         });
 
         setShowDewormModal(false);
@@ -255,9 +255,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
-        title: 'Desparasitación actualizada',
-        textBody: 'Los cambios se guardaron correctamente.',
-        button: 'Perfecto',
+        title: "Desparasitación actualizada",
+        textBody: "Los cambios se guardaron correctamente.",
+        button: "Perfecto",
       });
 
       setShowDewormModal(false);
@@ -282,9 +282,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
     Dialog.show({
       type: ALERT_TYPE.SUCCESS,
-      title: 'Desparasitación registrada',
-      textBody: 'La desparasitación se agregó correctamente.',
-      button: 'Listo',
+      title: "Desparasitación registrada",
+      textBody: "La desparasitación se agregó correctamente.",
+      button: "Listo",
     });
   };
 
@@ -294,19 +294,19 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
     Dialog.show({
       type: ALERT_TYPE.DANGER,
-      title: 'Eliminar desparasitación',
-      textBody: `¿Seguro que deseas eliminar la desparasitación "${d.tipo}" con fecha ${formatDate(
-        d.fecha
-      )}?`,
-      button: 'Eliminar',
+      title: "Eliminar desparasitación",
+      textBody: `¿Seguro que deseas eliminar la desparasitación "${
+        d.tipo
+      }" con fecha ${formatDate(d.fecha)}?`,
+      button: "Eliminar",
       onPressButton: () => {
         setDewormings((prev) => prev.filter((_, i) => i !== index));
         Dialog.hide();
         Dialog.show({
           type: ALERT_TYPE.SUCCESS,
-          title: 'Desparasitación eliminada',
-          textBody: 'La desparasitación se eliminó correctamente.',
-          button: 'Ok',
+          title: "Desparasitación eliminada",
+          textBody: "La desparasitación se eliminó correctamente.",
+          button: "Ok",
         });
       },
     });
@@ -317,12 +317,12 @@ const RegistroMascota2 = ({ navigation, route }) => {
      ====================================================== */
   const handleContinue = () => {
     if (!housing) {
-      alert('Selecciona el contexto de vivienda.');
+      alert("Selecciona el contexto de vivienda.");
       return;
     }
 
     if (!walkFrequency) {
-      alert('Selecciona la frecuencia de paseo.');
+      alert("Selecciona la frecuencia de paseo.");
       return;
     }
 
@@ -335,13 +335,13 @@ const RegistroMascota2 = ({ navigation, route }) => {
       frecuenciaPaseo: walkFrequency,
     };
 
-    navigation.navigate('RegistroMascota3', { draftPet: draftPetStep2 });
+    navigation.navigate("RegistroMascota3", { draftPet: draftPetStep2 });
   };
 
   /* ======================================================
      CHIP HELPER
      ====================================================== */
-  const renderChip = (label, value, current, setter, color = '#10B981') => {
+  const renderChip = (label, value, current, setter, color = "#10B981") => {
     const selected = current === value;
 
     return (
@@ -355,7 +355,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
         <Text
           style={[
             styles.chipText,
-            selected && { color: '#FFFFFF', fontWeight: '700' },
+            selected && { color: "#FFFFFF", fontWeight: "700" },
           ]}
         >
           {label}
@@ -395,9 +395,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
             </Text>
           </View>
 
-          {/* ======================================================
-              VACUNAS APLICADAS
-             ====================================================== */}
+          {/* VACUNAS APLICADAS */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.label}>Vacunas aplicadas</Text>
@@ -426,10 +424,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   Fecha
                 </Text>
                 <Text
-                  style={[
-                    styles.tableHeaderCell,
-                    styles.tableHeaderCellSmall,
-                  ]}
+                  style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}
                 >
                   Opciones
                 </Text>
@@ -494,9 +489,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* ======================================================
-              DESPARASITACIÓN
-             ====================================================== */}
+          {/* DESPARASITACIÓN */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.label}>Desparasitación</Text>
@@ -525,10 +518,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   Fecha
                 </Text>
                 <Text
-                  style={[
-                    styles.tableHeaderCell,
-                    styles.tableHeaderCellSmall,
-                  ]}
+                  style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}
                 >
                   Opciones
                 </Text>
@@ -593,9 +583,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* ======================================================
-              CONDICIONES MÉDICAS
-             ====================================================== */}
+          {/* CONDICIONES MÉDICAS */}
           <View style={styles.section}>
             <Text style={styles.label}>Condiciones médicas o alergias</Text>
             <TextInput
@@ -607,44 +595,35 @@ const RegistroMascota2 = ({ navigation, route }) => {
             />
           </View>
 
-          {/* ======================================================
-              CONTEXTO DE VIVIENDA
-             ====================================================== */}
+          {/* CONTEXTO DE VIVIENDA */}
           <View style={styles.section}>
             <Text style={styles.label}>Contexto de vivienda</Text>
             <View style={styles.rowWrap}>
-              {renderChip('Vive adentro', 'adentro', housing, setHousing)}
-              {renderChip('Vive afuera', 'afuera', housing, setHousing)}
-              {renderChip(
-                'Adentro y afuera',
-                'mixto',
-                housing,
-                setHousing
-              )}
+              {renderChip("Vive adentro", "adentro", housing, setHousing)}
+              {renderChip("Vive afuera", "afuera", housing, setHousing)}
+              {renderChip("Adentro y afuera", "mixto", housing, setHousing)}
             </View>
           </View>
 
-          {/* ======================================================
-              FRECUENCIA DE PASEO
-             ====================================================== */}
+          {/* FRECUENCIA DE PASEO */}
           <View style={styles.section}>
             <Text style={styles.label}>Frecuencia de paseo</Text>
             <View style={styles.rowWrap}>
               {renderChip(
-                'Casi no se pasea',
-                'nulo',
+                "Casi no se pasea",
+                "nulo",
                 walkFrequency,
                 setWalkFrequency
               )}
               {renderChip(
-                'Paseos regulares',
-                'regular',
+                "Paseos regulares",
+                "regular",
                 walkFrequency,
                 setWalkFrequency
               )}
               {renderChip(
-                'Todos los días',
-                'diario',
+                "Todos los días",
+                "diario",
                 walkFrequency,
                 setWalkFrequency
               )}
@@ -652,7 +631,10 @@ const RegistroMascota2 = ({ navigation, route }) => {
           </View>
 
           {/* BOTÓN FINAL */}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleContinue}
+          >
             <Text style={styles.primaryButtonText}>Continuar</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </TouchableOpacity>
@@ -661,9 +643,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
         <View style={{ height: 30 }} />
       </ScrollView>
 
-      {/* ======================================================
-          MODAL VACUNAS (REGISTRAR / EDITAR) + CALENDARIO
-         ====================================================== */}
+      {/* MODAL VACUNAS (REGISTRAR / EDITAR) + CALENDARIO */}
       <Modal
         visible={showVaccineModal}
         transparent
@@ -678,20 +658,24 @@ const RegistroMascota2 = ({ navigation, route }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {editingVaccineIndex !== null ? 'Editar vacuna' : 'Registrar vacuna'}
+              {editingVaccineIndex !== null
+                ? "Editar vacuna"
+                : "Registrar vacuna"}
             </Text>
             <Text style={styles.modalSubtitle}>
               Selecciona la vacuna aplicada y la fecha.
             </Text>
 
             {/* Tipo de vacuna */}
-            <Text style={[styles.label, { marginTop: 16 }]}>Tipo de vacuna</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>
+              Tipo de vacuna
+            </Text>
 
             <View style={styles.dropdownWrapper}>
               <TouchableOpacity
                 style={styles.dropdown}
                 activeOpacity={0.8}
-                onPress={() => setIsVaccineDropdownOpen(prev => !prev)}
+                onPress={() => setIsVaccineDropdownOpen((prev) => !prev)}
               >
                 <Text
                   style={
@@ -701,11 +685,11 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   }
                   numberOfLines={1}
                 >
-                  {selectedVaccine || 'Selecciona una vacuna'}
+                  {selectedVaccine || "Selecciona una vacuna"}
                 </Text>
 
                 <Ionicons
-                  name={isVaccineDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  name={isVaccineDropdownOpen ? "chevron-up" : "chevron-down"}
                   size={18}
                   color="#6B7280"
                 />
@@ -717,7 +701,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                     nestedScrollEnabled
                     showsVerticalScrollIndicator={false}
                   >
-                    {COMMON_VACCINES.map(vac => {
+                    {COMMON_VACCINES.map((vac) => {
                       const isSelected = vac === selectedVaccine;
                       return (
                         <TouchableOpacity
@@ -784,7 +768,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                 onPress={handleAddVaccine}
               >
                 <Text style={styles.primaryBtnSmallText}>
-                  {editingVaccineIndex !== null ? 'Guardar cambios' : 'Guardar'}
+                  {editingVaccineIndex !== null ? "Guardar cambios" : "Guardar"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -799,15 +783,15 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   Elige la fecha en la que se aplicó la vacuna.
                 </Text>
 
-                <View style={{ marginTop: 12, alignSelf: 'stretch' }}>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
                   <DateTimePicker
                     value={vaccineDate}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
                     maximumDate={new Date()}
                     locale="es-ES"
                     onChange={(event, date) => {
-                      if (event.type === 'dismissed') {
+                      if (event.type === "dismissed") {
                         setShowVaccineDateModal(false);
                         return;
                       }
@@ -815,18 +799,18 @@ const RegistroMascota2 = ({ navigation, route }) => {
                         if (isFutureDate(date)) {
                           Dialog.show({
                             type: ALERT_TYPE.WARNING,
-                            title: 'Fecha no válida',
+                            title: "Fecha no válida",
                             textBody:
-                              'La fecha de la vacuna no puede ser futura.',
-                            button: 'Entendido',
+                              "La fecha de la vacuna no puede ser futura.",
+                            button: "Entendido",
                           });
                           return;
                         }
                         setVaccineDate(date);
                       }
                     }}
-                    textColor={Platform.OS === 'ios' ? '#111827' : undefined}
-                    themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
                     style={styles.datePicker}
                   />
                 </View>
@@ -852,9 +836,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      {/* ======================================================
-          MODAL DESPARASITACIÓN (REGISTRAR / EDITAR) + CALENDARIO
-         ====================================================== */}
+      {/* MODAL DESPARASITACIÓN (REGISTRAR / EDITAR) + CALENDARIO */}
       <Modal
         visible={showDewormModal}
         transparent
@@ -870,8 +852,8 @@ const RegistroMascota2 = ({ navigation, route }) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
               {editingDewormIndex !== null
-                ? 'Editar desparasitación'
-                : 'Registrar desparasitación'}
+                ? "Editar desparasitación"
+                : "Registrar desparasitación"}
             </Text>
             <Text style={styles.modalSubtitle}>
               Selecciona el tipo de desparasitación y la fecha.
@@ -886,7 +868,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.dropdown}
                 activeOpacity={0.8}
-                onPress={() => setIsDewormDropdownOpen(prev => !prev)}
+                onPress={() => setIsDewormDropdownOpen((prev) => !prev)}
               >
                 <Text
                   style={
@@ -896,11 +878,11 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   }
                   numberOfLines={1}
                 >
-                  {selectedDewormType || 'Selecciona un tipo'}
+                  {selectedDewormType || "Selecciona un tipo"}
                 </Text>
 
                 <Ionicons
-                  name={isDewormDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  name={isDewormDropdownOpen ? "chevron-up" : "chevron-down"}
                   size={18}
                   color="#6B7280"
                 />
@@ -912,7 +894,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                     nestedScrollEnabled
                     showsVerticalScrollIndicator={false}
                   >
-                    {DEWORM_TYPES.map(tipo => {
+                    {DEWORM_TYPES.map((tipo) => {
                       const isSelected = tipo === selectedDewormType;
                       return (
                         <TouchableOpacity
@@ -979,9 +961,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                 onPress={handleSaveDeworming}
               >
                 <Text style={styles.primaryBtnSmallText}>
-                  {editingDewormIndex !== null
-                    ? 'Guardar cambios'
-                    : 'Guardar'}
+                  {editingDewormIndex !== null ? "Guardar cambios" : "Guardar"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -996,15 +976,15 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   Elige la fecha en la que se realizó la desparasitación.
                 </Text>
 
-                <View style={{ marginTop: 12, alignSelf: 'stretch' }}>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
                   <DateTimePicker
                     value={dewormDate}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
                     maximumDate={new Date()}
                     locale="es-ES"
                     onChange={(event, date) => {
-                      if (event.type === 'dismissed') {
+                      if (event.type === "dismissed") {
                         setShowDewormDateModal(false);
                         return;
                       }
@@ -1012,18 +992,18 @@ const RegistroMascota2 = ({ navigation, route }) => {
                         if (isFutureDate(date)) {
                           Dialog.show({
                             type: ALERT_TYPE.WARNING,
-                            title: 'Fecha no válida',
+                            title: "Fecha no válida",
                             textBody:
-                              'La fecha de desparasitación no puede ser futura.',
-                            button: 'Entendido',
+                              "La fecha de desparasitación no puede ser futura.",
+                            button: "Entendido",
                           });
                           return;
                         }
                         setDewormDate(date);
                       }
                     }}
-                    textColor={Platform.OS === 'ios' ? '#111827' : undefined}
-                    themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
                     style={styles.datePicker}
                   />
                 </View>
@@ -1054,38 +1034,36 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
 export default RegistroMascota2;
 
-
-
 /* ----------------------- STYLES ----------------------- */
 const styles = StyleSheet.create({
-
   /* ================================
      LAYOUT GENERAL / HEADER
      ================================ */
   screen: {
     flex: 1,
-    backgroundColor: '#DBF4E8'  ,
+    backgroundColor: "#DBF4E8",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 espacio seguro arriba
   },
   headerRow: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 48 : 20,
+    paddingTop: 18,
     paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E4E9F2',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E4E9F2",
+    alignItems: "center",
+    justifyContent: "center",
   },
   stepText: {
     marginLeft: 12,
     fontSize: 12,
-    color: '#7B8794',
-    fontWeight: '500',
+    color: "#7B8794",
+    fontWeight: "500",
   },
 
   /* ================================
@@ -1098,7 +1076,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 20,
@@ -1108,14 +1086,14 @@ const styles = StyleSheet.create({
   /* ================================
      TIPOGRAFÍA GENERAL
      ================================ */
-  headerTextBlock: { alignItems: 'center', marginBottom: 18 },
-  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  subtitle: { marginTop: 4, fontSize: 12, color: '#6B7280' },
+  headerTextBlock: { alignItems: "center", marginBottom: 18 },
+  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  subtitle: { marginTop: 4, fontSize: 12, color: "#6B7280" },
   section: { marginBottom: 16 },
   label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 6,
   },
 
@@ -1125,15 +1103,15 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     fontSize: 14,
   },
   textArea: {
     minHeight: 90,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
 
   /* ================================
@@ -1142,32 +1120,33 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
     marginRight: 8,
     marginBottom: 8,
+    flexShrink: 1,
   },
-  chipText: { fontSize: 13, color: '#374151' },
-  rowWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  chipText: { fontSize: 12, color: "#374151" },
+  rowWrap: { flexDirection: "row", flexWrap: "wrap" },
 
   /* ================================
      BOTÓN CONTINUAR (INFERIOR)
      ================================ */
   primaryButton: {
     marginTop: 20,
-    alignSelf: 'flex-end',
-    flexDirection: 'row',
-    backgroundColor: '#2563EB',
+    alignSelf: "flex-end",
+    flexDirection: "row",
+    backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
+    color: "#FFF",
+    fontWeight: "600",
     marginRight: 8,
   },
 
@@ -1175,39 +1154,39 @@ const styles = StyleSheet.create({
      BOTONES GENERALES PEQUEÑOS
      ================================ */
   primaryBtnSmall: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: 999,
   },
-  primaryBtnSmallText: { color: '#FFF', fontWeight: '700' },
+  primaryBtnSmallText: { color: "#FFF", fontWeight: "700" },
   secondaryBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
-  secondaryBtnText: { color: '#374151', fontWeight: '500' },
+  secondaryBtnText: { color: "#374151", fontWeight: "500" },
 
   /* ================================
      VACUNAS - HEADER SECCIÓN
      ================================ */
   sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   addPillButton: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#BAE6FD',
+    backgroundColor: "#BAE6FD",
   },
   addPillText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: "600",
+    color: "#0F172A",
   },
 
   /* ================================
@@ -1215,56 +1194,55 @@ const styles = StyleSheet.create({
      ================================ */
   tableContainer: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
   },
   tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   tableHeaderRow: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
   },
   tableHeaderCell: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   tableHeaderCellSmall: {
     flex: 0.9,
-    textAlign: 'center',
+    textAlign: "center",
   },
   tableCell: {
     fontSize: 12,
-    color: '#374151',
+    color: "#374151",
   },
   tableCellSmall: {
     flex: 0.9,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   editButton: {
     width: 30,
     height: 30,
     borderRadius: 8,
-    backgroundColor: '#BAE6FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#BAE6FD",
+    justifyContent: "center",
+    alignItems: "center",
   },
-
-    optionsCellRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  optionsCellRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2', // rojito suave
+    backgroundColor: "#FEE2E2",
     marginLeft: 6,
   },
 
@@ -1274,33 +1252,33 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: "#6B7280",
   },
 
   /* ================================
      DESPARASITACIÓN - LISTA
      ================================ */
   tableRowSmall: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   vaccineInfo: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 12,
   },
   addButtonInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 6,
   },
   addButtonText: {
     marginLeft: 4,
-    color: '#2563EB',
-    fontWeight: '600',
+    color: "#2563EB",
+    fontWeight: "600",
   },
 
   /* ================================
@@ -1308,13 +1286,13 @@ const styles = StyleSheet.create({
      ================================ */
   dateButton: {
     marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   dateButtonText: {
     marginLeft: 6,
-    color: '#2563EB',
-    fontWeight: '600',
+    color: "#2563EB",
+    fontWeight: "600",
   },
 
   /* ================================
@@ -1322,151 +1300,150 @@ const styles = StyleSheet.create({
      ================================ */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
   },
   modalContent: {
-    width: '100%',
+    width: "100%",
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 18,
     paddingVertical: 18,
   },
   modalTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   modalSubtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   modalActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 16,
   },
 
   /* ================================
-   DROPDOWN VACUNA (FLOTANTE)
+   DROPDOWN VACUNA / DESPARASITACIÓN
    ================================ */
-dropdownWrapper: {
-  marginTop: 4,
-  position: 'relative', // ✅ sin zIndex aquí
-},
-dropdown: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: '#D1D5DB',
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  backgroundColor: '#F9FAFB',
-},
-dropdownText: {
-  flex: 1,
-  fontSize: 13,
-  color: '#111827',
-},
-dropdownPlaceholder: {
-  flex: 1,
-  fontSize: 13,
-  color: '#9CA3AF',
-},
-dropdownList: {
-  position: 'absolute',
-  top: '100%',
-  left: 0,
-  right: 0,
-  marginTop: 4,
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: '#D1D5DB',
-  backgroundColor: '#FFFFFF',
-  maxHeight: 180, // ~5 opciones visibles
-  overflow: 'hidden',
-  zIndex: 60,      // 👈 más alto aún para la lista
-  elevation: 10,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.15,
-  shadowRadius: 8,
-},
-dropdownItem: {
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-},
-dropdownItemSelected: {
-  backgroundColor: '#DBEAFE',
-},
-dropdownItemText: {
-  fontSize: 13,
-  color: '#111827',
-},
-dropdownItemTextSelected: {
-  fontWeight: '600',
-},
+  dropdownWrapper: {
+    marginTop: 4,
+    position: "relative",
+  },
+  dropdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#F9FAFB",
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#111827",
+  },
+  dropdownPlaceholder: {
+    flex: 1,
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  dropdownList: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+    maxHeight: 180,
+    overflow: "hidden",
+    zIndex: 60,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dropdownItemSelected: {
+    backgroundColor: "#DBEAFE",
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: "#111827",
+  },
+  dropdownItemTextSelected: {
+    fontWeight: "600",
+  },
 
   /* ================================
-     FECHA DENTRO DEL MODAL VACUNA
+     FECHA DENTRO DEL MODAL
      ================================ */
   dateRow: {
     marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   dateText: {
     fontSize: 13,
-    color: '#111827',
+    color: "#111827",
   },
   dateIconButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /* ================================
      POPUP CALENDARIO (INTERNO)
      ================================ */
   dateModalOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
   },
   dateModalCard: {
-    width: '100%',
+    width: "100%",
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 18,
     paddingVertical: 18,
   },
   dateModalButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 16,
   },
 
-    /* ================================
+  /* ================================
      ESTILO DEL DATE PICKER
      ================================ */
   datePicker: {
-    alignSelf: 'stretch',
-    height: Platform.OS === 'ios' ? 320 : 260,
+    alignSelf: "stretch",
+    height: Platform.OS === "ios" ? 320 : 260,
   },
-
 });

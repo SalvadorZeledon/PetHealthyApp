@@ -23,16 +23,41 @@ const ChatbotScreen = ({ navigation }) => {
   const scrollViewRef = useRef();
 
   const MEDICATION_KEYWORDS = [
-    'medicamento', 'medicina', 'pastilla', 'tableta', 'inyección', 'inyectable',
-    'antibiótico', 'analgésico', 'antiinflamatorio', 'dosis', 'mg', 'ml',
-    'paracetamol', 'ibuprofeno', 'aspirina', 'penicilina', 'vacuna', 'tratamiento',
-    'receta', 'fármaco', 'droga', 'comprimido', 'cápsula', 'jarabe', 'pomada',
-    'crema', 'gotas', 'supositorio', 'antiparasitario', 'desparasitante'
+    "medicamento",
+    "medicina",
+    "pastilla",
+    "tableta",
+    "inyección",
+    "inyectable",
+    "antibiótico",
+    "analgésico",
+    "antiinflamatorio",
+    "dosis",
+    "mg",
+    "ml",
+    "paracetamol",
+    "ibuprofeno",
+    "aspirina",
+    "penicilina",
+    "vacuna",
+    "tratamiento",
+    "receta",
+    "fármaco",
+    "droga",
+    "comprimido",
+    "cápsula",
+    "jarabe",
+    "pomada",
+    "crema",
+    "gotas",
+    "supositorio",
+    "antiparasitario",
+    "desparasitante",
   ];
 
   const containsMedicationKeywords = (text) => {
     const lowerText = text.toLowerCase();
-    return MEDICATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
+    return MEDICATION_KEYWORDS.some((keyword) => lowerText.includes(keyword));
   };
 
   const sendMessage = async () => {
@@ -55,10 +80,9 @@ const ChatbotScreen = ({ navigation }) => {
     setLoading(true);
 
     const botResponse = await getAIResponse(newMessages);
-    setMessages(prev => [...prev, { sender: "ai", text: botResponse }]);
+    setMessages((prev) => [...prev, { sender: "ai", text: botResponse }]);
     setLoading(false);
   };
-
 
   const clearChat = () => {
     Alert.alert(
@@ -66,11 +90,11 @@ const ChatbotScreen = ({ navigation }) => {
       "Se eliminarán todos los mensajes del chat actual.",
       [
         { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Sí, eliminar", 
+        {
+          text: "Sí, eliminar",
           style: "destructive",
-          onPress: () => setMessages([]) 
-        }
+          onPress: () => setMessages([]),
+        },
       ]
     );
   };
@@ -86,12 +110,11 @@ const ChatbotScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior="padding"
+      style={{ flex: 1, backgroundColor: "#E3F2FD" }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
       <View style={styles.container}>
-        
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Chat de consultas</Text>
@@ -156,7 +179,6 @@ const ChatbotScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-
       </View>
     </KeyboardAvoidingView>
   );
@@ -165,7 +187,11 @@ const ChatbotScreen = ({ navigation }) => {
 export default ChatbotScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E3F2FD" },
+  container: {
+    flex: 1,
+    backgroundColor: "#E3F2FD",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 separa del status bar
+  },
 
   header: {
     paddingHorizontal: 20,
@@ -174,7 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: Platform.OS === "ios" ? 40 : 0,
+    // marginTop eliminado, ya no hace falta
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#263238" },
 
