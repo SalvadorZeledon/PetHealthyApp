@@ -9,6 +9,7 @@ import {
   Platform,
   Linking,
   ScrollView,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -18,7 +19,7 @@ const VetDetailScreen = ({ route, navigation }) => {
   const { placeId } = route.params;
   const [info, setInfo] = useState(null);
 
-  // Traducción días inglés → español
+  // Traducción de días EN → ES
   const daysMap = {
     Monday: "Lunes",
     Tuesday: "Martes",
@@ -34,17 +35,17 @@ const VetDetailScreen = ({ route, navigation }) => {
     return weekdayText.map((line) => {
       const [day, hours] = line.split(": ");
       const dayEs = daysMap[day] || day;
+
       const isClosed =
         !hours || hours.toLowerCase().includes("closed") || hours === "-";
+
       if (isClosed) return `${dayEs}: Cerrado`;
       return `${dayEs}: ${hours}`;
     });
   };
 
-  // Copiar texto
   const copy = (txt) => Clipboard.setStringAsync(txt);
 
-  // Abrir mapa dependiendo de plataforma
   const openMap = (address) => {
     if (!address) return;
     const encoded = encodeURIComponent(address);
@@ -89,12 +90,12 @@ const VetDetailScreen = ({ route, navigation }) => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* CONTENIDO DESPLAZABLE */}
+      {/* CONTENIDO */}
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ESTATUS DE APERTURA */}
+        {/* ESTADO ABIERTO / CERRADO */}
         <View
           style={[
             styles.statusBadge,
@@ -116,6 +117,25 @@ const VetDetailScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
+        {/* FOTOS (solo si existen ) */}
+        {info.photos?.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Fotos</Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {info.photos.slice(0, 5).map((p, idx) => (
+                <Image
+                  key={idx}
+                  source={{
+                    uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${p.photo_reference}&key=AIzaSyD0u3Td_9NiMMECDfiBBq4X1U3_htUgNa4`,
+                  }}
+                  style={styles.photo}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
         {/* DIRECCIÓN */}
         {info.formatted_address && (
           <>
@@ -129,7 +149,11 @@ const VetDetailScreen = ({ route, navigation }) => {
                   style={styles.smallBtn}
                   onPress={() => openMap(info.formatted_address)}
                 >
-                  <Ionicons name="location-outline" size={20} color="#6A1B9A" />
+                  <Ionicons
+                    name="location-outline"
+                    size={20}
+                    color="#6A1B9A"
+                  />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -174,7 +198,7 @@ const VetDetailScreen = ({ route, navigation }) => {
           </>
         )}
 
-        {/* HORARIO COMPLETO */}
+        {/* HORARIO */}
         {info.opening_hours?.weekday_text && (
           <>
             <Text style={styles.sectionTitle}>Horario</Text>
@@ -208,16 +232,18 @@ const VetDetailScreen = ({ route, navigation }) => {
 
 export default VetDetailScreen;
 
+/* ================== ESTILOS ===================== */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 deja espacio bajo la barra de estado
+    paddingTop: Platform.OS === "ios" ? 40 : 24,
   },
+
   loading: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 igual en la pantalla de carga
     justifyContent: "center",
     alignItems: "center",
   },
@@ -303,5 +329,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0F2F1",
     padding: 8,
     borderRadius: 10,
+  },
+
+  /* FOTOS */
+  photo: {
+    width: 220,
+    height: 160,
+    borderRadius: 12,
+    marginRight: 10,
+    backgroundColor: "#eee",
   },
 });

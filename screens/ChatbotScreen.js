@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getAIResponse } from "../src/services/groqService";
@@ -22,50 +23,37 @@ const ChatbotScreen = ({ navigation }) => {
 
   const scrollViewRef = useRef();
 
+  // 👇 1. LISTA DE SUGERENCIAS PREDEFINIDAS
+  const SUGGESTIONS = [
+    "🐶 Consejos de alimentación",
+    "😟 Mi mascota no quiere comer, ¿qué hago?",
+    "🛁¿Cada cuánto debo bañar a mi perro/gato?",
+    "🐱 ¿Por qué mi gato duerme mucho?",
+    "🎾 Juegos para perros en casa",
+    "🦷 Cuidado dental de mascotas",
+  ];
+
   const MEDICATION_KEYWORDS = [
-    "medicamento",
-    "medicina",
-    "pastilla",
-    "tableta",
-    "inyección",
-    "inyectable",
-    "antibiótico",
-    "analgésico",
-    "antiinflamatorio",
-    "dosis",
-    "mg",
-    "ml",
-    "paracetamol",
-    "ibuprofeno",
-    "aspirina",
-    "penicilina",
-    "vacuna",
-    "tratamiento",
-    "receta",
-    "fármaco",
-    "droga",
-    "comprimido",
-    "cápsula",
-    "jarabe",
-    "pomada",
-    "crema",
-    "gotas",
-    "supositorio",
-    "antiparasitario",
-    "desparasitante",
+    'medicamento', 'medicina', 'pastilla', 'tableta', 'inyección', 'inyectable',
+    'antibiótico', 'analgésico', 'antiinflamatorio', 'dosis', 'mg', 'ml',
+    'paracetamol', 'ibuprofeno', 'aspirina', 'penicilina', 'vacuna', 'tratamiento',
+    'receta', 'fármaco', 'droga', 'comprimido', 'cápsula', 'jarabe', 'pomada',
+    'crema', 'gotas', 'supositorio', 'antiparasitario', 'desparasitante'
   ];
 
   const containsMedicationKeywords = (text) => {
     const lowerText = text.toLowerCase();
-    return MEDICATION_KEYWORDS.some((keyword) => lowerText.includes(keyword));
+    return MEDICATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
   };
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  // 👇 2. MODIFICAMOS LA FUNCIÓN PARA ACEPTAR TEXTO OPCIONAL (DEL BOTÓN)
+  const sendMessage = async (textOverride = null) => {
+    // Si viene texto del botón (textOverride), usamos ese. Si no, usamos el input.
+    const textToSend = typeof textOverride === 'string' ? textOverride : input;
 
-    const userText = input.trim();
+    if (!textToSend.trim()) return;
 
-    if (containsMedicationKeywords(userText)) {
+    if (containsMedicationKeywords(textToSend)) {
       Alert.alert(
         "⚠️ Consulta importante",
         "Para temas relacionados con medicamentos, debes consultar directamente con un veterinario. Puedo ayudarte con consejos generales de cuidado y bienestar.",
@@ -74,15 +62,19 @@ const ChatbotScreen = ({ navigation }) => {
       return;
     }
 
-    setInput("");
-    const newMessages = [...messages, { sender: "user", text: userText }];
+    setInput(""); // Limpiamos el input siempre
+    
+    // Agregamos el mensaje del usuario
+    const newMessages = [...messages, { sender: "user", text: textToSend }];
     setMessages(newMessages);
     setLoading(true);
 
+    // Llamamos a la IA
     const botResponse = await getAIResponse(newMessages);
-    setMessages((prev) => [...prev, { sender: "ai", text: botResponse }]);
+    setMessages(prev => [...prev, { sender: "ai", text: botResponse }]);
     setLoading(false);
   };
+
 
   const clearChat = () => {
     Alert.alert(
@@ -90,31 +82,33 @@ const ChatbotScreen = ({ navigation }) => {
       "Se eliminarán todos los mensajes del chat actual.",
       [
         { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sí, eliminar",
-          style: "destructive",
-          onPress: () => setMessages([]),
-        },
+        { 
+          text: "Sí, eliminar", 
+          style: "destructive", 
+          onPress: () => setMessages([]) 
+        }
       ]
     );
   };
 
-  // 🔹 Ventana emergente al entrar a la pantalla
   useEffect(() => {
+    // Puedes quitar este Alert si ya tienes las sugerencias en pantalla, 
+    // o dejarlo como bienvenida extra. Yo lo dejaría por ahora.
     Alert.alert(
       "¡Hola! 👋",
-      "Soy PetHealthyBot, tu asistente para consultas de bienestar animal. Puedo darte consejos generales y guiarte con información útil sobre tus mascotas.",
-      [{ text: "¡Aceptar!", style: "default" }]
+      "Soy PetHealthyBot. Selecciona un tema o escribe tu consulta.",
+      [{ text: "¡Vamos!", style: "default" }]
     );
   }, []);
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#E3F2FD" }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
       <View style={styles.container}>
+        
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Chat de consultas</Text>
@@ -141,6 +135,25 @@ const ChatbotScreen = ({ navigation }) => {
           }
           contentContainerStyle={styles.content}
         >
+          {/* 👇 3. MOSTRAR SUGERENCIAS SOLO SI NO HAY MENSAJES */}
+          {messages.length === 0 && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={styles.suggestionsTitle}>¿Sobre qué quieres hablar hoy?</Text>
+              <View style={styles.chipsWrapper}>
+                {SUGGESTIONS.map((suggestion, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.suggestionChip}
+                    onPress={() => sendMessage(suggestion)}
+                  >
+                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* MENSAJES DEL CHAT */}
           {messages.map((msg, index) => (
             <View
               key={index}
@@ -169,7 +182,7 @@ const ChatbotScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.sendButton}
-            onPress={sendMessage}
+            onPress={() => sendMessage()} // Llamada sin argumentos (usa el input)
             disabled={loading}
           >
             {loading ? (
@@ -179,6 +192,7 @@ const ChatbotScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
+
       </View>
     </KeyboardAvoidingView>
   );
@@ -187,20 +201,15 @@ const ChatbotScreen = ({ navigation }) => {
 export default ChatbotScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 separa del status bar
-  },
+  container: { flex: 1, backgroundColor: "#E3F2FD" },
 
   header: {
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 30) + 10 : 60,
     paddingBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    // marginTop eliminado, ya no hace falta
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#263238" },
 
@@ -215,6 +224,43 @@ const styles = StyleSheet.create({
   },
 
   content: { paddingHorizontal: 20, paddingBottom: 24 },
+
+  // 👇 ESTILOS NUEVOS 
+  suggestionsContainer: {
+    marginTop: 40,
+    alignItems: 'center',
+    opacity: 0.9,
+  },
+  suggestionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#546E7A',
+    marginBottom: 20,
+  },
+  chipsWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  suggestionChip: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#B3E5FC',
+    elevation: 1, // Sombra suave en Android
+    shadowColor: "#000", // Sombra en iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  suggestionText: {
+    color: '#0277BD',
+    fontWeight: '500',
+    fontSize: 14,
+  },
 
   chatBubble: {
     marginTop: 10,

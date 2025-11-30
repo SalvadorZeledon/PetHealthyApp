@@ -4,42 +4,35 @@
     "slug": "PetHealthyApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logoPerHealthyAppRecortada.png",
+    "icon": "./assets/logoPH.png",
     "scheme": "pethealtyapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
+    "splash": {
+      "image": "./assets/logoPerHealthyApp.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#E6F4FE"
+    },
+
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/logoPerHealthyApp.png"
+        "foregroundImage": "./assets/logoPH.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.aguilar23.PetHealthyApp"
+      "package": "com.alejandrogt.PetHealthyApp"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/logoPerHealthyApp.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ],
-      "expo-font"
-    ],
+    "plugins": ["expo-router", "expo-font"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
@@ -47,7 +40,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ca393882-d1ab-4940-aafd-9dcaa392153a"
+        "projectId": "b8376aac-a2b5-4343-8628-ecff777d61ed"
       }
     }
   }
