@@ -1,16 +1,17 @@
 // screens/LocationPickerScreen.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
+  Platform,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 
 const LocationPickerScreen = ({ navigation, route }) => {
   const onSelectLocation = route.params?.onSelectLocation;
@@ -18,14 +19,13 @@ const LocationPickerScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [region, setRegion] = useState(null);
   const [markerCoord, setMarkerCoord] = useState(null);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     const init = async () => {
       try {
-        const { status } =
-          await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
           // Sin permiso: centramos en una región por defecto (ej. San Salvador)
           setRegion({
             latitude: 13.69294,
@@ -36,10 +36,10 @@ const LocationPickerScreen = ({ navigation, route }) => {
           setLoading(false);
           Dialog.show({
             type: ALERT_TYPE.WARNING,
-            title: 'Sin permiso de ubicación',
+            title: "Sin permiso de ubicación",
             textBody:
-              'No se pudo acceder a tu ubicación actual, pero puedes elegir un punto en el mapa de forma manual.',
-            button: 'Entendido',
+              "No se pudo acceder a tu ubicación actual, pero puedes elegir un punto en el mapa de forma manual.",
+            button: "Entendido",
           });
           return;
         }
@@ -56,7 +56,7 @@ const LocationPickerScreen = ({ navigation, route }) => {
         setMarkerCoord({ latitude, longitude });
         await fetchAddress({ latitude, longitude });
       } catch (error) {
-        console.log('Error al inicializar mapa:', error);
+        console.log("Error al inicializar mapa:", error);
         setRegion({
           latitude: 13.69294,
           longitude: -89.21819,
@@ -83,13 +83,13 @@ const LocationPickerScreen = ({ navigation, route }) => {
             place.region,
             place.country,
           ].filter(Boolean);
-          setAddress(parts.join(', '));
+          setAddress(parts.join(", "));
         } else {
-          setAddress('');
+          setAddress("");
         }
       } catch (error) {
-        console.log('Error al obtener dirección en mapa:', error);
-        setAddress('');
+        console.log("Error al obtener dirección en mapa:", error);
+        setAddress("");
       }
     };
 
@@ -119,13 +119,13 @@ const LocationPickerScreen = ({ navigation, route }) => {
           place.region,
           place.country,
         ].filter(Boolean);
-        setAddress(parts.join(', '));
+        setAddress(parts.join(", "));
       } else {
-        setAddress('');
+        setAddress("");
       }
     } catch (error) {
-      console.log('Error reverse geocode tap:', error);
-      setAddress('');
+      console.log("Error reverse geocode tap:", error);
+      setAddress("");
     }
   };
 
@@ -133,15 +133,15 @@ const LocationPickerScreen = ({ navigation, route }) => {
     if (!markerCoord || !address) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Selecciona una ubicación',
+        title: "Selecciona una ubicación",
         textBody:
-          'Toca en el mapa para elegir un punto y obtener la dirección aproximada.',
-        button: 'Entendido',
+          "Toca en el mapa para elegir un punto y obtener la dirección aproximada.",
+        button: "Entendido",
       });
       return;
     }
 
-    if (typeof onSelectLocation === 'function') {
+    if (typeof onSelectLocation === "function") {
       onSelectLocation(address);
     }
 
@@ -191,7 +191,7 @@ const LocationPickerScreen = ({ navigation, route }) => {
       <View style={styles.bottomCard}>
         <Text style={styles.addressLabel}>Dirección seleccionada</Text>
         <Text style={styles.addressValue}>
-          {address || 'Toca en el mapa para elegir una ubicación.'}
+          {address || "Toca en el mapa para elegir una ubicación."}
         </Text>
 
         <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
@@ -205,39 +205,43 @@ const LocationPickerScreen = ({ navigation, route }) => {
 export default LocationPickerScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#E3F2FD' },
+  container: {
+    flex: 1,
+    backgroundColor: "#E3F2FD",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 margen bajo la barra de estado
+  },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E3F2FD",
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 8,
-    color: '#365b6d',
+    color: "#365b6d",
     fontSize: 14,
   },
   topBar: {
     paddingTop: 18,
     paddingHorizontal: 14,
     paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   topIconButton: {
     padding: 6,
     borderRadius: 999,
-    backgroundColor: '#E0E9F5',
+    backgroundColor: "#E0E9F5",
   },
   topTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#365b6d',
+    fontWeight: "600",
+    color: "#365b6d",
   },
   map: { flex: 1 },
   bottomCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopLeftRadius: 16,
@@ -246,23 +250,23 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     fontSize: 12,
-    color: '#607D8B',
+    color: "#607D8B",
   },
   addressValue: {
     fontSize: 14,
-    color: '#263238',
+    color: "#263238",
     marginTop: 4,
   },
   confirmButton: {
     marginTop: 10,
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     borderRadius: 12,
     paddingVertical: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   confirmButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

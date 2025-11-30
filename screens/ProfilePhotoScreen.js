@@ -1,5 +1,5 @@
 // screens/ProfilePhotoScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,17 @@ import {
   Image,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { COL_USUARIOS } from '../src/utils/collections';
-import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
-import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { COL_USUARIOS } from "../src/utils/collections";
+import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
+import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { uploadImageToCloudinary } from "../src/services/cloudinary";
 
-
-const logo = require('../assets/logologin.png');
+const logo = require("../assets/logoPH.png");
 
 const ProfilePhotoScreen = ({ route, navigation }) => {
   const { userId } = route.params;
@@ -31,16 +31,17 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    // Pedimos permiso de galería al entrar a la pantalla
     (async () => {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
+      if (status !== "granted") {
         Dialog.show({
           type: ALERT_TYPE.WARNING,
-          title: 'Permiso requerido',
+          title: "Permiso requerido",
           textBody:
-            'Necesitamos acceso a tu galería para elegir una foto de perfil.',
-          button: 'Entendido',
+            "Necesitamos acceso a tu galería para elegir una foto de perfil. Puedes otorgarlo desde la configuración del sistema.",
+          button: "Entendido",
         });
       }
     })();
@@ -56,6 +57,21 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
 
   const pickImage = async () => {
     try {
+      // Verificamos permisos justo antes de abrir la galería
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Dialog.show({
+          type: ALERT_TYPE.WARNING,
+          title: "Permiso de galería denegado",
+          textBody:
+            "No podemos abrir la galería porque no tiene permiso. Revisa los permisos de la app en la configuración de tu dispositivo.",
+          button: "Entendido",
+        });
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.7,
@@ -63,17 +79,19 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
         aspect: [1, 1],
       });
 
+      console.log("Resultado ImagePicker:", result);
+
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         setImageUri(asset.uri);
       }
     } catch (error) {
-      console.log('Error al seleccionar imagen:', error);
+      console.log("Error al seleccionar imagen:", error);
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: 'Error',
-        textBody: 'No se pudo abrir la galería. Intenta nuevamente.',
-        button: 'Cerrar',
+        title: "Error",
+        textBody: "No se pudo abrir la galería. Intenta nuevamente.",
+        button: "Cerrar",
       });
     }
   };
@@ -82,9 +100,9 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
     if (!imageUri) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Sin imagen',
-        textBody: 'Selecciona una foto antes de continuar.',
-        button: 'Entendido',
+        title: "Sin imagen",
+        textBody: "Selecciona una foto antes de continuar.",
+        button: "Entendido",
       });
       return;
     }
@@ -92,36 +110,40 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
     try {
       setSaving(true);
 
-      // Aquí solo marcamos en Firestore que ya configuró la foto.
-      // Más adelante, cuando uses Storage, podrás guardar la URL real.
+      // 1) Subir la imagen a Cloudinary
+      const imageUrl = await uploadImageToCloudinary(imageUri);
+
+      // 2) Actualizar al usuario en Firestore con la URL de Cloudinary
       const userRef = doc(db, COL_USUARIOS, userId);
-      await AsyncStorage.setItem(`@userPhoto_${userId}`, imageUri);
       await updateDoc(userRef, {
-        tieneFotoLocal: true,       // flag para saltarse este paso la próxima vez
-        fotoPerfilUrl: null,        // de momento sin URL en la nube
+        tieneFotoLocal: true,
+        fotoPerfilUrl: imageUrl,
       });
+
+      // 3) Guardar también la foto local en AsyncStorage
+      await AsyncStorage.setItem(`@userPhoto_${userId}`, imageUri);
 
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
-        title: 'Foto configurada',
+        title: "Foto configurada",
         textBody:
-          'Guardamos tu preferencia de foto en este dispositivo. Más adelante podrás sincronizarla en la nube.',
-        button: 'Continuar',
+          "Tu foto se guardó correctamente. Podrás verla en tu perfil y cambiarla cuando quieras.",
+        button: "Continuar",
         onHide: () => {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'MainTabs' }],
+            routes: [{ name: "MainTabs" }],
           });
         },
       });
     } catch (error) {
-      console.log('Error al guardar estado de foto:', error);
+      console.log("Error al guardar estado de foto:", error);
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: 'Error',
+        title: "Error",
         textBody:
-          'No se pudo guardar la configuración. Intenta nuevamente más tarde.',
-        button: 'Cerrar',
+          "No se pudo guardar la configuración. Intenta nuevamente más tarde.",
+        button: "Cerrar",
       });
     } finally {
       setSaving(false);
@@ -175,20 +197,20 @@ const ProfilePhotoScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   fontLoadingContainer: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: "#E3F2FD",
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 24,
-    marginTop: Platform.OS === 'ios' ? 25 : 0,
+    marginTop: Platform.OS === "ios" ? 25 : 0,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   logo: {
@@ -198,65 +220,65 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 24,
-    fontFamily: 'Poppins_700Bold',
-    color: '#365b6d',
+    fontFamily: "Poppins_700Bold",
+    color: "#365b6d",
   },
   appSubtitle: {
     fontSize: 14,
-    color: '#558B2F',
+    color: "#558B2F",
     marginTop: 2,
-    textAlign: 'center',
+    textAlign: "center",
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 18,
     elevation: 4,
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#263238',
+    fontWeight: "700",
+    color: "#263238",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: '#607D8B',
+    color: "#607D8B",
     marginBottom: 20,
   },
   imageContainer: {
-    alignSelf: 'center',
+    alignSelf: "center",
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#CFD8DC',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#CFD8DC",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   imagePlaceholderText: {
-    color: '#90A4AE',
+    color: "#90A4AE",
     fontSize: 13,
-    textAlign: 'center',
+    textAlign: "center",
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

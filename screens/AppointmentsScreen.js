@@ -1,22 +1,21 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 const AppointmentsScreen = ({ navigation }) => {
   const handleOpenSettings = () => {
-    navigation.navigate('Settings');
+    navigation.navigate("Settings");
   };
 
   return (
     <View style={styles.container}>
-      {/* HEADER SOLO CON SETTINGS */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Citas</Text>
 
@@ -65,29 +64,29 @@ export default AppointmentsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: "#E3F2FD",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 separa todo de la barra de estado
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 40 : 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#263238',
+    fontWeight: "700",
+    color: "#263238",
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 3,
   },
   content: {
@@ -96,68 +95,68 @@ const styles = StyleSheet.create({
   },
   placeholderCard: {
     marginTop: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 18,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 3,
     marginBottom: 16,
   },
   placeholderTitle: {
     marginTop: 8,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: "600",
+    color: "#263238",
   },
   placeholderText: {
     marginTop: 4,
     fontSize: 13,
-    color: '#607D8B',
-    textAlign: 'center',
+    color: "#607D8B",
+    textAlign: "center",
   },
   primaryButton: {
     marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E88E5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E88E5",
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     fontSize: 13,
     marginLeft: 6,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 14,
     elevation: 2,
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: "600",
+    color: "#263238",
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#607D8B',
+    color: "#607D8B",
   },
   cardDetail: {
     fontSize: 12,
-    color: '#90A4AE',
+    color: "#90A4AE",
   },
   cardIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

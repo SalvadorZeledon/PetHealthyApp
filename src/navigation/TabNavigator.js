@@ -3,10 +3,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
+// --- PANTALLAS PRINCIPALES ---
 import Homescreen from '../../screens/Homescreen';
 import MyPetScreen from '../../screens/MyPetScreen';
 import AppointmentsScreen from '../../screens/AppointmentsScreen';
 import ChatbotScreen from '../../screens/ChatbotScreen';
+import VetMapScreen from '../../screens/VetMapScreen'; // 🔥 MAPA
 
 const Tab = createBottomTabNavigator();
 
@@ -30,6 +32,8 @@ const TabNavigator = () => {
             iconName = focused ? 'paw' : 'paw-outline';
           } else if (route.name === 'Appointments') {
             iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'VetMap') {
+            iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'Chatbot') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           }
@@ -38,26 +42,14 @@ const TabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={Homescreen}
-        options={{ title: 'Inicio' }}
-      />
-      <Tab.Screen
-        name="MyPets"
-        component={MyPetScreen}
-        options={{ title: 'Mascotas' }}
-      />
-      <Tab.Screen
-        name="Appointments"
-        component={AppointmentsScreen}
-        options={{ title: 'Citas' }}
-      />
-      <Tab.Screen
-        name="Chatbot"
-        component={ChatbotScreen}
-        options={{ title: 'Chatbot' }}
-      />
+      <Tab.Screen name="Home" component={Homescreen} options={{ title: 'Inicio' }} />
+      <Tab.Screen name="MyPets" component={MyPetScreen} options={{ title: 'Mascotas' }} />
+      <Tab.Screen name="Appointments" component={AppointmentsScreen} options={{ title: 'Citas' }} />
+
+      {/* 🔥 NUEVA PESTAÑA PRINCIPAL */}
+      <Tab.Screen name="VetMap" component={VetMapScreen} options={{ title: 'Mapa' }} />
+
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={{ title: 'Chatbot' }} />
     </Tab.Navigator>
   );
 };
