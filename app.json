@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "PetHealtyApp",
-    "slug": "PetHealtyApp",
+    "name": "PetHealthyApp",
+    "slug": "PetHealthyApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/logoPerHealthyAppRecortada.png",
     "scheme": "pethealtyapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,12 +14,11 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/logoPerHealthyApp.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.aguilar23.PetHealthyApp"
     },
     "web": {
       "output": "static",
@@ -30,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/logoPerHealthyApp.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -44,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca393882-d1ab-4940-aafd-9dcaa392153a"
+      }
     }
   }
 }

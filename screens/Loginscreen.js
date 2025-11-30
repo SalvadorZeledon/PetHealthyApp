@@ -22,7 +22,7 @@ import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { saveUserToStorage } from '../src/utils/storage';
 
 
-const logo = require('../assets/logologin.png');
+const logo = require('../assets/logoPerHealthyAppRecortada.png');
 
 const LoginScreen = ({ navigation }) => {
   const [fontsLoaded] = useFonts({
