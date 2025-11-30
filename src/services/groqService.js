@@ -1,6 +1,6 @@
 // src/services/groqService.js
 
-const API_KEY = "AQUI_VA_TU_API_KEY";
+const API_KEY = "TU_GROQ_API_KEY_AQUI";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Sistema de restricciones veterinarias
@@ -34,9 +34,9 @@ Tu tono debe ser amigable pero profesional, siempre priorizando la seguridad de 
 export const getAIResponse = async (messages) => {
   try {
     // Convertimos tu estructura a la de Groq
-    const formattedMessages = messages.map(msg => ({
+    const formattedMessages = messages.map((msg) => ({
       role: msg.sender === "user" ? "user" : "assistant",
-      content: msg.text
+      content: msg.text,
     }));
 
     const response = await fetch(API_URL, {
@@ -50,9 +50,9 @@ export const getAIResponse = async (messages) => {
         messages: [
           {
             role: "system",
-            content: VETERINARY_RESTRICTIONS
+            content: VETERINARY_RESTRICTIONS,
           },
-          ...formattedMessages
+          ...formattedMessages,
         ],
         max_tokens: 350,
         temperature: 0.3, // Reducida para respuestas más conservadoras
@@ -61,10 +61,8 @@ export const getAIResponse = async (messages) => {
 
     const data = await response.json();
     return data.choices[0].message.content;
-
   } catch (err) {
     console.log("Error Groq:", err);
     return "Lo siento, ocurrió un problema al conectarme al servicio de IA.";
   }
 };
-

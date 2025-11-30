@@ -26,15 +26,10 @@ const VetFinderScreen = ({ navigation }) => {
     "clinic",
     "animal",
     "pet's house",
-    "ponme guau"
+    "ponme guau",
   ];
 
-  const agroKeywords = [
-    "agro",
-    "agroservicio",
-    "agroservicios",
-    "macoga"
-  ];
+  const agroKeywords = ["agro", "agroservicio", "agroservicios", "macoga"];
 
   const classifyPlace = (place) => {
     const name = place.name.toLowerCase();
@@ -87,7 +82,7 @@ const VetFinderScreen = ({ navigation }) => {
     navigation.navigate("VetDetail", { placeId: place.place_id });
   };
 
-  const renderSection = (title, list, typeIcon) => (
+  const renderSection = (title, list, typeIcon) =>
     list.length > 0 && (
       <View style={{ marginBottom: 24 }}>
         <View style={styles.sectionHeader}>
@@ -102,7 +97,6 @@ const VetFinderScreen = ({ navigation }) => {
             onPress={() => openDetails(v)}
           >
             <View style={styles.cardHeader}>
-              {/* Icono según tipo */}
               <Ionicons
                 name={typeIcon}
                 size={20}
@@ -112,7 +106,6 @@ const VetFinderScreen = ({ navigation }) => {
               <Text style={styles.cardTitle}>{v.name}</Text>
             </View>
 
-            {/* Botón ver detalles */}
             <View style={styles.moreRow}>
               <Text style={styles.moreText}>Ver detalles</Text>
               <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
@@ -120,20 +113,42 @@ const VetFinderScreen = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
-    )
-  );
+    );
+
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Veterinarias cercanas</Text>
+      {/* Barra superior como el resto de pantallas */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.topIconButton}>
+          <Ionicons name="arrow-back" size={22} color="#365b6d" />
+        </TouchableOpacity>
+
+        <Text style={styles.topTitle}>Veterinarias cercanas</Text>
+
+        {/* Spacer para centrar el título */}
+        <View style={{ width: 34 }} />
+      </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#365b6d" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#365b6d" />
+          <Text style={styles.loadingText}>
+            Buscando servicios cerca de ti...
+          </Text>
+        </View>
       ) : (
-        <ScrollView style={styles.list}>
+        <ScrollView contentContainerStyle={styles.content}>
           {renderSection("Veterinarias", vets, "paw-outline")}
           {renderSection("Agroservicios", agro, "leaf-outline")}
-          {renderSection("Otros servicios animales", others, "business-outline")}
+          {renderSection(
+            "Otros servicios animales",
+            others,
+            "business-outline"
+          )}
         </ScrollView>
       )}
     </View>
@@ -146,15 +161,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
-    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 40 : 28, // espacio bajo la barra de estado
   },
-  title: {
-    fontSize: 20,
+
+  // HEADER
+  topBar: {
+    paddingTop: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  topIconButton: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: "#E0E9F5",
+  },
+  topTitle: {
+    fontSize: 16,
     fontWeight: "700",
     color: "#365b6d",
-    marginBottom: 12,
   },
+
+  // CONTENIDO
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 30,
+    paddingTop: 4,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: "#607D8B",
+  },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -171,7 +218,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#365b6d",
   },
-  list: { marginTop: 10 },
+
   card: {
     backgroundColor: "#fff",
     padding: 16,
@@ -200,5 +247,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
   },
-  moreText: { fontSize: 12, color: "#607D8B", marginRight: 4 },
+  moreText: {
+    fontSize: 12,
+    color: "#607D8B",
+    marginRight: 4,
+  },
 });

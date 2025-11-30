@@ -80,8 +80,7 @@ const institutions = [
     phone: "60630269",
     whatsapp: "",
     email: "donafcatdogsv@hotmail.com",
-    address:
-      "Calle a Huizúcar, cerca del Redondel Utila, Antiguo Cuscatlán.",
+    address: "Calle a Huizúcar, cerca del Redondel Utila, Antiguo Cuscatlán.",
     desc: "Fundación dedicada a la protección y adopción de mascotas.",
     details:
       "Reciben reportes de animales desprotegidos, rescates y procesos de adopción.",
@@ -100,7 +99,7 @@ const DirectorioScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View className="topBar">
+      <View style={styles.topBar}>
         <TouchableOpacity onPress={goBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
@@ -159,10 +158,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    marginTop: Platform.OS === "ios" ? 40 : 0,
   },
   topBar: {
-    paddingTop: 18,
+    paddingTop: Platform.OS === "ios" ? 50 : 44,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

@@ -1,5 +1,5 @@
 // src/screens/RegistroMascota.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,37 +7,78 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  FontAwesome5,
+  MaterialCommunityIcons,
+  Ionicons,
+} from "@expo/vector-icons";
+import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 
 const SPECIES_OPTIONS = [
-  { id: 'perro',  label: 'Perro',  iconName: 'dog',        family: 'FontAwesome5',           enabled: true },
-  { id: 'gato',   label: 'Gato',   iconName: 'cat',        family: 'FontAwesome5',           enabled: true },
-  { id: 'ave',    label: 'Ave',    iconName: 'crow',       family: 'FontAwesome5',           enabled: false },
-  { id: 'roedor', label: 'Roedor', iconName: 'otter',      family: 'FontAwesome5',           enabled: false },
-  { id: 'reptil', label: 'Reptil', iconName: 'turtle',     family: 'MaterialCommunityIcons', enabled: false },
-  { id: 'otro',   label: 'Otro',   iconName: 'ellipsis-h', family: 'FontAwesome5',           enabled: false },
+  {
+    id: "perro",
+    label: "Perro",
+    iconName: "dog",
+    family: "FontAwesome5",
+    enabled: true,
+  },
+  {
+    id: "gato",
+    label: "Gato",
+    iconName: "cat",
+    family: "FontAwesome5",
+    enabled: true,
+  },
+  {
+    id: "ave",
+    label: "Ave",
+    iconName: "crow",
+    family: "FontAwesome5",
+    enabled: false,
+  },
+  {
+    id: "roedor",
+    label: "Roedor",
+    iconName: "otter",
+    family: "FontAwesome5",
+    enabled: false,
+  },
+  {
+    id: "reptil",
+    label: "Reptil",
+    iconName: "turtle",
+    family: "MaterialCommunityIcons",
+    enabled: false,
+  },
+  {
+    id: "otro",
+    label: "Otro",
+    iconName: "ellipsis-h",
+    family: "FontAwesome5",
+    enabled: false,
+  },
 ];
 
 const RegistroMascota = ({ navigation, route }) => {
   const [selectedSpecies, setSelectedSpecies] = useState(null);
 
-  const userName = route?.params?.userName || '';
+  const userName = route?.params?.userName || "";
 
   const handleContinue = () => {
     if (!selectedSpecies) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Selecciona una especie',
-        textBody: 'Por favor elige una especie para continuar con el registro.',
-        button: 'Entendido',
+        title: "Selecciona una especie",
+        textBody: "Por favor elige una especie para continuar con el registro.",
+        button: "Entendido",
       });
       return;
     }
 
-    navigation.navigate('RegistroMascota1', {
+    navigation.navigate("RegistroMascota1", {
       initialSpecies: selectedSpecies,
     });
   };
@@ -46,6 +87,19 @@ const RegistroMascota = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* HEADER NUEVO */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          style={styles.iconCircle}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={18} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Registrar mascota</Text>
+        {/* Espaciador para balancear el header */}
+        <View style={{ width: 36 }} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -53,7 +107,7 @@ const RegistroMascota = ({ navigation, route }) => {
         {/* Logo */}
         <View style={styles.logoContainer}>
           <Image
-            source={require('../assets/logo.png')}
+            source={require("../assets/logoPH.png")}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -64,9 +118,14 @@ const RegistroMascota = ({ navigation, route }) => {
         <View style={styles.headerTextContainer}>
           <View style={styles.greetingRow}>
             <Text style={styles.greetingText}>
-              ¡Hola{userName ? `, ${userName}` : ''}!
+              ¡Hola{userName ? `, ${userName}` : ""}!
             </Text>
-            <FontAwesome5 name="paw" size={28} color="#111827" style={styles.pawIcon} />
+            <FontAwesome5
+              name="paw"
+              size={28}
+              color="#111827"
+              style={styles.pawIcon}
+            />
           </View>
           <Text style={styles.subtitleText}>
             Nos alegra darte la bienvenida a la familia PetHealthy.{"\n"}
@@ -76,9 +135,9 @@ const RegistroMascota = ({ navigation, route }) => {
 
         {/* Selector de especie */}
         <View style={styles.gridContainer}>
-          {SPECIES_OPTIONS.map(option => {
+          {SPECIES_OPTIONS.map((option) => {
             const IconComponent =
-              option.family === 'MaterialCommunityIcons'
+              option.family === "MaterialCommunityIcons"
                 ? MaterialCommunityIcons
                 : FontAwesome5;
 
@@ -107,10 +166,10 @@ const RegistroMascota = ({ navigation, route }) => {
                     size={34}
                     color={
                       isDisabled
-                        ? '#9CA3AF'
+                        ? "#9CA3AF"
                         : isSelected
-                        ? '#111827'
-                        : '#1F2933'
+                        ? "#111827"
+                        : "#1F2933"
                     }
                   />
                 </View>
@@ -149,7 +208,7 @@ const RegistroMascota = ({ navigation, route }) => {
             <FontAwesome5
               name="arrow-right"
               size={18}
-              color={isContinueDisabled ? '#E5E7EB' : '#FFFFFF'}
+              color={isContinueDisabled ? "#E5E7EB" : "#FFFFFF"}
               style={styles.primaryButtonIcon}
             />
           </View>
@@ -161,45 +220,71 @@ const RegistroMascota = ({ navigation, route }) => {
 
 export default RegistroMascota;
 
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#DCFFFF', // pastel
+    backgroundColor: "#DCFFFF",
   },
+
+  // HEADER NUEVO
+  headerRow: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 8 : 4,
+    paddingBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+  },
+  headerTitle: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
   scrollContent: {
     paddingHorizontal: 24,
-    paddingVertical: 32,
-    alignItems: 'center',
+    paddingVertical: 24, // un poco menos porque ya hay header
+    alignItems: "center",
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   logo: {
-    width: 100,
-    height: 70,
+    width: 150,
+    height: 150,
     marginBottom: 8,
+    marginTop: -25,
   },
   appName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 3,
-    color: '#111827',
+    color: "#111827",
   },
   headerTextContainer: {
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     marginBottom: 24,
   },
   greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   greetingText: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
   pawIcon: {
     marginLeft: 8,
@@ -207,29 +292,29 @@ const styles = StyleSheet.create({
   subtitleText: {
     marginTop: 12,
     fontSize: 14,
-    textAlign: 'center',
-    color: '#4B5563',
+    textAlign: "center",
+    color: "#4B5563",
     lineHeight: 20,
   },
   gridContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginTop: 8,
     marginBottom: 32,
   },
   speciesCard: {
-    width: '30%',
+    width: "30%",
     aspectRatio: 0.9,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingVertical: 14,
     paddingHorizontal: 8,
     marginBottom: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -237,8 +322,8 @@ const styles = StyleSheet.create({
   },
   speciesCardSelected: {
     borderWidth: 2,
-    borderColor: '#0EA5E9',
-    backgroundColor: '#E0F2FE',
+    borderColor: "#0EA5E9",
+    backgroundColor: "#E0F2FE",
   },
   speciesCardDisabled: {
     opacity: 0.45,
@@ -250,46 +335,45 @@ const styles = StyleSheet.create({
   },
   speciesLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   speciesLabelDisabled: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
   },
   primaryButton: {
-    width: '100%',
-    backgroundColor: '#0EA5E9', // azul activo
+    width: "100%",
+    backgroundColor: "#0EA5E9",
     paddingVertical: 14,
     borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0284C7',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0284C7",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   primaryButtonDisabled: {
-    backgroundColor: '#BFDBFE', // azul muy claro
+    backgroundColor: "#BFDBFE",
     shadowOpacity: 0,
     elevation: 0,
   },
   primaryButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButtonText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.15)',
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.15)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   primaryButtonTextDisabled: {
-    color: '#E5E7EB',
-    textShadowOpacity: 0,
+    color: "#E5E7EB",
   },
   primaryButtonIcon: {
     marginLeft: 10,

@@ -60,7 +60,7 @@ const VetDetailScreen = ({ route, navigation }) => {
       const details = await getPlaceDetails(placeId);
       setInfo(details);
     })();
-  }, []);
+  }, [placeId]);
 
   if (!info)
     return (
@@ -75,17 +75,25 @@ const VetDetailScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={navigation.goBack} style={styles.topIconButton}>
+        <TouchableOpacity
+          onPress={navigation.goBack}
+          style={styles.topIconButton}
+        >
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>{info.name}</Text>
+        <Text style={styles.topTitle} numberOfLines={1}>
+          {info.name}
+        </Text>
 
         <View style={{ width: 40 }} />
       </View>
 
       {/* CONTENIDO DESPLAZABLE */}
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ESTATUS DE APERTURA */}
         <View
           style={[
@@ -141,7 +149,9 @@ const VetDetailScreen = ({ route, navigation }) => {
             <Text style={styles.sectionTitle}>Contacto</Text>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>Teléfono:</Text>
-              <Text style={styles.infoValue}>{info.formatted_phone_number}</Text>
+              <Text style={styles.infoValue}>
+                {info.formatted_phone_number}
+              </Text>
 
               <View style={styles.rowButtons}>
                 <TouchableOpacity
@@ -169,11 +179,13 @@ const VetDetailScreen = ({ route, navigation }) => {
           <>
             <Text style={styles.sectionTitle}>Horario</Text>
             <View style={styles.infoBox}>
-              {translateSchedule(info.opening_hours.weekday_text).map((d, i) => (
-                <Text key={i} style={styles.infoValue}>
-                  {d}
-                </Text>
-              ))}
+              {translateSchedule(info.opening_hours.weekday_text).map(
+                (d, i) => (
+                  <Text key={i} style={styles.infoValue}>
+                    {d}
+                  </Text>
+                )
+              )}
             </View>
           </>
         )}
@@ -200,9 +212,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    marginTop: Platform.OS === "ios" ? 40 : 0,
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 deja espacio bajo la barra de estado
   },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loading: {
+    flex: 1,
+    backgroundColor: "#E3F2FD",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 igual en la pantalla de carga
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   /* HEADER */
   topBar: {
@@ -224,11 +242,12 @@ const styles = StyleSheet.create({
     color: "#365b6d",
     textAlign: "center",
     flex: 1,
+    marginHorizontal: 8,
   },
 
   content: {
     padding: 20,
-    flexGrow: 1, // importante para ScrollView
+    flexGrow: 1,
   },
 
   /* BADGE */
@@ -277,7 +296,7 @@ const styles = StyleSheet.create({
 
   rowButtons: {
     flexDirection: "row",
-    flexWrap: "wrap", // para que los botones no se corten
+    flexWrap: "wrap",
     gap: 10,
   },
   smallBtn: {

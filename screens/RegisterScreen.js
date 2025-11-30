@@ -1,5 +1,5 @@
 // screens/RegisterScreen.js
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
   Image,
-  KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-} from 'react-native';
+} from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import {
   collection,
   addDoc,
@@ -21,14 +20,14 @@ import {
   where,
   getDocs,
   serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { COL_USUARIOS } from '../src/utils/collections';
-import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
-import { Ionicons } from '@expo/vector-icons';
-import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
+} from "firebase/firestore";
+import { db } from "../firebase/config";
+import { COL_USUARIOS } from "../src/utils/collections";
+import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
+import { Ionicons } from "@expo/vector-icons";
+import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
 
-const logo = require('../assets/logoregister.png');
+const logo = require("../assets/logoPH.png");
 
 // Evalúa la fuerza de la contraseña
 const evaluatePasswordStrength = (password) => {
@@ -42,15 +41,15 @@ const evaluatePasswordStrength = (password) => {
 const getStrengthLabelAndColor = (score) => {
   switch (score) {
     case 0:
-      return { label: 'Muy débil', color: '#e53935' };
+      return { label: "Muy débil", color: "#e53935" };
     case 1:
-      return { label: 'Débil', color: '#e53935' };
+      return { label: "Débil", color: "#e53935" };
     case 2:
-      return { label: 'Media', color: '#fb8c00' };
+      return { label: "Media", color: "#fb8c00" };
     case 3:
-      return { label: 'Fuerte', color: '#43a047' };
+      return { label: "Fuerte", color: "#43a047" };
     default:
-      return { label: '', color: '#ccc' };
+      return { label: "", color: "#ccc" };
   }
 };
 
@@ -59,30 +58,30 @@ const RegisterScreen = ({ navigation }) => {
     Poppins_700Bold,
   });
 
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
-  const [errorNombre, setErrorNombre] = useState('');
-  const [errorEmail, setErrorEmail] = useState('');
-  const [errorPassword, setErrorPassword] = useState('');
-  const [errorPassword2, setErrorPassword2] = useState('');
+  const [errorNombre, setErrorNombre] = useState("");
+  const [errorEmail, setErrorEmail] = useState("");
+  const [errorPassword, setErrorPassword] = useState("");
+  const [errorPassword2, setErrorPassword2] = useState("");
 
   // nuevos estados para términos
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
-  const [errorTerminos, setErrorTerminos] = useState('');
+  const [errorTerminos, setErrorTerminos] = useState("");
 
   const passwordScore = evaluatePasswordStrength(password);
   const { label: strengthLabel, color: strengthColor } =
     password.length > 0
       ? getStrengthLabelAndColor(passwordScore)
-      : { label: '', color: '#ccc' };
+      : { label: "", color: "#ccc" };
 
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
@@ -97,11 +96,11 @@ const RegisterScreen = ({ navigation }) => {
   }
 
   const clearErrors = () => {
-    setErrorNombre('');
-    setErrorEmail('');
-    setErrorPassword('');
-    setErrorPassword2('');
-    setErrorTerminos('');
+    setErrorNombre("");
+    setErrorEmail("");
+    setErrorPassword("");
+    setErrorPassword2("");
+    setErrorTerminos("");
   };
 
   const validateForm = () => {
@@ -109,43 +108,43 @@ const RegisterScreen = ({ navigation }) => {
     let valid = true;
 
     if (!nombre.trim()) {
-      setErrorNombre('Ingresa un nombre de usuario.');
+      setErrorNombre("Ingresa un nombre de usuario.");
       valid = false;
     }
 
     if (!email.trim()) {
-      setErrorEmail('Ingresa tu correo electrónico.');
+      setErrorEmail("Ingresa tu correo electrónico.");
       valid = false;
     } else {
       const emailRegex = /\S+@\S+\.\S+/;
       if (!emailRegex.test(email.trim().toLowerCase())) {
-        setErrorEmail('Correo electrónico no válido.');
+        setErrorEmail("Correo electrónico no válido.");
         valid = false;
       }
     }
 
     if (!password) {
-      setErrorPassword('Ingresa una contraseña.');
+      setErrorPassword("Ingresa una contraseña.");
       valid = false;
     } else if (passwordScore < 2) {
       setErrorPassword(
-        'Contraseña débil. Usa mayúsculas, minúsculas, números y símbolos.'
+        "Contraseña débil. Usa mayúsculas, minúsculas, números y símbolos."
       );
       valid = false;
     }
 
     if (!password2) {
-      setErrorPassword2('Confirma tu contraseña.');
+      setErrorPassword2("Confirma tu contraseña.");
       valid = false;
     } else if (password && password !== password2) {
-      setErrorPassword2('Las contraseñas no coinciden.');
+      setErrorPassword2("Las contraseñas no coinciden.");
       valid = false;
     }
 
-    //  validación de aceptación de términos
+    // validación de aceptación de términos
     if (!aceptaTerminos) {
       setErrorTerminos(
-        'Debes aceptar los Términos y Condiciones antes de registrarte.'
+        "Debes aceptar los Términos y Condiciones antes de registrarte."
       );
       valid = false;
     }
@@ -153,9 +152,9 @@ const RegisterScreen = ({ navigation }) => {
     if (!valid) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Revisa los campos',
-        textBody: 'Algunos datos necesitan corrección.',
-        button: 'Entendido',
+        title: "Revisa los campos",
+        textBody: "Algunos datos necesitan corrección.",
+        button: "Entendido",
       });
     }
 
@@ -170,45 +169,51 @@ const RegisterScreen = ({ navigation }) => {
       const usuariosRef = collection(db, COL_USUARIOS);
       const q = query(
         usuariosRef,
-        where('email', '==', email.trim().toLowerCase())
+        where("email", "==", email.trim().toLowerCase())
       );
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
-        setErrorEmail('Este correo ya está registrado.');
+        setErrorEmail("Este correo ya está registrado.");
         Dialog.show({
           type: ALERT_TYPE.WARNING,
-          title: 'Correo en uso',
-          textBody: 'Ya existe una cuenta registrada con este correo.',
-          button: 'Entendido',
+          title: "Correo en uso",
+          textBody: "Ya existe una cuenta registrada con este correo.",
+          button: "Entendido",
         });
         setLoading(false);
         return;
       }
 
-      await addDoc(usuariosRef, {
+      // 🔹 Creamos el usuario y guardamos la referencia para obtener el ID
+      const newUserRef = await addDoc(usuariosRef, {
         nombre: nombre.trim(),
         email: email.trim().toLowerCase(),
         password,
-        rol: 'cliente',
+        rol: "cliente",
         fechaRegistro: serverTimestamp(),
+        perfilCompleto: false,
       });
 
+      // 🔹 En vez de ir al Login, vamos al flujo de completar perfil
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
-        title: 'Cuenta creada',
+        title: "Cuenta creada",
         textBody:
-          'Tu cuenta se creó correctamente. Ya puedes agendar consultas y revisar el historial de tus mascotas.',
-        button: 'Ir al login',
-        onHide: () => navigation.navigate('Login'),
+          "Tu cuenta se creó correctamente. Ahora completemos tu perfil.",
+        button: "Continuar",
+        onHide: () => {
+          navigation.replace("CompleteProfile", { userId: newUserRef.id });
+        },
       });
     } catch (error) {
-      console.log('Error al registrar usuario:', error);
+      console.log("Error al registrar usuario:", error);
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: 'Error inesperado',
-        textBody: 'Ocurrió un problema al crear la cuenta. Inténtalo más tarde.',
-        button: 'Cerrar',
+        title: "Error inesperado",
+        textBody:
+          "Ocurrió un problema al crear la cuenta. Inténtalo más tarde.",
+        button: "Cerrar",
       });
     } finally {
       setLoading(false);
@@ -216,12 +221,15 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.inner}>
+    <KeyboardAwareScrollView
+      style={styles.container}
+      contentContainerStyle={styles.inner}
+      enableOnAndroid={true}
+      extraScrollHeight={32}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View>
           <View style={styles.logoContainer}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
             <Text style={styles.appName}>PetHealthyApp</Text>
@@ -237,7 +245,8 @@ const RegisterScreen = ({ navigation }) => {
 
             <Text style={styles.cardTitle}>Crear cuenta</Text>
             <Text style={styles.cardSubtitle}>
-              Registra tus datos para llevar control de vacunas, consultas y más.
+              Registra tus datos para llevar control de vacunas, consultas y
+              más.
             </Text>
 
             {/* Nombre */}
@@ -246,9 +255,9 @@ const RegisterScreen = ({ navigation }) => {
               placeholder="Nombre de usuario"
               placeholderTextColor="#7a8b8c"
               value={nombre}
-              onChangeText={text => {
+              onChangeText={(text) => {
                 setNombre(text);
-                if (errorNombre) setErrorNombre('');
+                if (errorNombre) setErrorNombre("");
               }}
               autoFocus={true}
               returnKeyType="next"
@@ -265,16 +274,18 @@ const RegisterScreen = ({ navigation }) => {
               placeholder="Correo electrónico"
               placeholderTextColor="#7a8b8c"
               value={email}
-              onChangeText={text => {
+              onChangeText={(text) => {
                 setEmail(text);
-                if (errorEmail) setErrorEmail('');
+                if (errorEmail) setErrorEmail("");
               }}
               autoCapitalize="none"
               keyboardType="email-address"
               returnKeyType="next"
               onSubmitEditing={() => passwordInputRef.current?.focus()}
             />
-            {errorEmail ? <Text style={styles.errorText}>{errorEmail}</Text> : null}
+            {errorEmail ? (
+              <Text style={styles.errorText}>{errorEmail}</Text>
+            ) : null}
 
             {/* Password */}
             <View style={styles.inputPasswordContainer}>
@@ -284,9 +295,9 @@ const RegisterScreen = ({ navigation }) => {
                 placeholder="Contraseña"
                 placeholderTextColor="#7a8b8c"
                 value={password}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   setPassword(text);
-                  if (errorPassword) setErrorPassword('');
+                  if (errorPassword) setErrorPassword("");
                 }}
                 secureTextEntry={!showPassword}
                 returnKeyType="next"
@@ -294,10 +305,10 @@ const RegisterScreen = ({ navigation }) => {
               />
               <TouchableOpacity
                 style={styles.eyeButton}
-                onPress={() => setShowPassword(prev => !prev)}
+                onPress={() => setShowPassword((prev) => !prev)}
               >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#90A4AE"
                 />
@@ -306,7 +317,10 @@ const RegisterScreen = ({ navigation }) => {
             {password.length > 0 && (
               <View style={styles.strengthContainer}>
                 <View
-                  style={[styles.strengthBar, { backgroundColor: strengthColor }]}
+                  style={[
+                    styles.strengthBar,
+                    { backgroundColor: strengthColor },
+                  ]}
                 />
                 <Text style={styles.strengthLabel}>{strengthLabel}</Text>
               </View>
@@ -323,9 +337,9 @@ const RegisterScreen = ({ navigation }) => {
                 placeholder="Confirmar contraseña"
                 placeholderTextColor="#7a8b8c"
                 value={password2}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   setPassword2(text);
-                  if (errorPassword2) setErrorPassword2('');
+                  if (errorPassword2) setErrorPassword2("");
                 }}
                 secureTextEntry={!showPassword2}
                 returnKeyType="done"
@@ -333,10 +347,10 @@ const RegisterScreen = ({ navigation }) => {
               />
               <TouchableOpacity
                 style={styles.eyeButton}
-                onPress={() => setShowPassword2(prev => !prev)}
+                onPress={() => setShowPassword2((prev) => !prev)}
               >
                 <Ionicons
-                  name={showPassword2 ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword2 ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#90A4AE"
                 />
@@ -350,24 +364,24 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.termsContainer}>
               <TouchableOpacity
                 style={styles.checkbox}
-                onPress={() => setAceptaTerminos(prev => !prev)}
+                onPress={() => setAceptaTerminos((prev) => !prev)}
               >
                 <Ionicons
-                  name={aceptaTerminos ? 'checkbox-outline' : 'square-outline'}
+                  name={aceptaTerminos ? "checkbox-outline" : "square-outline"}
                   size={22}
                   color="#43A047"
                 />
               </TouchableOpacity>
 
               <Text style={styles.termsText}>
-                Acepto los{' '}
+                Acepto los{" "}
                 <Text
                   style={styles.termsLink}
-                  onPress={() => navigation.navigate('Terms')}
+                  onPress={() => navigation.navigate("Terms")}
                 >
                   Términos y Condiciones
-                </Text>
-                {' '}de la aplicación.
+                </Text>{" "}
+                de la aplicación.
               </Text>
             </View>
             {errorTerminos ? (
@@ -377,10 +391,10 @@ const RegisterScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                (!aceptaTerminos || loading) && { opacity: 0.6 }, // se ve desactivado
+                (!aceptaTerminos || loading) && { opacity: 0.6 },
               ]}
               onPress={handleRegister}
-              disabled={loading || !aceptaTerminos}              // bloquea si no acepta
+              disabled={loading || !aceptaTerminos}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
@@ -389,10 +403,9 @@ const RegisterScreen = ({ navigation }) => {
               )}
             </TouchableOpacity>
 
-
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
               <Text style={styles.linkText}>
-                ¿Ya tienes cuenta?{' '}
+                ¿Ya tienes cuenta?{" "}
                 <Text style={styles.linkTextBold}>Inicia sesión</Text>
               </Text>
             </TouchableOpacity>
@@ -402,22 +415,22 @@ const RegisterScreen = ({ navigation }) => {
               mascotas.
             </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   fontLoadingContainer: {
     flex: 1,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E8F5E9",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: "#E8F5E9",
   },
   inner: {
     paddingHorizontal: 24,
@@ -425,7 +438,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   logo: {
@@ -435,58 +448,58 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 26,
-    fontFamily: 'Poppins_700Bold',
-    color: '#365b6d',
+    fontFamily: "Poppins_700Bold",
+    color: "#365b6d",
     marginTop: 4,
   },
   appSubtitle: {
     fontSize: 14,
-    color: '#558B2F',
+    color: "#558B2F",
     marginTop: 2,
-    textAlign: 'center',
+    textAlign: "center",
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 20,
     elevation: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   pawBackground: {
-    position: 'absolute',
+    position: "absolute",
     right: -10,
     top: -20,
     opacity: 0.05,
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
-    color: '#263238',
+    color: "#263238",
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#607D8B',
+    color: "#607D8B",
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: '#CFD8DC',
+    borderColor: "#CFD8DC",
     fontSize: 14,
-    color: '#263238',
+    color: "#263238",
   },
   inputPasswordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CFD8DC',
+    borderColor: "#CFD8DC",
     paddingHorizontal: 8,
     marginTop: 8,
   },
@@ -495,32 +508,32 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     fontSize: 14,
-    color: '#263238',
+    color: "#263238",
   },
   eyeButton: {
     padding: 4,
   },
   primaryButton: {
-    backgroundColor: '#43A047',
+    backgroundColor: "#43A047",
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 16,
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   linkText: {
-    textAlign: 'center',
-    color: '#455A64',
+    textAlign: "center",
+    color: "#455A64",
     fontSize: 13,
   },
   linkTextBold: {
-    color: '#1E88E5',
-    fontWeight: '600',
+    color: "#1E88E5",
+    fontWeight: "600",
   },
   strengthContainer: {
     marginTop: 4,
@@ -529,29 +542,29 @@ const styles = StyleSheet.create({
   strengthBar: {
     height: 4,
     borderRadius: 4,
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
     marginBottom: 4,
   },
   strengthLabel: {
     fontSize: 12,
-    color: '#555',
+    color: "#555",
   },
   errorText: {
-    color: '#e53935',
+    color: "#e53935",
     fontSize: 12,
     marginBottom: 4,
     marginTop: 2,
   },
   helperText: {
     fontSize: 11,
-    color: '#90A4AE',
-    textAlign: 'center',
+    color: "#90A4AE",
+    textAlign: "center",
     marginTop: 8,
   },
-  // ✅ estilos para términos
+  // términos
   termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 10,
     marginBottom: 4,
   },
@@ -561,11 +574,11 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 12,
-    color: '#455A64',
+    color: "#455A64",
   },
   termsLink: {
-    color: '#1E88E5',
-    fontWeight: '600',
+    color: "#1E88E5",
+    fontWeight: "600",
   },
 });
 

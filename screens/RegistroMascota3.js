@@ -1,5 +1,5 @@
 // screens/RegistroMascota3.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,42 +9,41 @@ import {
   TextInput,
   Platform,
   Image,
-  ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { ALERT_TYPE, Dialog } from 'react-native-alert-notification';
-import { createPetWithHistory } from '../src/services/petsService'; // 👈 NUEVO
-import { getUserFromStorage } from '../src/utils/storage';  
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
+import { createPetWithHistory } from "../src/services/petsService";
+import { getUserFromStorage } from "../src/utils/storage";
 
 const RegistroMascota3 = ({ navigation, route }) => {
   const draftPet = route?.params?.draftPet || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   /* ======================================================
      ESTADO: CONVIVENCIA CON OTROS ANIMALES
      ====================================================== */
   const [livesWithOthers, setLivesWithOthers] = useState(null); // true | false | null
   const [othersRelation, setOthersRelation] = useState(null); // 'juegan' | 'se_pelean' | 'no_unidos' | 'conviven_bien' | null
-  const [othersDescription, setOthersDescription] = useState('');
+  const [othersDescription, setOthersDescription] = useState("");
 
   /* ======================================================
      ESTADO: AGRESIVIDAD Y COMPROMISO
      ====================================================== */
   const [isAggressive, setIsAggressive] = useState(null); // true | false | null
-  const [aggressionDescription, setAggressionDescription] = useState('');
+  const [aggressionDescription, setAggressionDescription] = useState("");
   const [honestyChecked, setHonestyChecked] = useState(false);
 
   /* ======================================================
      ESTADO: VIAJES
      ====================================================== */
   const [travelsRegularly, setTravelsRegularly] = useState(null); // true | false | null
-  const [travelDescription, setTravelDescription] = useState('');
+  const [travelDescription, setTravelDescription] = useState("");
 
   /* ======================================================
      HELPERS
      ====================================================== */
-  const renderChip = (label, value, current, setter, color = '#2563EB') => {
+  const renderChip = (label, value, current, setter, color = "#2563EB") => {
     const selected = current === value;
     return (
       <TouchableOpacity
@@ -57,7 +56,7 @@ const RegistroMascota3 = ({ navigation, route }) => {
         <Text
           style={[
             styles.chipText,
-            selected && { color: '#FFFFFF', fontWeight: '700' },
+            selected && { color: "#FFFFFF", fontWeight: "700" },
           ]}
         >
           {label}
@@ -71,160 +70,150 @@ const RegistroMascota3 = ({ navigation, route }) => {
       type: ALERT_TYPE.WARNING,
       title,
       textBody,
-      button: 'Entendido',
+      button: "Entendido",
     });
   };
 
   /* ======================================================
      HANDLER FINALIZAR REGISTRO
      ====================================================== */
-const handleFinish = async () => {
-  // 1) Convivencia con otros animales
-  if (livesWithOthers === null) {
-    showWarning(
-      'Convivencia',
-      'Indica si tu mascota vive o no con otros animales.'
-    );
-    return;
-  }
-
-  if (livesWithOthers === true) {
-    if (!othersRelation) {
+  const handleFinish = async () => {
+    // 1) Convivencia con otros animales
+    if (livesWithOthers === null) {
       showWarning(
-        'Convivencia',
-        'Describe cómo es la relación entre tus mascotas.'
+        "Convivencia",
+        "Indica si tu mascota vive o no con otros animales."
       );
       return;
     }
 
-    if (!othersDescription.trim()) {
+    if (livesWithOthers === true) {
+      if (!othersRelation) {
+        showWarning(
+          "Convivencia",
+          "Describe cómo es la relación entre tus mascotas."
+        );
+        return;
+      }
+
+      if (!othersDescription.trim()) {
+        showWarning(
+          "Convivencia",
+          "Describe brevemente la convivencia con otros animales."
+        );
+        return;
+      }
+    }
+
+    // 2) Agresividad
+    if (isAggressive === null) {
+      showWarning("Agresividad", "Indica si tu mascota es agresiva o no.");
+      return;
+    }
+
+    if (isAggressive === true && !aggressionDescription.trim()) {
       showWarning(
-        'Convivencia',
-        'Describe brevemente la convivencia con otros animales.'
+        "Agresividad",
+        "Describe en qué situaciones tu mascota suele mostrarse agresiva."
       );
       return;
     }
-  }
 
-  // 2) Agresividad
-  if (isAggressive === null) {
-    showWarning(
-      'Agresividad',
-      'Indica si tu mascota es agresiva o no.'
-    );
-    return;
-  }
+    // Compromiso veracidad
+    if (!honestyChecked) {
+      showWarning(
+        "Compromiso de veracidad",
+        "Debes confirmar que la información proporcionada es verdadera."
+      );
+      return;
+    }
 
-  if (isAggressive === true && !aggressionDescription.trim()) {
-    showWarning(
-      'Agresividad',
-      'Describe en qué situaciones tu mascota suele mostrarse agresiva.'
-    );
-    return;
-  }
+    // 3) Viajes
+    if (travelsRegularly === null) {
+      showWarning("Viajes", "Indica si tu mascota viaja regularmente o no.");
+      return;
+    }
 
-  // Compromiso veracidad
-  if (!honestyChecked) {
-    showWarning(
-      'Compromiso de veracidad',
-      'Debes confirmar que la información proporcionada es verdadera.'
-    );
-    return;
-  }
+    if (travelsRegularly === true && !travelDescription.trim()) {
+      showWarning("Viajes", "Describe a dónde sueles viajar con tu mascota.");
+      return;
+    }
 
-  // 3) Viajes
-  if (travelsRegularly === null) {
-    showWarning(
-      'Viajes',
-      'Indica si tu mascota viaja regularmente o no.'
-    );
-    return;
-  }
+    // 4) Construir objeto comportamiento
+    const comportamiento = {
+      viveConOtrosAnimales: livesWithOthers === true,
+      relacionConOtrosAnimales: othersRelation,
+      descripcionConvivencia: othersDescription.trim(),
 
-  if (travelsRegularly === true && !travelDescription.trim()) {
-    showWarning(
-      'Viajes',
-      'Describe a dónde sueles viajar con tu mascota.'
-    );
-    return;
-  }
+      esAgresivo: isAggressive,
+      descripcionAgresividad: aggressionDescription.trim(),
 
-  // 4) Construir objeto comportamiento
-  const comportamiento = {
-    viveConOtrosAnimales: livesWithOthers === true,
-    relacionConOtrosAnimales: othersRelation,
-    descripcionConvivencia: othersDescription.trim(),
+      viajaRegularmente: travelsRegularly,
+      descripcionViajes: travelDescription.trim(),
 
-    esAgresivo: isAggressive,
-    descripcionAgresividad: aggressionDescription.trim(),
+      compromisoVeracidad: honestyChecked,
+    };
 
-    viajaRegularmente: travelsRegularly,
-    descripcionViajes: travelDescription.trim(),
+    const draftPetStep3 = {
+      ...draftPet,
+      comportamiento,
+    };
 
-    compromisoVeracidad: honestyChecked,
-  };
+    setIsSubmitting(true);
 
-  const draftPetStep3 = {
-    ...draftPet,
-    comportamiento,
-  };
+    try {
+      // Obtener usuario actual
+      const user = await getUserFromStorage();
 
-  setIsSubmitting(true);
+      if (!user || !user.id) {
+        setIsSubmitting(false);
+        Dialog.show({
+          type: ALERT_TYPE.DANGER,
+          title: "Sesión expirada",
+          textBody: "Vuelve a iniciar sesión para registrar tu mascota.",
+          button: "Ir al inicio",
+          onPressButton: () => {
+            Dialog.hide();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          },
+        });
+        return;
+      }
 
-  try {
-    // Obtener usuario actual
-    const user = await getUserFromStorage();
+      // Guardar en Firestore + Cloudinary
+      await createPetWithHistory(user.id, draftPetStep3);
 
-    if (!user || !user.id) {
-      setIsSubmitting(false);
       Dialog.show({
-        type: ALERT_TYPE.DANGER,
-        title: 'Sesión expirada',
-        textBody: 'Vuelve a iniciar sesión para registrar tu mascota.',
-        button: 'Ir al inicio',
+        type: ALERT_TYPE.SUCCESS,
+        title: "Registro completado",
+        textBody: "La información de tu mascota se ha guardado correctamente.",
+        button: "Continuar",
         onPressButton: () => {
           Dialog.hide();
+          // Llevar al usuario a sus mascotas o al home principal
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Login' }],
+            routes: [{ name: "MainTabs" }],
           });
         },
       });
-      return;
+    } catch (error) {
+      console.error("Error al registrar mascota:", error);
+      Dialog.show({
+        type: ALERT_TYPE.DANGER,
+        title: "Error",
+        textBody:
+          error.message ||
+          "Ocurrió un error al guardar la información de tu mascota. Inténtalo nuevamente.",
+        button: "Entendido",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Guardar en Firestore + Cloudinary
-    await createPetWithHistory(user.id, draftPetStep3);
-
-    Dialog.show({
-      type: ALERT_TYPE.SUCCESS,
-      title: 'Registro completado',
-      textBody: 'La información de tu mascota se ha guardado correctamente.',
-      button: 'Continuar',
-      onPressButton: () => {
-        Dialog.hide();
-        // Llevar al usuario a sus mascotas o al home principal
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
-      },
-    });
-  } catch (error) {
-    console.error('Error al registrar mascota:', error);
-    Dialog.show({
-      type: ALERT_TYPE.DANGER,
-      title: 'Error',
-      textBody:
-        error.message ||
-        'Ocurrió un error al guardar la información de tu mascota. Inténtalo nuevamente.',
-      button: 'Entendido',
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   /* ======================================================
      RENDER
@@ -253,7 +242,7 @@ const handleFinish = async () => {
           <View style={styles.headerTextBlock}>
             {/* 👇 Ajusta la ruta del logo según tu estructura de carpetas */}
             <Image
-              source={require('../assets/logo.png')}
+              source={require("../assets/logoPH.png")}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -263,15 +252,15 @@ const handleFinish = async () => {
             </Text>
           </View>
 
-          {/* ======================================================
-              1. CONVIVENCIA CON OTROS ANIMALES
-             ====================================================== */}
+          {/* 1. CONVIVENCIA CON OTROS ANIMALES */}
           <View style={styles.section}>
-            <Text style={styles.label}>¿Tu mascota vive con otros animales?</Text>
+            <Text style={styles.label}>
+              ¿Tu mascota vive con otros animales?
+            </Text>
 
             <View style={styles.rowWrap}>
-              {renderChip('Sí', true, livesWithOthers, setLivesWithOthers)}
-              {renderChip('No', false, livesWithOthers, setLivesWithOthers)}
+              {renderChip("Sí", true, livesWithOthers, setLivesWithOthers)}
+              {renderChip("No", false, livesWithOthers, setLivesWithOthers)}
             </View>
 
             {livesWithOthers === true && (
@@ -281,26 +270,26 @@ const handleFinish = async () => {
                 </Text>
                 <View style={styles.rowWrap}>
                   {renderChip(
-                    'Juegan mucho',
-                    'juegan',
+                    "Juegan mucho",
+                    "juegan",
                     othersRelation,
                     setOthersRelation
                   )}
                   {renderChip(
-                    'A veces se pelean',
-                    'se_pelean',
+                    "A veces se pelean",
+                    "se_pelean",
                     othersRelation,
                     setOthersRelation
                   )}
                   {renderChip(
-                    'No son muy unidos',
-                    'no_unidos',
+                    "No son muy unidos",
+                    "no_unidos",
                     othersRelation,
                     setOthersRelation
                   )}
                   {renderChip(
-                    'Conviven sin problema',
-                    'conviven_bien',
+                    "Conviven sin problema",
+                    "conviven_bien",
                     othersRelation,
                     setOthersRelation
                   )}
@@ -321,9 +310,7 @@ const handleFinish = async () => {
             )}
           </View>
 
-          {/* ======================================================
-              2. AGRESIVIDAD + COMPROMISO
-             ====================================================== */}
+          {/* 2. AGRESIVIDAD + COMPROMISO */}
           <View style={styles.section}>
             <Text style={styles.label}>¿Tu mascota es agresiva?</Text>
 
@@ -336,14 +323,20 @@ const handleFinish = async () => {
             </View>
 
             <View style={[styles.rowWrap, { marginTop: 8 }]}>
-              {renderChip('Sí', true, isAggressive, setIsAggressive, '#DC2626')}
-              {renderChip('No', false, isAggressive, setIsAggressive, '#10B981')}
+              {renderChip("Sí", true, isAggressive, setIsAggressive, "#DC2626")}
+              {renderChip(
+                "No",
+                false,
+                isAggressive,
+                setIsAggressive,
+                "#10B981"
+              )}
             </View>
 
             {isAggressive === true && (
               <>
                 <Text style={[styles.label, { marginTop: 12 }]}>
-                  ¿En qué situaciones suele mostrarse agresiva?
+                  ¿En qué situaciones suele mostrarse agresivo?
                 </Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -379,15 +372,13 @@ const handleFinish = async () => {
             </TouchableOpacity>
           </View>
 
-          {/* ======================================================
-              3. VIAJES
-             ====================================================== */}
+          {/* 3. VIAJES */}
           <View style={styles.section}>
             <Text style={styles.label}>¿Tu mascota viaja regularmente?</Text>
 
             <View style={styles.rowWrap}>
-              {renderChip('Sí', true, travelsRegularly, setTravelsRegularly)}
-              {renderChip('No', false, travelsRegularly, setTravelsRegularly)}
+              {renderChip("Sí", true, travelsRegularly, setTravelsRegularly)}
+              {renderChip("No", false, travelsRegularly, setTravelsRegularly)}
             </View>
 
             {travelsRegularly === true && (
@@ -407,29 +398,28 @@ const handleFinish = async () => {
             )}
           </View>
 
-         
-        {/* BOTÓN FINALIZAR (CENTRADO) */}
-        <TouchableOpacity
-        style={[
-            styles.primaryButton,
-            isSubmitting && { opacity: 0.8 },
-        ]}
-        onPress={handleFinish}
-        disabled={isSubmitting}
-        >
-        {isSubmitting ? (
-            <>
-            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.primaryButtonText}>Guardando...</Text>
-            </>
-        ) : (
-            <>
-            <Text style={styles.primaryButtonText}>Finalizar registro</Text>
-            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-            </>
-        )}
-        </TouchableOpacity>
-
+          {/* BOTÓN FINALIZAR (CENTRADO) */}
+          <TouchableOpacity
+            style={[styles.primaryButton, isSubmitting && { opacity: 0.8 }]}
+            onPress={handleFinish}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.primaryButtonText}>Guardando...</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.primaryButtonText}>Finalizar registro</Text>
+                <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 30 }} />
@@ -447,28 +437,29 @@ const styles = StyleSheet.create({
      ================================ */
   screen: {
     flex: 1,
-    backgroundColor: '#E0F7FA',
+    backgroundColor: "#E0F7FA",
+    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 espacio seguro arriba
   },
   headerRow: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 48 : 20,
+    paddingTop: 18,
     paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E4E9F2',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E4E9F2",
+    alignItems: "center",
+    justifyContent: "center",
   },
   stepText: {
     marginLeft: 12,
     fontSize: 12,
-    color: '#7B8794',
-    fontWeight: '500',
+    color: "#7B8794",
+    fontWeight: "500",
   },
 
   /* ================================
@@ -481,7 +472,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 20,
@@ -492,27 +483,27 @@ const styles = StyleSheet.create({
      TIPOGRAFÍA GENERAL + LOGO
      ================================ */
   headerTextBlock: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 18,
   },
   logo: {
-    width: 72,
-    height: 72,
+    width: 150,
+    height: 150,
     marginBottom: 8,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
   subtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
 
   section: { marginBottom: 18 },
   label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 6,
   },
 
@@ -522,15 +513,15 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     fontSize: 14,
   },
   textArea: {
     minHeight: 90,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
 
   /* ================================
@@ -539,15 +530,15 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: "#D1D5DB",
     marginRight: 8,
     marginBottom: 8,
   },
-  chipText: { fontSize: 13, color: '#374151' },
-  rowWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  chipText: { fontSize: 13, color: "#374151" },
+  rowWrap: { flexDirection: "row", flexWrap: "wrap" },
 
   /* ================================
      ADVERTENCIA AGRESIVIDAD
@@ -557,21 +548,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#FEF3C7', // amarillo suave
+    backgroundColor: "#FEF3C7",
     borderWidth: 1,
-    borderColor: '#FBBF24',
+    borderColor: "#FBBF24",
   },
   infoWarningText: {
     fontSize: 11,
-    color: '#92400E',
+    color: "#92400E",
   },
 
   /* ================================
      CHECKBOX COMPROMISO
      ================================ */
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginTop: 14,
   },
   checkboxBox: {
@@ -579,21 +570,21 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#9CA3AF',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#9CA3AF",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 8,
     marginTop: 2,
   },
   checkboxBoxChecked: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
   },
   checkboxText: {
     flex: 1,
     fontSize: 12,
-    color: '#374151',
+    color: "#374151",
   },
 
   /* ================================
@@ -601,13 +592,13 @@ const styles = StyleSheet.create({
      ================================ */
   primaryButton: {
     marginTop: 20,
-    alignSelf: 'center', // 👈 centrado
-    flexDirection: 'row',
-    backgroundColor: '#2563EB',
+    alignSelf: "center",
+    flexDirection: "row",
+    backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  primaryButtonText: { color: '#FFF', fontWeight: '600', marginRight: 8 },
+  primaryButtonText: { color: "#FFF", fontWeight: "600", marginRight: 8 },
 });

@@ -42,7 +42,6 @@ const DirectorioDetailScreen = ({ route, navigation }) => {
 
   const copyToClipboard = (value) => Clipboard.setStringAsync(value);
 
-  
   const getCategoryBadge = () => {
     if (data.category === "Gobierno") {
       return (
@@ -76,8 +75,11 @@ const DirectorioDetailScreen = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.topTitle}>{data.name}</Text>
+        <Text style={styles.topTitle} numberOfLines={1}>
+          {data.name}
+        </Text>
 
+        {/* espacio para balancear el botón de atrás */}
         <View style={{ width: 40 }} />
       </View>
 
@@ -162,7 +164,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    marginTop: Platform.OS === "ios" ? 40 : 0,
+    // 👇 Igual que en tus otras pantallas (evita que se meta en la barra)
+    paddingTop: Platform.OS === "ios" ? 40 : 24,
   },
   topBar: {
     paddingTop: 18,
@@ -183,6 +186,7 @@ const styles = StyleSheet.create({
     color: "#365b6d",
     textAlign: "center",
     flex: 1,
+    marginHorizontal: 8,
   },
   content: {
     padding: 20,
