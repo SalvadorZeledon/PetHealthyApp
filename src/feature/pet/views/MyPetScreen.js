@@ -13,9 +13,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
-import { db } from "../firebase/config";
-import { COL_MASCOTAS } from "../src/utils/collections";
-import { getUserFromStorage } from "../src/utils/storage";
+import { db } from "../../../../firebase/config";
+import { COL_MASCOTAS } from "../../../shared/utils/collections";
+import { getUserFromStorage } from "../../../shared/utils/storage";
+
 
 const MyPetScreen = ({ navigation }) => {
   const [pets, setPets] = useState([]);

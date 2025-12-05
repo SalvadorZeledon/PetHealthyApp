@@ -14,12 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../../../../firebase/config";
+import { getUserFromStorage } from "../../../shared/utils/storage";
+import { COL_MASCOTAS } from "../../../shared/utils/collections";
 
-import { getUserFromStorage } from "../src/utils/storage";
-import { db } from "../firebase/config";
-import { COL_MASCOTAS } from "../src/utils/collections";
 
-const avatarPlaceholder = require("../assets/logo.png");
+const avatarPlaceholder = require("../../../../assets/logo.png");
 
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);

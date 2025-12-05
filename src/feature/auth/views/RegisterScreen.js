@@ -21,13 +21,13 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase/config";
-import { COL_USUARIOS } from "../src/utils/collections";
+import { db } from "../../../../firebase/config";
+import { COL_USUARIOS } from "../../../shared/utils/collections";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
 
-const logo = require("../assets/logoPH.png");
+const logo = require("../../../../assets/logoPH.png");
 
 // Evalúa la fuerza de la contraseña
 const evaluatePasswordStrength = (password) => {

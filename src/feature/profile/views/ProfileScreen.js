@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const avatarPlaceholder = require('../assets/logo.png');
+const avatarPlaceholder = require('../../../../assets/logoPH.png');
 
 const ProfileScreen = ({ navigation }) => {
   const handleOpenUserInfo = () => {

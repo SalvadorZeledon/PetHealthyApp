@@ -11,14 +11,14 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
-import { COL_USUARIOS } from "../src/utils/collections";
+import { db } from "../../../../firebase/config";
+import { COL_USUARIOS } from "../../../shared/utils/collections";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { uploadImageToCloudinary } from "../src/services/cloudinary";
+import { uploadImageToCloudinary } from "../../../shared/services/cloudinary";
 
-const logo = require("../assets/logoPH.png");
+const logo = require("../../../../assets/logoPH.png");
 
 const ProfilePhotoScreen = ({ route, navigation }) => {
   const { userId } = route.params;

@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { clearUserFromStorage } from "../src/utils/storage";
+import { clearUserFromStorage } from "../../../shared/utils/storage";
+
 
 const SettingsScreen = ({ navigation }) => {
   const handleBack = () => {

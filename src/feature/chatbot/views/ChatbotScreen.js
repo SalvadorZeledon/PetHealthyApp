@@ -14,7 +14,8 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getAIResponse } from "../src/services/groqService";
+import { getAIResponse } from "../services/groqService";
+
 
 const ChatbotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([]);

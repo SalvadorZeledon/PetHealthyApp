@@ -18,13 +18,13 @@ import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getUserFromStorage, saveUserToStorage } from "../src/utils/storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { db } from "../../../../firebase/config";
+import { getUserFromStorage, saveUserToStorage } from "../../../shared/utils/storage";
+import { COL_USUARIOS } from "../../../shared/utils/collections";
 
-import { db } from "../firebase/config";
-import { COL_USUARIOS } from "../src/utils/collections";
 
-const avatarPlaceholder = require("../assets/logo.png");
+const avatarPlaceholder = require("../../../../assets/logoPH.png");
 
 const UserInfoScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);

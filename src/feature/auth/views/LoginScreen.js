@@ -15,14 +15,15 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebase/config";
-import { COL_USUARIOS } from "../src/utils/collections";
+import { db } from "../../../../firebase/config";
+import { COL_USUARIOS } from "../../../shared/utils/collections";
+import { saveUserToStorage } from "../../../shared/utils/storage";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
-import { saveUserToStorage } from "../src/utils/storage";
 
-const logo = require("../assets/logoPH.png");
+
+const logo = require("../../../../assets/logoPH.png");
 
 const LoginScreen = ({ navigation }) => {
   const [fontsLoaded] = useFonts({

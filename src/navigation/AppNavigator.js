@@ -1,41 +1,39 @@
-// src/navigation/AppNavigator.js
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// --- AUTENTICACIÓN ---
-import LoginScreen from "../../screens/Loginscreen";
-import RegisterScreen from "../../screens/RegisterScreen";
-import CompleteProfileScreen from "../../screens/CompleteProfileScreen";
-import ProfilePhotoScreen from "../../screens/ProfilePhotoScreen";
-
-// --- PERFIL ---
-import UserInfoScreen from "../../screens/UserInfoScreen";
-import SettingsScreen from "../../screens/SettingsScreen";
-import LocationPickerScreen from "../../screens/LocationPickerScreen";
-
-// --- MASCOTAS ---
-import DogBasicInfoScreen from "../../screens/DogBasicInfoScreen";
-import RegistroMascota from "../../screens/RegistroMascota";
-import RegistroMascota1 from "../../screens/RegistroMascota1";
-import RegistroMascota2 from "../../screens/RegistroMascota2";
-import RegistroMascota3 from "../../screens/RegistroMascota3";
-import PetProfileScreen from "../../screens/PetProfileScreen";
-
-// --- DIRECTORIO ---
-import DirectorioScreen from "../../screens/DirectorioScreen";
-import DirectorioDetailScreen from "../../screens/DirectorioDetailScreen";
-
-// --- VETERINARIAS Y MAPA ---
-import VetFinderScreen from "../../screens/VetFinderScreen";
-import VetDetailScreen from "../../screens/VetDetailScreen";
-import VetMapScreen from "../../screens/VetMapScreen"; // ← IMPORTANTE
-
-// --- INFORMACIÓN LEGAL ---
-import TermsScreen from "../../screens/TermsScreen";
-import AboutUsScreen from "../../screens/AboutUsScreen";
-
 // --- TAB NAVIGATOR PRINCIPAL ---
 import TabNavigator from "./TabNavigator";
+
+// --- AUTENTICACIÓN ---
+import LoginScreen from "../feature/auth/views/LoginScreen";
+import RegisterScreen from "../feature/auth/views/RegisterScreen";
+import CompleteProfileScreen from "../feature/profile/views/CompleteProfileScreen";
+import ProfilePhotoScreen from "../feature/profile/views/ProfilePhotoScreen";
+
+// --- PERFIL ---
+import UserInfoScreen from "../feature/profile/views/UserInfoScreen";
+import SettingsScreen from "../feature/settings/views/SettingsScreen";
+import LocationPickerScreen from "../feature/profile/views/LocationPickerScreen";
+
+// --- MASCOTAS ---
+import DogBasicInfoScreen from "../feature/pet/views/DogBasicInfoScreen";
+import RegistroMascota from "../feature/pet/views/RegistroMascota";
+import RegistroMascota1 from "../feature/pet/views/RegistroMascota1";
+import RegistroMascota2 from "../feature/pet/views/RegistroMascota2";
+import RegistroMascota3 from "../feature/pet/views/RegistroMascota3";
+import PetProfileScreen from "../feature/pet/views/PetProfileScreen";
+
+// --- DIRECTORIO / VETS ---
+import DirectorioScreen from "../feature/directory/views/DirectorioScreen";
+import DirectorioDetailScreen from "../feature/directory/views/DirectorioDetailScreen";
+import VetFinderScreen from "../feature/directory/views/VetFinderScreen";
+import VetDetailScreen from "../feature/directory/views/VetDetailScreen";
+import VetMapScreen from "../feature/directory/views/VetMapScreen";
+
+// --- INFO LEGAL ---
+import TermsScreen from "../feature/settings/views/TermsScreen";
+import AboutUsScreen from "../feature/home/views/AboutUsScreen";
+
 
 
 const Stack = createNativeStackNavigator();
