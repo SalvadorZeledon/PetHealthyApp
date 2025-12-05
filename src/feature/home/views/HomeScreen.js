@@ -18,8 +18,90 @@ import { db } from "../../../../firebase/config";
 import { getUserFromStorage } from "../../../shared/utils/storage";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
 
-
 const avatarPlaceholder = require("../../../../assets/logo.png");
+
+const EVENTS_STORAGE_KEY = "@appointments_events";
+
+const MONTHS = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
+// Formatear fecha para mostrar en Home
+const formatEventDateForHome = (iso) => {
+  if (!iso) return "Sin fecha";
+  const [y, m, d] = iso.split("-").map((x) => Number(x));
+  if (!y || !m || !d) return "Sin fecha";
+
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const onlyDate = new Date(y, m - 1, d);
+  onlyDate.setHours(0, 0, 0, 0);
+
+  const label = `${d} de ${MONTHS[m - 1]}`;
+
+  if (onlyDate.getTime() === today.getTime()) {
+    return `Hoy · ${label}`;
+  }
+
+  return label;
+};
+
+// Para elegir iconito según tipo de evento
+const getEventVisuals = (ev) => {
+  if (!ev?.type) {
+    return { iconName: "time-outline" };
+  }
+
+  if (
+    ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(ev.type)
+  ) {
+    return { iconName: "medkit-outline" };
+  }
+  if (ev.type === "meds") {
+    return { iconName: "medkit" };
+  }
+  if (ev.type === "walk") {
+    return { iconName: "paw-outline" };
+  }
+  return { iconName: "time-outline" };
+};
+
+// Parsear fecha + hora a Date para ordenar
+const parseEventDateTime = (ev) => {
+  if (!ev?.date) return null;
+  const [y, m, d] = ev.date.split("-").map((x) => Number(x));
+  if (!y || !m || !d) return null;
+
+  let hours = 9;
+  let minutes = 0;
+
+  if (ev.time) {
+    const match = ev.time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const min = parseInt(match[2], 10);
+      const period = match[3].toUpperCase();
+      if (period === "PM" && h !== 12) h += 12;
+      if (period === "AM" && h === 12) h = 0;
+      hours = h;
+      minutes = min;
+    }
+  }
+
+  return new Date(y, m - 1, d, hours, minutes, 0, 0);
+};
 
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
@@ -33,7 +115,12 @@ const HomeScreen = ({ navigation }) => {
   const [petsCardWidth, setPetsCardWidth] = useState(0);
   const [activePetIndex, setActivePetIndex] = useState(0);
 
-  // Cargar usuario + foto + mascotas cada vez que la pantalla gana foco
+  // eventos / citas para Home
+  const [upcomingUserEvents, setUpcomingUserEvents] = useState([]);
+  const [nextVetEvent, setNextVetEvent] = useState(null);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  // Cargar usuario + foto + mascotas + eventos cada vez que la pantalla gana foco
   useFocusEffect(
     useCallback(() => {
       let unsubscribePets;
@@ -42,12 +129,15 @@ const HomeScreen = ({ navigation }) => {
         try {
           setLoadingUser(true);
           setLoadingPets(true);
+          setLoadingEvents(true);
 
           const stored = await getUserFromStorage();
           if (!stored || !stored.id) {
             setUser(null);
             setPhotoUri(null);
             setPets([]);
+            setUpcomingUserEvents([]);
+            setNextVetEvent(null);
             return;
           }
 
@@ -83,10 +173,64 @@ const HomeScreen = ({ navigation }) => {
               setLoadingPets(false);
             }
           );
+
+          // === Cargar eventos desde AsyncStorage para el Home ===
+          try {
+            const eventsJson = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
+            let allEvents = [];
+            if (eventsJson) {
+              const parsed = JSON.parse(eventsJson);
+              if (Array.isArray(parsed)) {
+                allEvents = parsed;
+              }
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const processed = allEvents
+              .map((ev) => {
+                const dt = parseEventDateTime(ev);
+                let dateOnly = null;
+                if (ev.date) {
+                  const [yy, mm, dd] = ev.date.split("-").map((x) => Number(x));
+                  if (yy && mm && dd) {
+                    dateOnly = new Date(yy, mm - 1, dd);
+                    dateOnly.setHours(0, 0, 0, 0);
+                  }
+                }
+                return { ev, dt: dt || dateOnly, dateOnly };
+              })
+              // 👉 filtramos solo por fecha >= hoy (no por hora exacta)
+              .filter((x) => x.dt && x.dateOnly && x.dateOnly >= today)
+              .sort((a, b) => {
+                if (a.dateOnly.getTime() !== b.dateOnly.getTime()) {
+                  return a.dateOnly - b.dateOnly;
+                }
+                return a.dt - b.dt;
+              });
+
+            const userEvents = processed.filter((x) => x.ev.source === "user");
+            const vetEvents = processed.filter((x) => x.ev.source === "vet");
+
+            // hasta 3 eventos del usuario
+            setUpcomingUserEvents(userEvents.slice(0, 3).map((x) => x.ev));
+            // 1 próxima cita del vet
+            setNextVetEvent(vetEvents.length ? vetEvents[0].ev : null);
+          } catch (errEv) {
+            console.log("Error cargando eventos en Home:", errEv);
+            setUpcomingUserEvents([]);
+            setNextVetEvent(null);
+          } finally {
+            setLoadingEvents(false);
+          }
         } catch (error) {
           console.log("Error al cargar datos en HomeScreen:", error);
           setPets([]);
+          setUpcomingUserEvents([]);
+          setNextVetEvent(null);
           setLoadingPets(false);
+          setLoadingEvents(false);
         } finally {
           setLoadingUser(false);
         }
@@ -106,10 +250,6 @@ const HomeScreen = ({ navigation }) => {
 
   const handleOpenProfile = () => {
     navigation.navigate("UserInfo");
-  };
-
-  const handleSeeAllPets = () => {
-    navigation.navigate("MyPets");
   };
 
   const displayName =
@@ -168,14 +308,14 @@ const HomeScreen = ({ navigation }) => {
     // Si aún no sabemos el ancho de la card, no renderizamos el carrusel
     if (!cardWidth) return null;
 
+    // Ancho útil interno (cardWidth menos paddingHorizontal: 16 + 16)
+    const contentWidth = Math.max(0, cardWidth - 32);
+
     const handleScrollEnd = (event) => {
       const offsetX = event.nativeEvent.contentOffset.x;
-      const index = Math.round(offsetX / cardWidth);
+      const index = Math.round(offsetX / contentWidth);
       setActivePetIndex(index);
     };
-
-    // hacemos la card interna un poco más angosta para que no se salga
-    const innerCardWidth = cardWidth - 39; // 8px de margen visual a cada lado
 
     return (
       <>
@@ -184,7 +324,7 @@ const HomeScreen = ({ navigation }) => {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          style={{ width: cardWidth }}
+          style={{ width: contentWidth }}
           contentContainerStyle={styles.petsCarouselContent}
           decelerationRate="fast"
           snapToAlignment="center"
@@ -193,14 +333,11 @@ const HomeScreen = ({ navigation }) => {
           {pets.map((pet) => (
             <View
               key={pet.id}
-              style={{ width: cardWidth, alignItems: "flex-start" }}
+              style={{ width: contentWidth, alignItems: "center" }}
             >
               <TouchableOpacity
                 activeOpacity={0.9}
-                style={[
-                  styles.petCard,
-                  { width: innerCardWidth, marginLeft: 2 },
-                ]}
+                style={[styles.petCard, { width: contentWidth }]}
                 onPress={() =>
                   navigation.navigate("PetProfile", { petId: pet.id })
                 }
@@ -302,46 +439,102 @@ const HomeScreen = ({ navigation }) => {
 
       {/* CONTENIDO PRINCIPAL */}
       <ScrollView contentContainerStyle={styles.content}>
-        {/* === SECCIÓN TUS MASCOTAS === */}
+        {/* === SECCIÓN MASCOTAS (solo carrusel, sin header) === */}
         <View
           style={styles.petsCard}
           onLayout={(e) => setPetsCardWidth(e.nativeEvent.layout.width)}
         >
-          <View style={styles.petsHeaderRow}>
-            <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.petsTitle}>Tus mascotas</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleSeeAllPets}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text
-                style={styles.petsSeeAllText}
-                numberOfLines={1}
-                ellipsizeMode="clip"
-              >
-                Ver todas
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           {renderPetsSectionContent(petsCardWidth)}
         </View>
 
-        {/* Tu próxima cita */}
-        <Text style={styles.sectionTitle}>Tu próxima cita</Text>
-        <View style={styles.card}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Consulta general</Text>
-            <Text style={styles.cardSubtitle}>Con Max 🐶</Text>
-            <Text style={styles.cardDetail}>Lunes 15 · 10:30 AM</Text>
-            <Text style={styles.cardDetail}>Clínica PetHealthy</Text>
+        {/* Próximos recordatorios del usuario */}
+        <Text style={styles.sectionTitle}>Tus próximos recordatorios</Text>
+        {loadingEvents ? (
+          <View style={styles.card}>
+            <ActivityIndicator size="small" color="#365b6d" />
+            <Text style={[styles.cardDetail, { marginLeft: 8 }]}>
+              Cargando tus recordatorios...
+            </Text>
           </View>
-          <View style={styles.cardIconWrapper}>
-            <Ionicons name="calendar-outline" size={22} color="#365b6d" />
+        ) : upcomingUserEvents.length === 0 ? (
+          <View style={styles.card}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Sin recordatorios próximos</Text>
+              <Text style={styles.cardDetail}>
+                Crea un recordatorio desde la pestaña Calendario.
+              </Text>
+            </View>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="time-outline" size={22} color="#365b6d" />
+            </View>
           </View>
-        </View>
+        ) : (
+          upcomingUserEvents.map((ev) => {
+            const { iconName } = getEventVisuals(ev);
+            return (
+              <TouchableOpacity
+                key={ev.id}
+                style={styles.card}
+                onPress={() => navigation.navigate("Appointments")}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{ev.title}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {ev.location || "Evento personal"}
+                  </Text>
+                  <Text style={styles.cardDetail}>
+                    {formatEventDateForHome(ev.date)} · {ev.time || "Sin hora"}
+                  </Text>
+                </View>
+                <View style={styles.cardIconWrapper}>
+                  <Ionicons name={iconName} size={22} color="#365b6d" />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+
+        {/* Próxima cita asignada por el veterinario */}
+        <Text style={styles.sectionTitle}>Próxima cita con tu veterinario</Text>
+        {loadingEvents ? (
+          <View style={styles.card}>
+            <ActivityIndicator size="small" color="#365b6d" />
+            <Text style={[styles.cardDetail, { marginLeft: 8 }]}>
+              Cargando citas...
+            </Text>
+          </View>
+        ) : !nextVetEvent ? (
+          <View style={styles.card}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Sin citas asignadas</Text>
+              <Text style={styles.cardDetail}>
+                Tu veterinario aún no ha asignado una próxima cita.
+              </Text>
+            </View>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="calendar-outline" size={22} color="#365b6d" />
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate("Appointments")}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{nextVetEvent.title}</Text>
+              <Text style={styles.cardSubtitle}>
+                {nextVetEvent.location || "Clínica veterinaria"}
+              </Text>
+              <Text style={styles.cardDetail}>
+                {formatEventDateForHome(nextVetEvent.date)} ·{" "}
+                {nextVetEvent.time || "Sin hora"}
+              </Text>
+            </View>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="medkit-outline" size={22} color="#365b6d" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Accesos rápidos */}
         <Text style={styles.sectionTitle}>Accesos rápidos</Text>
@@ -354,18 +547,24 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.quickText}>Agregar mascota</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickCard}>
+          <TouchableOpacity
+            style={styles.quickCard}
+            onPress={() => navigation.navigate("Appointments")}
+          >
             <Ionicons name="medkit-outline" size={22} color="#1E88E5" />
-            <Text style={styles.quickText}>Vacunas</Text>
+            <Text style={styles.quickText}>Ver calendario</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickCard}>
+          <TouchableOpacity
+            style={styles.quickCard}
+            onPress={() => navigation.navigate("Appointments")}
+          >
             <Ionicons name="time-outline" size={22} color="#FFB300" />
             <Text style={styles.quickText}>Próximas citas</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Resumen de salud */}
+        {/* Resumen de salud (por ahora estático / demo) */}
         <Text style={styles.sectionTitle}>Resumen de salud</Text>
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -441,7 +640,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  /* ---------- Tus mascotas ---------- */
+  /* ---------- Carrusel mascotas ---------- */
   petsCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
@@ -449,23 +648,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 16,
     elevation: 3,
-    overflow: "visible", // deja ver la sombra sin cortarla
-  },
-  petsHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  petsTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#263238",
-  },
-  petsSeeAllText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1E88E5",
+    overflow: "visible",
   },
   petsLoadingRow: {
     flexDirection: "row",

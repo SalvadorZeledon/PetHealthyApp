@@ -1,7 +1,7 @@
 // src/services/googlePlaces.js
 import axios from "axios";
 
-const GOOGLE_API_KEY = "AQUI_VA_TU_API_KEY";
+const GOOGLE_API_KEY = "tu_api_key_de_google_aqui";
 
 // ---------------------------------------------
 // ✔ Obtener veterinarias cercanas
@@ -19,7 +19,11 @@ export const getNearbyVets = async (lat, lng) => {
     const { data } = res;
 
     if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.warn("Google Places nearbysearch returned:", data.status, data.error_message);
+      console.warn(
+        "Google Places nearbysearch returned:",
+        data.status,
+        data.error_message
+      );
       return [];
     }
 
@@ -56,8 +60,8 @@ export const getPlaceDetails = async (placeId) => {
       "user_ratings_total",
       "website",
       "photos", // 👈 agregado para fotos de alta calidad
-      "url",    // 👈 URL oficial de Google Maps
-      "place_id"
+      "url", // 👈 URL oficial de Google Maps
+      "place_id",
     ].join(",");
 
     const url =
@@ -70,7 +74,11 @@ export const getPlaceDetails = async (placeId) => {
     const { data } = res;
 
     if (data.status !== "OK") {
-      console.warn("Google Places details returned:", data.status, data.error_message);
+      console.warn(
+        "Google Places details returned:",
+        data.status,
+        data.error_message
+      );
       return null;
     }
 
@@ -86,8 +94,8 @@ export const getPlaceDetails = async (placeId) => {
       rating: p.rating,
       user_ratings_total: p.user_ratings_total || 0,
       website: p.website || null,
-      url: p.url || null,      // 👈 Link a Google Maps
-      photos: p.photos || [],  // 👈 lista de referencias de foto
+      url: p.url || null, // 👈 Link a Google Maps
+      photos: p.photos || [], // 👈 lista de referencias de foto
     };
   } catch (err) {
     console.log("getPlaceDetails error:", err.message || err);

@@ -10,14 +10,14 @@ import {
   Alert,
   Dimensions,
   ScrollView,
+  StatusBar,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { getNearbyVets } from "../services/googlePlaces";
-
-
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
@@ -36,7 +36,7 @@ const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-const VetMapScreen = ({ navigation }) => {
+const VetMapScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [region, setRegion] = useState(null);
   const [places, setPlaces] = useState([]);
@@ -44,6 +44,11 @@ const VetMapScreen = ({ navigation }) => {
 
   const mapRef = useRef();
 
+  // 🔹 Modo "pick" cuando vienes desde el calendario
+  const isPickMode = route?.params?.pickMode === true;
+  const selectedDateISOFromRoute = route?.params?.dateISO || null;
+
+  // 🔹 Cargar ubicación + veterinarias UNA sola vez
   useEffect(() => {
     (async () => {
       try {
@@ -90,6 +95,26 @@ const VetMapScreen = ({ navigation }) => {
     })();
   }, []);
 
+  // 🔹 Cada vez que la pantalla gana foco, ajustamos el StatusBar
+  //    y si venimos en modo pick, abrimos la lista SIEMPRE.
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor("transparent");
+      StatusBar.setBarStyle("light-content");
+
+      if (isPickMode) {
+        setShowList(true);
+      }
+
+      return () => {
+        StatusBar.setTranslucent(false);
+        StatusBar.setBackgroundColor("#000000");
+        StatusBar.setBarStyle("dark-content");
+      };
+    }, [isPickMode])
+  );
+
   const centerOnUser = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({});
@@ -119,6 +144,37 @@ const VetMapScreen = ({ navigation }) => {
     }
   };
 
+  // 🔹 Crear recordatorio (funciona tanto desde tab "Mapa" como modo pick del calendario)
+  const createReminderFromMap = (place) => {
+    const todayISO = new Date().toISOString().split("T")[0];
+    const dateISO = selectedDateISOFromRoute || todayISO;
+
+    const params = {
+      selectedVetForEvent: {
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+      },
+      openNewEventFromMap: true,
+      dateISO,
+    };
+
+    const state = navigation.getState();
+    const hasAppointmentsTab =
+      state?.routeNames && state.routeNames.includes("Appointments");
+
+    if (hasAppointmentsTab) {
+      // Estamos dentro del TabNavigator (Home, Mascotas, Citas, Mapa, Chatbot)
+      navigation.navigate("Appointments", params);
+    } else {
+      // Venimos desde el stack raíz (Directorio, etc.)
+      navigation.navigate("MainTabs", {
+        screen: "Appointments",
+        params,
+      });
+    }
+  };
+
   const renderListPanel = () => {
     if (!places.length)
       return (
@@ -145,23 +201,35 @@ const VetMapScreen = ({ navigation }) => {
           {places.map((p) => {
             const lat = p.geometry?.location?.lat;
             const lng = p.geometry?.location?.lng;
+
+            const handleCenter = () => {
+              setShowList(false);
+              mapRef.current?.animateToRegion(
+                {
+                  latitude: lat,
+                  longitude: lng,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                },
+                400
+              );
+            };
+
+            const handleViewDetails = () => {
+              navigation.navigate("VetDetail", { placeId: p.place_id });
+            };
+
+            const handleSelectOrCreate = () => {
+              createReminderFromMap(p);
+            };
+
+            const labelSelect = isPickMode
+              ? "Usar en recordatorio"
+              : "Crear recordatorio";
+
             return (
               <View key={p.place_id} style={styles.listItem}>
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  onPress={() => {
-                    setShowList(false);
-                    mapRef.current?.animateToRegion(
-                      {
-                        latitude: lat,
-                        longitude: lng,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                      },
-                      400
-                    );
-                  }}
-                >
+                <TouchableOpacity style={{ flex: 1 }} onPress={handleCenter}>
                   <Text style={styles.itemTitle}>{p.name}</Text>
                   {p.vicinity ? (
                     <Text style={styles.itemSubtitle}>{p.vicinity}</Text>
@@ -179,22 +247,31 @@ const VetMapScreen = ({ navigation }) => {
                   </Text>
                 </View>
 
-                {/* 🔥 NUEVO BOTÓN DE DETALLES */}
-                <TouchableOpacity
-                  style={styles.detailsBtn}
-                  onPress={() =>
-                    navigation.navigate("VetDetail", {
-                      placeId: p.place_id,
-                    })
-                  }
-                >
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={16}
-                    color="#365b6d"
-                  />
-                  <Text style={styles.detailsBtnText}>Ver más detalles</Text>
-                </TouchableOpacity>
+                <View style={styles.listActionsRow}>
+                  <TouchableOpacity
+                    style={styles.detailsBtn}
+                    onPress={handleViewDetails}
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={16}
+                      color="#365b6d"
+                    />
+                    <Text style={styles.detailsBtnText}>Ver detalles</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.detailsBtn, { marginLeft: 8 }]}
+                    onPress={handleSelectOrCreate}
+                  >
+                    <Ionicons
+                      name={isPickMode ? "checkmark-circle-outline" : "add"}
+                      size={16}
+                      color="#365b6d"
+                    />
+                    <Text style={styles.detailsBtnText}>{labelSelect}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })}
@@ -211,8 +288,18 @@ const VetMapScreen = ({ navigation }) => {
     );
   }
 
+  const statusBarHeight =
+    Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const topOffset = Platform.OS === "ios" ? 50 : statusBarHeight + 10;
+  const floatingButtonsTop = topOffset + 60;
+
   return (
     <View style={styles.container}>
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
@@ -225,6 +312,18 @@ const VetMapScreen = ({ navigation }) => {
           const lat = p.geometry?.location?.lat;
           const lng = p.geometry?.location?.lng;
           if (!lat || !lng) return null;
+
+          const handleViewDetails = () => {
+            navigation.navigate("VetDetail", { placeId: p.place_id });
+          };
+
+          const handleSelectOrCreate = () => {
+            createReminderFromMap(p);
+          };
+
+          const labelSelect = isPickMode
+            ? "Usar en recordatorio"
+            : "Crear recordatorio";
 
           return (
             <Marker
@@ -243,11 +342,7 @@ const VetMapScreen = ({ navigation }) => {
                   <View style={styles.calloutRow}>
                     <TouchableOpacity
                       style={styles.calloutBtn}
-                      onPress={() =>
-                        navigation.navigate("VetDetail", {
-                          placeId: p.place_id,
-                        })
-                      }
+                      onPress={handleViewDetails}
                     >
                       <Ionicons
                         name="information-circle-outline"
@@ -259,8 +354,22 @@ const VetMapScreen = ({ navigation }) => {
 
                     <TouchableOpacity
                       style={styles.calloutBtn}
+                      onPress={handleSelectOrCreate}
+                    >
+                      <Ionicons
+                        name={isPickMode ? "checkmark-circle-outline" : "add"}
+                        size={18}
+                        color="#365b6d"
+                      />
+                      <Text style={styles.calloutBtnText}>{labelSelect}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.calloutBtn}
                       onPress={() => {
-                        const q = encodeURIComponent(`${lat},${lng} (${p.name})`);
+                        const q = encodeURIComponent(
+                          `${lat},${lng} (${p.name})`
+                        );
                         const url = Platform.select({
                           ios: `maps://?q=${q}`,
                           android: `geo:0,0?q=${q}`,
@@ -286,8 +395,8 @@ const VetMapScreen = ({ navigation }) => {
         })}
       </MapView>
 
-      {/* HEADER FLOATING */}
-      <View style={styles.topControls}>
+      {/* HEADER flotante */}
+      <View style={[styles.topControls, { top: topOffset }]}>
         <TouchableOpacity
           style={styles.topBtn}
           onPress={() => navigation.goBack()}
@@ -295,13 +404,15 @@ const VetMapScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={20} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Veterinarias</Text>
+        <Text style={styles.title}>
+          {isPickMode ? "Veterinarias" : "Veterinarias"}
+        </Text>
 
         <View style={{ width: 40 }} />
       </View>
 
-      {/* BOTONES A LA DERECHA */}
-      <View style={styles.floatingRight}>
+      {/* BOTONES flotantes a la derecha */}
+      <View style={[styles.floatingRight, { top: floatingButtonsTop }]}>
         <TouchableOpacity style={styles.floatBtn} onPress={centerOnUser}>
           <Ionicons name="locate" size={20} color="#365b6d" />
         </TouchableOpacity>
@@ -328,7 +439,6 @@ const styles = StyleSheet.create({
 
   topControls: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 50 : 24,
     left: 16,
     right: 16,
     flexDirection: "row",
@@ -347,13 +457,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#ffffffff",
   },
 
   floatingRight: {
     position: "absolute",
     right: 12,
-    top: Platform.OS === "ios" ? 110 : 80,
     alignItems: "center",
   },
   floatBtn: {
@@ -435,8 +544,13 @@ const styles = StyleSheet.create({
   },
   listEmptyText: { color: "#607D8B", textAlign: "center" },
 
+  listActionsRow: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
+
   callout: {
-    width: 220,
+    width: 260,
     padding: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
@@ -447,6 +561,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 4,
   },
   calloutBtn: {
     flexDirection: "row",
@@ -455,6 +571,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 4,
   },
   calloutBtnText: {
     marginLeft: 6,
@@ -463,11 +580,9 @@ const styles = StyleSheet.create({
     color: "#263238",
   },
 
-  // 🔥 NUEVOS ESTILOS
   detailsBtn: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
     backgroundColor: "#E3F2FD",
     paddingVertical: 6,
     paddingHorizontal: 10,

@@ -9,8 +9,10 @@ import { AlertNotificationRoot } from "react-native-alert-notification";
 export default function App() {
   return (
     <AlertNotificationRoot>
-      {/* 👇 Barra de estado: texto/íconos negros y fondo celeste */}
-      <StatusBar style="dark" backgroundColor="#E3F2FD" />
+      {/* Barra de estado GLOBAL:
+          - fondo negro
+          - iconos/texto blancos */}
+      <StatusBar style="dark" backgroundColor="#000000" />
 
       <NavigationContainer>
         <AppNavigator />
