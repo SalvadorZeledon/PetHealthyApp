@@ -18,10 +18,11 @@ import { doc, updateDoc } from "firebase/firestore";
 import * as Location from "expo-location";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-import { db } from "../firebase/config";
-import { COL_USUARIOS } from "../src/utils/collections";
+import { db } from "../../../../firebase/config";
+import { COL_USUARIOS } from "../../../shared/utils/collections";
 
-const logo = require("../assets/logoPH.png");
+
+const logo = require("../../../../assets/logoPH.png");
 
 const CompleteProfileScreen = ({ route, navigation }) => {
   const { userId } = route.params;

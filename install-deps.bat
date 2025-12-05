@@ -1,59 +1,46 @@
-#!/bin/bash
-
-# Script para instalar las dependencias de PetHealtyApp
-
-echo "Instalando dependencias base de Expo (npm install)..."
+echo "Instalando TODAS las dependencias definidas en package.json..."
 npm install
 
-echo "Instalando React Navigation (core)..."
-npm install @react-navigation/native
+echo "Sincronizando dependencias gestionadas por Expo (versiones correctas)..."
+npx expo install \
+  expo-constants \
+  expo-font \
+  expo-clipboard \
+  expo-haptics \
+  expo-image \
+  expo-image-picker \
+  expo-linking \
+  expo-location \
+  expo-router \
+  expo-splash-screen \
+  expo-status-bar \
+  expo-symbols \
+  expo-system-ui \
+  expo-web-browser \
+  @expo-google-fonts/poppins \
+  @expo/vector-icons \
+  @react-native-async-storage/async-storage \
+  @react-native-community/datetimepicker \
+  react-native-gesture-handler \
+  react-native-reanimated \
+  react-native-screens \
+  react-native-safe-area-context \
+  react-native-maps
 
-echo "Instalando dependencias nativas de React Navigation..."
-npx expo install react-native-screens react-native-safe-area-context
+echo "Instalando librerías adicionales de navegación, backend y utilidades..."
+npm install \
+  @react-navigation/native \
+  @react-navigation/native-stack \
+  @react-navigation/bottom-tabs \
+  @react-navigation/elements \
+  firebase \
+  axios \
+  cloudinary \
+  react-native-alert-notification \
+  react-native-keyboard-aware-scroll-view
 
-echo "Instalando Stack Navigator..."
-npm install @react-navigation/native-stack
-
-echo "Instalando Bottom Tabs..."
-npm install @react-navigation/bottom-tabs
-
-echo "Instalando Firebase..."
-npm install firebase
-
-echo "Instalando AsyncStorage..."
-npx expo install @react-native-async-storage/async-storage
-
-echo "Instalando AsyncStorage..."
-npm install react-native-alert-notification
-
-echo "Instalando Fuente Poppins..."
-npx expo install expo-font @expo-google-fonts/poppins
-
-echo "Instalando libreria para obtener imagenes..."
-npx expo install expo-image-picker
-
-echo "Instalando libreria para mapas y ubicacion..."
-npx expo install expo-location
-
-echo "Instalando React Native Maps para acceder a los mapas..-"
-npx expo install react-native-maps
-
-echo "Instalando React Native Maps para acceder a los mapas..-"
-npm i cloudinary
-
-echo "Instalando libreria para manejo de fechas..."
-npm install @react-native-community/datetimepicker
-
-echo "Instalando libreria para copiar en portapapeles..."
-npm install expo-clipboard
-
-echo "Realizar peticiones http..."
-npm install axios
-
-echo "Instalando EAS CLI..."
+echo "Instalando EAS CLI de forma global (opcional, solo si vas a usar EAS Build)..."
 npm install -g eas-cli
 
-echo "Instalando libreria para manejar teclado y scroll..."
-npm install react-native-keyboard-aware-scroll-view
+echo "✅ Listo. Todas las dependencias deberían estar instaladas y sincronizadas."
 
-echo "✅ Listo. Todas las dependencias deberían estar instaladas."

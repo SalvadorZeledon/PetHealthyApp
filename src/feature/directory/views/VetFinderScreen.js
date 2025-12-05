@@ -11,7 +11,9 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
-import { getNearbyVets } from "../src/services/googlePlaces";
+import { getNearbyVets } from "../services/googlePlaces";
+
+
 
 const VetFinderScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);

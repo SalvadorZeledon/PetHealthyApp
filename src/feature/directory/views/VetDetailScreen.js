@@ -13,7 +13,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { getPlaceDetails } from "../src/services/googlePlaces";
+import { getPlaceDetails } from "../services/googlePlaces";
+
+
 
 const VetDetailScreen = ({ route, navigation }) => {
   const { placeId } = route.params;

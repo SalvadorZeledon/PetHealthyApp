@@ -15,7 +15,8 @@ import {
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { PET_SEX_OPTIONS } from "../src/utils/petConstants";
+import { PET_SEX_OPTIONS } from "../../../shared/utils/petConstants";
+
 
 // Solo letras (con acentos), ñ y espacios
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/;

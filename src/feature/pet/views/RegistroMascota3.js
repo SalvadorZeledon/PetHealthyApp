@@ -13,8 +13,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
-import { createPetWithHistory } from "../src/services/petsService";
-import { getUserFromStorage } from "../src/utils/storage";
+import { createPetWithHistory } from "../services/petServices";
+import { getUserFromStorage } from "../../../shared/utils/storage";
+
 
 const RegistroMascota3 = ({ navigation, route }) => {
   const draftPet = route?.params?.draftPet || {};
@@ -242,7 +243,7 @@ const RegistroMascota3 = ({ navigation, route }) => {
           <View style={styles.headerTextBlock}>
             {/* 👇 Ajusta la ruta del logo según tu estructura de carpetas */}
             <Image
-              source={require("../assets/logoPH.png")}
+              source={require("../../../../assets/logoPH.png")}
               style={styles.logo}
               resizeMode="contain"
             />

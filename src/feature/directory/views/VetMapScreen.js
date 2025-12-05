@@ -15,7 +15,9 @@ import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
-import { getNearbyVets } from "../src/services/googlePlaces";
+import { getNearbyVets } from "../services/googlePlaces";
+
+
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 

@@ -16,7 +16,8 @@ import {
   SPECIES,
   DOG_BREEDS,
   PET_SEX_OPTIONS,
-} from "../src/utils/petConstants";
+} from "../../../shared/utils/petConstants";
+
 
 const DogBasicInfoScreen = ({ navigation, route }) => {
   // Por si en el futuro quieres reutilizar para edición

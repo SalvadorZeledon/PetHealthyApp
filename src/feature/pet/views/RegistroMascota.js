@@ -17,6 +17,7 @@ import {
 } from "@expo/vector-icons";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 
+
 const SPECIES_OPTIONS = [
   {
     id: "perro",
@@ -107,7 +108,7 @@ const RegistroMascota = ({ navigation, route }) => {
         {/* Logo */}
         <View style={styles.logoContainer}>
           <Image
-            source={require("../assets/logoPH.png")}
+            source={require("../../../../assets/logoPH.png")}
             style={styles.logo}
             resizeMode="contain"
           />

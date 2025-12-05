@@ -1,14 +1,14 @@
-// src/navigation/TabNavigator.js
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // --- PANTALLAS PRINCIPALES ---
-import Homescreen from '../../screens/Homescreen';
-import MyPetScreen from '../../screens/MyPetScreen';
-import AppointmentsScreen from '../../screens/AppointmentsScreen';
-import ChatbotScreen from '../../screens/ChatbotScreen';
-import VetMapScreen from '../../screens/VetMapScreen'; // 🔥 MAPA
+import HomeScreen from '../feature/home/views/HomeScreen';
+import MyPetScreen from '../feature/pet/views/MyPetScreen';
+import AppointmentsScreen from '../feature/pet/views/AppointmentsScreen';
+import ChatbotScreen from '../feature/chatbot/views/ChatbotScreen';
+import VetMapScreen from '../feature/directory/views/VetMapScreen'; // 🔥 MAPA
+
 
 const Tab = createBottomTabNavigator();
 
@@ -42,7 +42,7 @@ const TabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={Homescreen} options={{ title: 'Inicio' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Inicio' }} />
       <Tab.Screen name="MyPets" component={MyPetScreen} options={{ title: 'Mascotas' }} />
       <Tab.Screen name="Appointments" component={AppointmentsScreen} options={{ title: 'Citas' }} />
 

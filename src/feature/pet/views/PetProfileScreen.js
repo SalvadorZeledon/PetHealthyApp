@@ -14,8 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 
-import { db } from "../firebase/config";
-import { COL_MASCOTAS } from "../src/utils/collections";
+import { db } from "../../../../firebase/config";
+import { COL_MASCOTAS } from "../../../shared/utils/collections";
+
 
 const contextoLabels = {
   adentro: "Dentro de casa",
