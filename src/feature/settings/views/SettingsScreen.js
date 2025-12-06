@@ -56,8 +56,8 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* TOP BAR */}
-      <View style={styles.topBar}>
+      {/* HEADER */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
@@ -101,7 +101,7 @@ const SettingsScreen = ({ navigation }) => {
         {/* SECCIÓN SERVICIOS EXTERNOS */}
         <Text style={styles.sectionTitle}>Servicios externos</Text>
 
-        {/* SOLO DIRECTORIO (quitamos Veterinarias cercanas) */}
+        {/* SOLO DIRECTORIO */}
         <TouchableOpacity
           style={styles.optionCard}
           onPress={handleOpenDirectory}
@@ -144,15 +144,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // igual que las otras pantallas
+    paddingTop: 0,
   },
-  topBar: {
-    paddingTop: 18,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   topIconButton: {
     padding: 6,
@@ -162,7 +173,7 @@ const styles = StyleSheet.create({
   topTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#ffffff",
   },
   content: {
     paddingHorizontal: 20,

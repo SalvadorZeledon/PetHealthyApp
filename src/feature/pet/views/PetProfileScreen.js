@@ -17,7 +17,6 @@ import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 import { db } from "../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
 
-
 const contextoLabels = {
   adentro: "Dentro de casa",
   afuera: "Fuera de casa",
@@ -144,22 +143,32 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {/* HEADER NUEVO */}
       <View style={styles.header}>
+        {/* Botón back */}
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={20} color="#365b6d" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
 
+        {/* Título */}
         <Text style={styles.headerTitle} numberOfLines={1}>
           {pet.nombre || "Mascota"}
         </Text>
 
-        <View style={styles.headerRight}>
-          {/* aquí luego puedes agregar botón editar */}
-        </View>
+        {/* Botón editar */}
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() =>
+            navigation.navigate("EditPet", {
+              petId: pet?.id || petId,
+            })
+          }
+        >
+          <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -362,8 +371,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    // 👇 igual que en otras pantallas, separa del status bar
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
   },
   loadingScreen: {
     flex: 1,
@@ -376,36 +384,44 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
   },
+  /* HEADER NUEVO */
   header: {
-    paddingTop: 18,
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
   },
   headerTitle: {
     flex: 1,
-    marginLeft: 12,
+    marginHorizontal: 12,
     fontSize: 18,
     fontWeight: "700",
-    color: "#263238",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
-  headerRight: {
-    width: 36,
-    height: 36,
-  },
+
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
+    paddingTop: 16,
   },
   card: {
     backgroundColor: "#FFFFFF",

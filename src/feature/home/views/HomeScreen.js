@@ -21,7 +21,6 @@ import { COL_MASCOTAS } from "../../../shared/utils/collections";
 const avatarPlaceholder = require("../../../../assets/logo.png");
 
 const EVENTS_STORAGE_KEY = "@appointments_events";
-
 const MONTHS = [
   "enero",
   "febrero",
@@ -111,7 +110,7 @@ const HomeScreen = ({ navigation }) => {
   const [pets, setPets] = useState([]);
   const [loadingPets, setLoadingPets] = useState(true);
 
-  // ancho real de la card "Tus mascotas"
+  // ancho real de la card hero de mascotas
   const [petsCardWidth, setPetsCardWidth] = useState(0);
   const [activePetIndex, setActivePetIndex] = useState(0);
 
@@ -308,8 +307,8 @@ const HomeScreen = ({ navigation }) => {
     // Si aún no sabemos el ancho de la card, no renderizamos el carrusel
     if (!cardWidth) return null;
 
-    // Ancho útil interno (cardWidth menos paddingHorizontal: 16 + 16)
-    const contentWidth = Math.max(0, cardWidth - 32);
+    // Ancho útil interno (coincide con paddingHorizontal de petsCard = 18 + 18)
+    const contentWidth = Math.max(0, cardWidth - 36);
 
     const handleScrollEnd = (event) => {
       const offsetX = event.nativeEvent.contentOffset.x;
@@ -319,6 +318,19 @@ const HomeScreen = ({ navigation }) => {
 
     return (
       <>
+        {/* Barra de arriba del carrusel (contraste con fondo blanco) */}
+        <View style={styles.petsHeroHeaderBar}>
+          <Ionicons name="paw-outline" size={18} color="#FFFFFF" />
+          <View style={{ marginLeft: 8 }}>
+            <Text style={styles.petsHeroTitle}>Elige una mascota</Text>
+            {pets.length > 1 && (
+              <Text style={styles.petsHeroSubtitle}>
+                Desliza para ver todas
+              </Text>
+            )}
+          </View>
+        </View>
+
         {/* Carrusel horizontal de mascotas, una por “página” */}
         <ScrollView
           horizontal
@@ -352,7 +364,7 @@ const HomeScreen = ({ navigation }) => {
                     />
                   ) : (
                     <View style={styles.petAvatarPlaceholder}>
-                      <Ionicons name="paw-outline" size={32} color="#4B5563" />
+                      <Ionicons name="paw-outline" size={36} color="#4B5563" />
                     </View>
                   )}
                 </View>
@@ -386,14 +398,25 @@ const HomeScreen = ({ navigation }) => {
           ))}
         </ScrollView>
 
-        {/* PUNTITOS DEL CARRUSEL */}
+        {/* PUNTITOS DEL CARRUSEL + indicador de posición */}
         <View style={styles.dotsRow}>
-          {pets.map((_, index) => (
-            <View
-              key={index}
-              style={[styles.dot, index === activePetIndex && styles.dotActive]}
-            />
-          ))}
+          <View style={styles.dotsInnerRow}>
+            {pets.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === activePetIndex && styles.dotActive,
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.petIndexPill}>
+            <Text style={styles.petIndexText}>
+              {activePetIndex + 1}/{pets.length}
+            </Text>
+          </View>
         </View>
       </>
     );
@@ -439,7 +462,7 @@ const HomeScreen = ({ navigation }) => {
 
       {/* CONTENIDO PRINCIPAL */}
       <ScrollView contentContainerStyle={styles.content}>
-        {/* === SECCIÓN MASCOTAS (solo carrusel, sin header) === */}
+        {/* === HERO MASCOTAS / CARRUSEL === */}
         <View
           style={styles.petsCard}
           onLayout={(e) => setPetsCardWidth(e.nativeEvent.layout.width)}
@@ -447,64 +470,22 @@ const HomeScreen = ({ navigation }) => {
           {renderPetsSectionContent(petsCardWidth)}
         </View>
 
-        {/* Próximos recordatorios del usuario */}
-        <Text style={styles.sectionTitle}>Tus próximos recordatorios</Text>
+        {/* --------- SECCIÓN: Próxima cita con tu veterinario --------- */}
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="medkit-outline" size={18} color="#1E88E5" />
+          <Text style={styles.sectionTitle}>
+            Próxima cita con tu veterinario
+          </Text>
+        </View>
         {loadingEvents ? (
-          <View style={styles.card}>
-            <ActivityIndicator size="small" color="#365b6d" />
-            <Text style={[styles.cardDetail, { marginLeft: 8 }]}>
-              Cargando tus recordatorios...
-            </Text>
-          </View>
-        ) : upcomingUserEvents.length === 0 ? (
-          <View style={styles.card}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Sin recordatorios próximos</Text>
-              <Text style={styles.cardDetail}>
-                Crea un recordatorio desde la pestaña Calendario.
-              </Text>
-            </View>
-            <View style={styles.cardIconWrapper}>
-              <Ionicons name="time-outline" size={22} color="#365b6d" />
-            </View>
-          </View>
-        ) : (
-          upcomingUserEvents.map((ev) => {
-            const { iconName } = getEventVisuals(ev);
-            return (
-              <TouchableOpacity
-                key={ev.id}
-                style={styles.card}
-                onPress={() => navigation.navigate("Appointments")}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{ev.title}</Text>
-                  <Text style={styles.cardSubtitle}>
-                    {ev.location || "Evento personal"}
-                  </Text>
-                  <Text style={styles.cardDetail}>
-                    {formatEventDateForHome(ev.date)} · {ev.time || "Sin hora"}
-                  </Text>
-                </View>
-                <View style={styles.cardIconWrapper}>
-                  <Ionicons name={iconName} size={22} color="#365b6d" />
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-
-        {/* Próxima cita asignada por el veterinario */}
-        <Text style={styles.sectionTitle}>Próxima cita con tu veterinario</Text>
-        {loadingEvents ? (
-          <View style={styles.card}>
+          <View style={[styles.card, styles.cardVetHighlight]}>
             <ActivityIndicator size="small" color="#365b6d" />
             <Text style={[styles.cardDetail, { marginLeft: 8 }]}>
               Cargando citas...
             </Text>
           </View>
         ) : !nextVetEvent ? (
-          <View style={styles.card}>
+          <View style={[styles.card, styles.cardVetHighlight]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Sin citas asignadas</Text>
               <Text style={styles.cardDetail}>
@@ -517,7 +498,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, styles.cardVetHighlight]}
             onPress={() => navigation.navigate("Appointments")}
           >
             <View style={{ flex: 1 }}>
@@ -536,49 +517,55 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Accesos rápidos */}
-        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
-        <View style={styles.quickRow}>
-          <TouchableOpacity
-            style={styles.quickCard}
-            onPress={() => navigation.navigate("RegistroMascota")}
-          >
-            <Ionicons name="add-circle-outline" size={22} color="#4CAF50" />
-            <Text style={styles.quickText}>Agregar mascota</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickCard}
-            onPress={() => navigation.navigate("Appointments")}
-          >
-            <Ionicons name="medkit-outline" size={22} color="#1E88E5" />
-            <Text style={styles.quickText}>Ver calendario</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickCard}
-            onPress={() => navigation.navigate("Appointments")}
-          >
-            <Ionicons name="time-outline" size={22} color="#FFB300" />
-            <Text style={styles.quickText}>Próximas citas</Text>
-          </TouchableOpacity>
+        {/* --------- SECCIÓN: Tus próximos recordatorios --------- */}
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="time-outline" size={18} color="#43A047" />
+          <Text style={styles.sectionTitle}>Tus próximos recordatorios</Text>
         </View>
-
-        {/* Resumen de salud (por ahora estático / demo) */}
-        <Text style={styles.sectionTitle}>Resumen de salud</Text>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Ionicons name="heart-outline" size={22} color="#E91E63" />
-            <Text style={styles.summaryTitle}>Vacunas al día</Text>
-            <Text style={styles.summaryValue}>4 / 5</Text>
+        {loadingEvents ? (
+          <View style={[styles.card, styles.cardUserHighlight]}>
+            <ActivityIndicator size="small" color="#365b6d" />
+            <Text style={[styles.cardDetail, { marginLeft: 8 }]}>
+              Cargando tus recordatorios...
+            </Text>
           </View>
-
-          <View style={styles.summaryCard}>
-            <Ionicons name="chatbubbles-outline" size={22} color="#00796B" />
-            <Text style={styles.summaryTitle}>Consultas este año</Text>
-            <Text style={styles.summaryValue}>3</Text>
+        ) : upcomingUserEvents.length === 0 ? (
+          <View style={[styles.card, styles.cardUserHighlight]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Sin recordatorios próximos</Text>
+              <Text style={styles.cardDetail}>
+                Crea un recordatorio desde la pestaña Calendario.
+              </Text>
+            </View>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="time-outline" size={22} color="#365b6d" />
+            </View>
           </View>
-        </View>
+        ) : (
+          upcomingUserEvents.map((ev) => {
+            const { iconName } = getEventVisuals(ev);
+            return (
+              <TouchableOpacity
+                key={ev.id}
+                style={[styles.card, styles.cardUserHighlight]}
+                onPress={() => navigation.navigate("Appointments")}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{ev.title}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {ev.location || "Evento personal"}
+                  </Text>
+                  <Text style={styles.cardDetail}>
+                    {formatEventDateForHome(ev.date)} · {ev.time || "Sin hora"}
+                  </Text>
+                </View>
+                <View style={styles.cardIconWrapper}>
+                  <Ionicons name={iconName} size={22} color="#365b6d" />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
@@ -590,19 +577,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
   },
   header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 12,
+    paddingBottom: 14,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   helloText: {
     fontSize: 14,
-    color: "#607D8B",
+    color: "#ffffffff",
   },
   nameRow: {
     flexDirection: "row",
@@ -611,7 +609,7 @@ const styles = StyleSheet.create({
   nameText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#263238",
+    color: "#ffffffff",
   },
   wave: {
     fontSize: 20,
@@ -640,15 +638,39 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  /* ---------- Carrusel mascotas ---------- */
+  /* ---------- Hero / Carrusel mascotas ---------- */
   petsCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingHorizontal: 16,
+    borderRadius: 22,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    marginBottom: 16,
-    elevation: 3,
+    marginBottom: 20,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
     overflow: "visible",
+    marginTop: 15,
+  },
+  petsHeroHeaderBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E88E5", // barra azul que contrasta con el fondo blanco
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  petsHeroTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  petsHeroSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#E3F2FD",
   },
   petsLoadingRow: {
     flexDirection: "row",
@@ -697,7 +719,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   petsCarouselContent: {
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
 
   // CARD de cada mascota
@@ -706,21 +728,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 14,
+    padding: 16,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   petAvatarWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     borderWidth: 3,
-    borderColor: "#80DEEA",
+    borderColor: "#FFB300", // aro ámbar para destacar
     overflow: "hidden",
-    marginRight: 14,
+    marginRight: 16,
+    backgroundColor: "#E5E7EB",
   },
   petAvatarImage: {
     width: "100%",
@@ -730,7 +753,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E5E7EB",
   },
   petInfo: {
     flex: 1,
@@ -760,7 +782,11 @@ const styles = StyleSheet.create({
   dotsRow: {
     marginTop: 10,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dotsInnerRow: {
+    flexDirection: "row",
     alignItems: "center",
   },
   dot: {
@@ -774,15 +800,31 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#90CAF9",
+    backgroundColor: "#1E88E5",
+  },
+  petIndexPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "#E3F2FD",
+  },
+  petIndexText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#1E88E5",
   },
 
-  /* ---------- Resto de secciones ---------- */
+  /* ---------- Secciones de eventos ---------- */
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 4,
+  },
   sectionTitle: {
-    marginTop: 8,
-    marginBottom: 6,
-    fontSize: 14,
-    fontWeight: "600",
+    marginLeft: 6,
+    fontSize: 15,
+    fontWeight: "700",
     color: "#365b6d",
   },
   card: {
@@ -793,6 +835,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
     elevation: 2,
+  },
+  cardVetHighlight: {
+    borderLeftWidth: 3,
+    borderLeftColor: "#1E88E5",
+  },
+  cardUserHighlight: {
+    borderLeftWidth: 3,
+    borderLeftColor: "#43A047",
   },
   cardTitle: {
     fontSize: 15,
@@ -814,49 +864,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
-  },
-  quickRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  quickCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-    marginHorizontal: 4,
-    elevation: 2,
-  },
-  quickText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#455A64",
-    textAlign: "center",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-    marginHorizontal: 4,
-    elevation: 2,
-  },
-  summaryTitle: {
-    fontSize: 12,
-    color: "#607D8B",
-    marginTop: 4,
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#263238",
-    marginTop: 2,
   },
 });

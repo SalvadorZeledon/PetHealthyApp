@@ -1,4 +1,3 @@
-// screens/UserInfoScreen.js
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -20,9 +19,11 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { db } from "../../../../firebase/config";
-import { getUserFromStorage, saveUserToStorage } from "../../../shared/utils/storage";
+import {
+  getUserFromStorage,
+  saveUserToStorage,
+} from "../../../shared/utils/storage";
 import { COL_USUARIOS } from "../../../shared/utils/collections";
-
 
 const avatarPlaceholder = require("../../../../assets/logoPH.png");
 
@@ -31,7 +32,7 @@ const UserInfoScreen = ({ navigation }) => {
 
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [originalData, setOriginalData] = useState(null); // para detectar cambios
+  const [originalData, setOriginalData] = useState(null);
 
   const [photoUri, setPhotoUri] = useState(null);
 
@@ -105,7 +106,6 @@ const UserInfoScreen = ({ navigation }) => {
 
         const data = snap.data();
 
-        // Combinamos datos de Firestore con algunos del stored (por si acaso)
         const merged = {
           username: data.username || parsed.username || "",
           nombres: data.nombres || "",
@@ -119,9 +119,8 @@ const UserInfoScreen = ({ navigation }) => {
         };
 
         setUserData(merged);
-        setOriginalData(merged); // snapshot inicial
+        setOriginalData(merged);
 
-        // Cargar foto local (si existe), si no, desde Firestore
         const localPhoto = await AsyncStorage.getItem(`@userPhoto_${uid}`);
 
         if (localPhoto) {
@@ -163,7 +162,6 @@ const UserInfoScreen = ({ navigation }) => {
     if (field === "direccion") setErrorDireccion("");
   };
 
-  // helper para saber si hay cambios sin guardar (solo campos de texto)
   const hasUnsavedChanges = useCallback(() => {
     if (!originalData || !userData) return false;
     const fields = [
@@ -446,14 +444,12 @@ const UserInfoScreen = ({ navigation }) => {
         direccion: userData.direccion.trim(),
       };
 
-      // 👉 si tenemos una foto seleccionada, también la persistimos
       if (photoUri) {
         updates.fotoPerfilUrl = photoUri;
       }
 
       await updateDoc(userRef, updates);
 
-      // Guardar foto local si hubo foto (aquí no borramos nada)
       if (photoUri) {
         await AsyncStorage.setItem(`@userPhoto_${userId}`, photoUri);
       }
@@ -473,7 +469,6 @@ const UserInfoScreen = ({ navigation }) => {
       };
       await saveUserToStorage(updatedForStorage);
 
-      // actualizamos referencia para comparar cambios
       setOriginalData(userData);
 
       Dialog.show({
@@ -559,8 +554,8 @@ const UserInfoScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Barra superior fija */}
-      <View style={styles.topBar}>
+      {/* HEADER */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={handleGoBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
@@ -827,7 +822,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
+  },
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   loadingContainer: {
     flex: 1,
@@ -840,14 +854,6 @@ const styles = StyleSheet.create({
     color: "#365b6d",
     fontSize: 14,
   },
-  topBar: {
-    paddingTop: 18,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   topIconButton: {
     padding: 6,
     borderRadius: 999,
@@ -856,7 +862,7 @@ const styles = StyleSheet.create({
   topTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#ffffff",
   },
   content: {
     paddingHorizontal: 20,
@@ -867,6 +873,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatar: {
+    marginTop: 15,
     width: 90,
     height: 90,
     borderRadius: 45,

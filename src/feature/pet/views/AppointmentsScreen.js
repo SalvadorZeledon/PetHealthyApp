@@ -1094,20 +1094,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
   },
   header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 12,
+    paddingBottom: 14,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#263238",
+    color: "#ffffffff",
   },
   iconCircle: {
     width: 36,
@@ -1124,6 +1135,7 @@ const styles = StyleSheet.create({
   },
 
   calendarCard: {
+    marginTop: 15,
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     paddingHorizontal: 16,
@@ -1179,7 +1191,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dayChipSelected: {
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#7ed482ff",
   },
   dayWeekText: {
     fontSize: 11,
@@ -1219,7 +1231,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#43A047",
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,

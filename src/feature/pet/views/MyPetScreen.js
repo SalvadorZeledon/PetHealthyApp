@@ -202,25 +202,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0, // 👈 quitamos el paddingTop de aquí
   },
   header: {
-    paddingTop: 18,
+    paddingTop: Platform.OS === "ios" ? 63 : 43,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 14,
+
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#263238",
+    color: "#ffffffff",
   },
   headerSubtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#607D8B",
+    color: "#ffffffff",
   },
   headerRight: {
     flexDirection: "row",
@@ -299,11 +310,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   petsCardTitle: {
+    marginTop: 12,
     fontSize: 15,
     fontWeight: "700",
     color: "#263238",
   },
   petsCountText: {
+    marginTop: 12,
     fontSize: 12,
     color: "#607D8B",
   },

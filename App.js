@@ -12,7 +12,7 @@ export default function App() {
       {/* Barra de estado GLOBAL:
           - fondo negro
           - iconos/texto blancos */}
-      <StatusBar style="dark" backgroundColor="#000000" />
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
 
       <NavigationContainer>
         <AppNavigator />

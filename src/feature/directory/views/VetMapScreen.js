@@ -95,23 +95,15 @@ const VetMapScreen = ({ navigation, route }) => {
     })();
   }, []);
 
-  // 🔹 Cada vez que la pantalla gana foco, ajustamos el StatusBar
-  //    y si venimos en modo pick, abrimos la lista SIEMPRE.
+  // 🔹 Cada vez que la pantalla gana foco solo abrimos la lista en modo pick
+  //    (la apariencia del StatusBar se gestiona globalmente desde App.js).
   useFocusEffect(
     React.useCallback(() => {
-      StatusBar.setTranslucent(true);
-      StatusBar.setBackgroundColor("transparent");
-      StatusBar.setBarStyle("light-content");
-
       if (isPickMode) {
         setShowList(true);
       }
 
-      return () => {
-        StatusBar.setTranslucent(false);
-        StatusBar.setBackgroundColor("#000000");
-        StatusBar.setBarStyle("dark-content");
-      };
+      return () => {};
     }, [isPickMode])
   );
 

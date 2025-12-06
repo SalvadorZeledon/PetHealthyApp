@@ -1,7 +1,7 @@
 // src/services/googlePlaces.js
 import axios from "axios";
 
-const GOOGLE_API_KEY = "tu_api_key_de_google_aqui";
+const GOOGLE_API_KEY = "AIzaSyD0u3Td_9NiMMECDfiBBq4X1U3_htUgNa4";
 
 // ---------------------------------------------
 // ✔ Obtener veterinarias cercanas

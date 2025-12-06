@@ -1,4 +1,3 @@
-// screens/DirectorioScreen.js
 import React from "react";
 import {
   View,
@@ -65,7 +64,7 @@ const institutions = [
     category: "Fundaciones",
     name: "FURESAS",
     phone: "23479300",
-    whatsapp: "",
+    whatsapp: "60786629",
     email: "info@furesa.com.sv",
     address:
       "Carretera al Puerto de La Libertad, Km 19, Panchimalco, San Salvador.",
@@ -98,8 +97,8 @@ const DirectorioScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.topBar}>
+      {/* HEADER */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
@@ -158,14 +157,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
+    paddingTop: 0,
   },
-  topBar: {
-    paddingTop: Platform.OS === "ios" ? 50 : 44,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   topIconButton: {
     padding: 6,
@@ -175,7 +186,7 @@ const styles = StyleSheet.create({
   topTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#ffffff",
   },
   content: {
     paddingHorizontal: 20,

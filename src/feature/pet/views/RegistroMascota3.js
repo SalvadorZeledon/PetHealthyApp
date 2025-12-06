@@ -16,7 +16,6 @@ import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 import { createPetWithHistory } from "../services/petServices";
 import { getUserFromStorage } from "../../../shared/utils/storage";
 
-
 const RegistroMascota3 = ({ navigation, route }) => {
   const draftPet = route?.params?.draftPet || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -194,7 +193,6 @@ const RegistroMascota3 = ({ navigation, route }) => {
         button: "Continuar",
         onPressButton: () => {
           Dialog.hide();
-          // Llevar al usuario a sus mascotas o al home principal
           navigation.reset({
             index: 0,
             routes: [{ name: "MainTabs" }],
@@ -221,15 +219,16 @@ const RegistroMascota3 = ({ navigation, route }) => {
      ====================================================== */
   return (
     <View style={styles.screen}>
-      {/* HEADER */}
-      <View style={styles.headerRow}>
+      {/* HEADER NUEVO */}
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={18} color="#37474F" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.stepText}>Paso 3 de 3</Text>
+        <Text style={styles.headerTitle}>Paso 3 de 3</Text>
+        <View style={styles.headerIconButton} />
       </View>
 
       {/* CONTENIDO */}
@@ -241,7 +240,6 @@ const RegistroMascota3 = ({ navigation, route }) => {
         <View style={styles.card}>
           {/* LOGO + TÍTULO */}
           <View style={styles.headerTextBlock}>
-            {/* 👇 Ajusta la ruta del logo según tu estructura de carpetas */}
             <Image
               source={require("../../../../assets/logoPH.png")}
               style={styles.logo}
@@ -315,7 +313,7 @@ const RegistroMascota3 = ({ navigation, route }) => {
           <View style={styles.section}>
             <Text style={styles.label}>¿Tu mascota es agresiva?</Text>
 
-            {/* Advertencia resaltada debajo de la pregunta */}
+            {/* Advertencia resaltada */}
             <View style={styles.infoWarningBox}>
               <Text style={styles.infoWarningText}>
                 Por favor sé lo más sincero posible. Cualquier información falsa
@@ -439,28 +437,39 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#E0F7FA",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 espacio seguro arriba
+    paddingTop: 0,
   },
-  headerRow: {
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 8,
+    paddingBottom: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E4E9F2",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
-  stepText: {
-    marginLeft: 12,
-    fontSize: 12,
-    color: "#7B8794",
-    fontWeight: "500",
+  headerTitle: {
+    flex: 1,
+    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
 
   /* ================================
