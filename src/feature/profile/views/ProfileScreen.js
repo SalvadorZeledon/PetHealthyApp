@@ -1,5 +1,5 @@
 // screens/ProfileScreen.js
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -7,19 +7,19 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Platform
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-const avatarPlaceholder = require('../../../../assets/logoPH.png');
+const avatarPlaceholder = require("../../../../assets/logoPH.png");
 
 const ProfileScreen = ({ navigation }) => {
   const handleOpenUserInfo = () => {
-    navigation.navigate('UserInfo');
+    navigation.navigate("UserInfo");
   };
 
   const handleOpenSettings = () => {
-    console.log('Ir a Configuración');
+    console.log("Ir a Configuración");
   };
 
   return (
@@ -29,7 +29,10 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>Mi perfil</Text>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleOpenSettings} style={styles.iconButton}>
+          <TouchableOpacity
+            onPress={handleOpenSettings}
+            style={styles.iconButton}
+          >
             <Ionicons name="settings-outline" size={22} color="#365b6d" />
           </TouchableOpacity>
 
@@ -99,49 +102,49 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-    marginTop: Platform.OS === 'ios' ? 0 : 0,
+    backgroundColor: "#E3F2FD",
+    marginTop: Platform.OS === "ios" ? 0 : 0,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#365b6d',
+    fontWeight: "700",
+    color: "#365b6d",
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconButton: {
     marginRight: 10,
     padding: 6,
     borderRadius: 999,
-    backgroundColor: '#E0E9F5',
+    backgroundColor: "#E0E9F5",
   },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: '#ffffff',
-    backgroundColor: '#ffffff',
+    borderColor: "#ffffff",
+    backgroundColor: "#ffffff",
   },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
   profileCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     paddingVertical: 20,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 18,
     elevation: 3,
   },
@@ -150,37 +153,37 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#E3F2FD',
+    borderColor: "#E3F2FD",
     marginBottom: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
   },
   name: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#263238',
+    fontWeight: "700",
+    color: "#263238",
   },
   email: {
     fontSize: 13,
-    color: '#607D8B',
+    color: "#607D8B",
     marginBottom: 4,
   },
   role: {
     fontSize: 12,
-    color: '#558B2F',
+    color: "#558B2F",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#365b6d',
+    fontWeight: "600",
+    color: "#365b6d",
     marginBottom: 8,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 18,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -189,19 +192,19 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#607D8B',
+    color: "#607D8B",
     marginTop: 4,
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#365b6d',
+    fontWeight: "700",
+    color: "#365b6d",
     marginTop: 6,
   },
   optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -210,11 +213,11 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: "600",
+    color: "#263238",
   },
   optionSubtitle: {
     fontSize: 12,
-    color: '#607D8B',
+    color: "#607D8B",
   },
 });

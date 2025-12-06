@@ -16,7 +16,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getAIResponse } from "../services/groqService";
 
-
 const ChatbotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -35,22 +34,47 @@ const ChatbotScreen = ({ navigation }) => {
   ];
 
   const MEDICATION_KEYWORDS = [
-    'medicamento', 'medicina', 'pastilla', 'tableta', 'inyección', 'inyectable',
-    'antibiótico', 'analgésico', 'antiinflamatorio', 'dosis', 'mg', 'ml',
-    'paracetamol', 'ibuprofeno', 'aspirina', 'penicilina', 'vacuna', 'tratamiento',
-    'receta', 'fármaco', 'droga', 'comprimido', 'cápsula', 'jarabe', 'pomada',
-    'crema', 'gotas', 'supositorio', 'antiparasitario', 'desparasitante'
+    "medicamento",
+    "medicina",
+    "pastilla",
+    "tableta",
+    "inyección",
+    "inyectable",
+    "antibiótico",
+    "analgésico",
+    "antiinflamatorio",
+    "dosis",
+    "mg",
+    "ml",
+    "paracetamol",
+    "ibuprofeno",
+    "aspirina",
+    "penicilina",
+    "vacuna",
+    "tratamiento",
+    "receta",
+    "fármaco",
+    "droga",
+    "comprimido",
+    "cápsula",
+    "jarabe",
+    "pomada",
+    "crema",
+    "gotas",
+    "supositorio",
+    "antiparasitario",
+    "desparasitante",
   ];
 
   const containsMedicationKeywords = (text) => {
     const lowerText = text.toLowerCase();
-    return MEDICATION_KEYWORDS.some(keyword => lowerText.includes(keyword));
+    return MEDICATION_KEYWORDS.some((keyword) => lowerText.includes(keyword));
   };
 
   // 👇 2. MODIFICAMOS LA FUNCIÓN PARA ACEPTAR TEXTO OPCIONAL (DEL BOTÓN)
   const sendMessage = async (textOverride = null) => {
     // Si viene texto del botón (textOverride), usamos ese. Si no, usamos el input.
-    const textToSend = typeof textOverride === 'string' ? textOverride : input;
+    const textToSend = typeof textOverride === "string" ? textOverride : input;
 
     if (!textToSend.trim()) return;
 
@@ -64,7 +88,7 @@ const ChatbotScreen = ({ navigation }) => {
     }
 
     setInput(""); // Limpiamos el input siempre
-    
+
     // Agregamos el mensaje del usuario
     const newMessages = [...messages, { sender: "user", text: textToSend }];
     setMessages(newMessages);
@@ -72,10 +96,9 @@ const ChatbotScreen = ({ navigation }) => {
 
     // Llamamos a la IA
     const botResponse = await getAIResponse(newMessages);
-    setMessages(prev => [...prev, { sender: "ai", text: botResponse }]);
+    setMessages((prev) => [...prev, { sender: "ai", text: botResponse }]);
     setLoading(false);
   };
-
 
   const clearChat = () => {
     Alert.alert(
@@ -83,17 +106,17 @@ const ChatbotScreen = ({ navigation }) => {
       "Se eliminarán todos los mensajes del chat actual.",
       [
         { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Sí, eliminar", 
-          style: "destructive", 
-          onPress: () => setMessages([]) 
-        }
+        {
+          text: "Sí, eliminar",
+          style: "destructive",
+          onPress: () => setMessages([]),
+        },
       ]
     );
   };
 
   useEffect(() => {
-    // Puedes quitar este Alert si ya tienes las sugerencias en pantalla, 
+    // Puedes quitar este Alert si ya tienes las sugerencias en pantalla,
     // o dejarlo como bienvenida extra. Yo lo dejaría por ahora.
     Alert.alert(
       "¡Hola! 👋",
@@ -109,7 +132,6 @@ const ChatbotScreen = ({ navigation }) => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
       <View style={styles.container}>
-        
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Chat de consultas</Text>
@@ -139,11 +161,13 @@ const ChatbotScreen = ({ navigation }) => {
           {/* 👇 3. MOSTRAR SUGERENCIAS SOLO SI NO HAY MENSAJES */}
           {messages.length === 0 && (
             <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>¿Sobre qué quieres hablar hoy?</Text>
+              <Text style={styles.suggestionsTitle}>
+                ¿Sobre qué quieres hablar hoy?
+              </Text>
               <View style={styles.chipsWrapper}>
                 {SUGGESTIONS.map((suggestion, index) => (
-                  <TouchableOpacity 
-                    key={index} 
+                  <TouchableOpacity
+                    key={index}
                     style={styles.suggestionChip}
                     onPress={() => sendMessage(suggestion)}
                   >
@@ -193,7 +217,6 @@ const ChatbotScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-
       </View>
     </KeyboardAvoidingView>
   );
@@ -202,23 +225,37 @@ const ChatbotScreen = ({ navigation }) => {
 export default ChatbotScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E3F2FD" },
-
+  container: {
+    flex: 1,
+    backgroundColor: "#E3F2FD",
+    paddingTop: 0,
+  },
   header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 30) + 10 : 60,
-    paddingBottom: 12,
+    paddingBottom: 14,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#263238" },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#ffffffff" },
 
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffffff",
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
@@ -226,31 +263,31 @@ const styles = StyleSheet.create({
 
   content: { paddingHorizontal: 20, paddingBottom: 24 },
 
-  // 👇 ESTILOS NUEVOS 
+  // 👇 ESTILOS NUEVOS
   suggestionsContainer: {
     marginTop: 40,
-    alignItems: 'center',
+    alignItems: "center",
     opacity: 0.9,
   },
   suggestionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#546E7A',
+    fontWeight: "600",
+    color: "#546E7A",
     marginBottom: 20,
   },
   chipsWrapper: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 10,
   },
   suggestionChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#B3E5FC',
+    borderColor: "#B3E5FC",
     elevation: 1, // Sombra suave en Android
     shadowColor: "#000", // Sombra en iOS
     shadowOffset: { width: 0, height: 1 },
@@ -258,8 +295,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   suggestionText: {
-    color: '#0277BD',
-    fontWeight: '500',
+    color: "#0277BD",
+    fontWeight: "500",
     fontSize: 14,
   },
 

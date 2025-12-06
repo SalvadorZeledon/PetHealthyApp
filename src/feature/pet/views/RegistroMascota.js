@@ -8,15 +8,14 @@ import {
   Image,
   ScrollView,
   Platform,
+  StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   FontAwesome5,
   MaterialCommunityIcons,
   Ionicons,
 } from "@expo/vector-icons";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
-
 
 const SPECIES_OPTIONS = [
   {
@@ -65,7 +64,6 @@ const SPECIES_OPTIONS = [
 
 const RegistroMascota = ({ navigation, route }) => {
   const [selectedSpecies, setSelectedSpecies] = useState(null);
-
   const userName = route?.params?.userName || "";
 
   const handleContinue = () => {
@@ -87,18 +85,23 @@ const RegistroMascota = ({ navigation, route }) => {
   const isContinueDisabled = !selectedSpecies;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* HEADER NUEVO */}
-      <View style={styles.headerRow}>
+    <View style={styles.container}>
+      {/* 👇 Esto hace que la barra de notificaciones tenga el mismo color que el header */}
+      <StatusBar barStyle="light-content" backgroundColor="#4A85A5" />
+
+      {/* HEADER NUEVO COMPARTIDO */}
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={18} color="#111827" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Registrar mascota</Text>
-        {/* Espaciador para balancear el header */}
-        <View style={{ width: 36 }} />
+
+        {/* Placeholder para centrar el título */}
+        <View style={styles.headerIconButton} />
       </View>
 
       <ScrollView
@@ -215,48 +218,61 @@ const RegistroMascota = ({ navigation, route }) => {
           </View>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default RegistroMascota;
 
 const styles = StyleSheet.create({
-  safeArea: {
+  // Contenedor raíz (fondo general de la pantalla)
+  container: {
     flex: 1,
-    backgroundColor: "#DCFFFF",
+    backgroundColor: "#E3F2FD",
+    paddingTop: 0,
   },
 
-  // HEADER NUEVO
-  headerRow: {
+  // HEADER COMPARTIDO (el "haven" que me pasaste)
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 8 : 4,
-    paddingBottom: 8,
+    paddingBottom: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 3,
   },
   headerTitle: {
     flex: 1,
-    marginLeft: 12,
+    marginHorizontal: 12,
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
 
+  // Contenido scrollable
   scrollContent: {
     paddingHorizontal: 24,
-    paddingVertical: 24, // un poco menos porque ya hay header
+    paddingVertical: 24,
     alignItems: "center",
   },
+
   logoContainer: {
     alignItems: "center",
     marginBottom: 24,
@@ -265,7 +281,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     marginBottom: 8,
-    marginTop: -25,
+    marginTop: -10,
   },
   appName: {
     fontSize: 18,
@@ -297,6 +313,7 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     lineHeight: 20,
   },
+
   gridContainer: {
     width: "100%",
     flexDirection: "row",
@@ -342,6 +359,7 @@ const styles = StyleSheet.create({
   speciesLabelDisabled: {
     color: "#9CA3AF",
   },
+
   primaryButton: {
     width: "100%",
     backgroundColor: "#0EA5E9",
