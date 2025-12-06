@@ -10,7 +10,7 @@
     "newArchEnabled": true,
 
     "splash": {
-      "image": "./assets/logoPerHealthyApp.png",
+      "image": "./assets/logoPH.png",
       "resizeMode": "contain",
       "backgroundColor": "#E6F4FE"
     },
