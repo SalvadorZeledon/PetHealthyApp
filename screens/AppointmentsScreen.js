@@ -1,166 +1,169 @@
-import React from 'react';
+// screens/AppointmentsScreen.js
+import React from "react";
 import {
   View,
-  Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../src/themes/ThemeContext';
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../src/themes/useTheme";
+import AppText from "../src/components/ui/AppText";
+import AppButton from "../src/components/ui/AppButton";
+import AppCard from "../src/components/ui/AppCard";
+
 const AppointmentsScreen = ({ navigation }) => {
-   const { theme, darkMode } = useTheme();
+  const { colors } = useTheme();
+
   const handleOpenSettings = () => {
-    navigation.navigate('Settings');
+    navigation.navigate("Settings");
   };
 
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* HEADER SOLO CON SETTINGS */}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* HEADER */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Citas</Text>
+        <AppText title style={[styles.headerTitle, { color: colors.primary }]}>
+          Citas
+        </AppText>
 
-        <TouchableOpacity
-          style={[styles.iconCircle, { backgroundColor: darkMode ? theme.card2 : '#FFFFFF' }]}
-          onPress={handleOpenSettings}
-        >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
+        <TouchableOpacity style={styles.iconCircle} onPress={handleOpenSettings}>
+          <Ionicons name="settings-outline" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Diseño de ejemplo para futuras citas */}
-        <View style={[styles.placeholderCard, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
-          <Ionicons name="calendar-outline" size={40} color="#1E88E5" />
-          <Text style={[styles.placeholderTitle, { color: theme.textPrimary }]}>Tus citas médicas</Text>
-          <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
-            Revisa y administra las consultas, vacunas y controles de tus
-            mascotas.
-          </Text>
 
-          <TouchableOpacity style={styles.primaryButton}>
-            <Ionicons name="add-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Agendar nueva cita</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Tarjeta principal vacía */}
+        <AppCard style={styles.placeholderCard}>
+          <Ionicons name="calendar-outline" size={40} color={colors.info} />
+          <AppText title style={styles.placeholderTitle}>
+            Tus citas médicas
+          </AppText>
 
-        <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
-          <View>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Consulta general</Text>
-            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>Con Max 🐶</Text>
-            <Text style={[styles.cardDetail, { color: theme.accent }]}>Lunes 15 · 10:30 AM</Text>
-            <Text style={[styles.cardDetail, { color: theme.accent }]}>Clínica PetHealthy</Text>
+          <AppText small style={styles.placeholderText}>
+            Revisa y administra las consultas, vacunas y controles de tus mascotas.
+          </AppText>
+
+          <AppButton
+            title="Agendar nueva cita"
+            onPress={() => {}}
+            style={{
+              marginTop: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: 999,
+            }}
+            textStyle={{ fontSize: 13 }}
+          />
+        </AppCard>
+
+        {/* Tarjeta de ejemplo de cita */}
+        <AppCard style={styles.card}>
+          <View style={{ flex: 1 }}>
+            <AppText title style={styles.cardTitle}>
+              Consulta general
+            </AppText>
+            <AppText small style={styles.cardSubtitle}>Con Max 🐶</AppText>
+            <AppText small style={styles.cardDetail}>Lunes 15 · 10:30 AM</AppText>
+            <AppText small style={styles.cardDetail}>Clínica PetHealthy</AppText>
           </View>
-          <View style={[styles.cardIconWrapper, { backgroundColor: theme.background }]}>
-            <Ionicons name="time-outline" size={22} color="#365b6d" />
+
+          <View
+            style={[
+              styles.cardIconWrapper,
+              { backgroundColor: colors.background },
+            ]}
+          >
+            <Ionicons name="time-outline" size={22} color={colors.primary} />
           </View>
-        </View>
+        </AppCard>
+
       </ScrollView>
     </View>
   );
 };
-
 
 export default AppointmentsScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    paddingTop: Platform.OS === "ios" ? 40 : 24,
   },
+
+  /* HEADER */
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 40 : 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#263238',
+    fontWeight: "700",
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 3,
   },
+
+  /* CONTENIDO */
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
+
+  /* VACÍO */
   placeholderCard: {
     marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    alignItems: 'center',
-    elevation: 3,
+    alignItems: "center",
     marginBottom: 16,
   },
   placeholderTitle: {
     marginTop: 8,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: "600",
   },
   placeholderText: {
     marginTop: 4,
     fontSize: 13,
-    color: '#607D8B',
-    textAlign: 'center',
+    textAlign: "center",
   },
-  primaryButton: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E88E5',
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 13,
-    marginLeft: 6,
-  },
+
+  /* CITA */
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 14,
-    elevation: 2,
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#263238',
+    fontWeight: "600",
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#607D8B',
+    marginTop: 2,
   },
   cardDetail: {
     fontSize: 12,
-    color: '#90A4AE',
+    marginTop: 2,
   },
   cardIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
+

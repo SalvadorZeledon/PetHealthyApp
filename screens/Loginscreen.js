@@ -1,53 +1,59 @@
-// screens/Loginscreen.js
-import React, { useState, useRef } from 'react';
+// screens/LoginScreen.js
+import React, { useState, useRef } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   TouchableWithoutFeedback,
   Keyboard,
-} from 'react-native';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { COL_USUARIOS } from '../src/utils/collections';
-import { Dialog, ALERT_TYPE } from 'react-native-alert-notification';
-import { Ionicons } from '@expo/vector-icons';
-import { useFonts, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import { saveUserToStorage } from '../src/utils/storage';
-import { useTheme } from '../src/themes/ThemeContext';
+  Platform,
+  StatusBar,
+} from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { COL_USUARIOS } from "../src/utils/collections";
+import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
+import { Ionicons } from "@expo/vector-icons";
+import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import { saveUserToStorage } from "../src/utils/storage";
+import { useTheme } from "../src/themes/useTheme";
+import AppText from "../src/components/ui/AppText";
+import AppButton from "../src/components/ui/AppButton";
+import AppCard from "../src/components/ui/AppCard";
 
-const logo = require('../assets/logologin.png');
+const logo = require("../assets/logoPH.png");
 
 const LoginScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
   });
- const { theme, darkMode } = useTheme();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errorEmail, setErrorEmail] = useState('');
-  const [errorPassword, setErrorPassword] = useState('');
+  const [errorEmail, setErrorEmail] = useState("");
+  const [errorPassword, setErrorPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
   const passwordInputRef = useRef(null);
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.fontLoadingContainer}>
-        <ActivityIndicator size="large" color="#365b6d" />
+      <View style={[styles.fontLoadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   const clearErrors = () => {
-    setErrorEmail('');
-    setErrorPassword('');
+    setErrorEmail("");
+    setErrorPassword("");
   };
 
   const validateForm = () => {
@@ -55,27 +61,27 @@ const LoginScreen = ({ navigation }) => {
     let valid = true;
 
     if (!email.trim()) {
-      setErrorEmail('Ingresa tu correo.');
+      setErrorEmail("Ingresa tu correo.");
       valid = false;
     } else {
       const emailRegex = /\S+@\S+\.\S+/;
       if (!emailRegex.test(email.trim().toLowerCase())) {
-        setErrorEmail('Correo electrónico no válido.');
+        setErrorEmail("Correo electrónico no válido.");
         valid = false;
       }
     }
 
     if (!password) {
-      setErrorPassword('Ingresa tu contraseña.');
+      setErrorPassword("Ingresa tu contraseña.");
       valid = false;
     }
 
     if (!valid) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
-        title: 'Revisa los campos',
-        textBody: 'Algunos datos son incorrectos o están incompletos.',
-        button: 'Entendido',
+        title: "Revisa los campos",
+        textBody: "Algunos datos están incompletos o son inválidos.",
+        button: "Entendido",
       });
     }
 
@@ -90,18 +96,18 @@ const LoginScreen = ({ navigation }) => {
       const usuariosRef = collection(db, COL_USUARIOS);
       const q = query(
         usuariosRef,
-        where('email', '==', email.trim().toLowerCase()),
-        where('password', '==', password)
+        where("email", "==", email.trim().toLowerCase()),
+        where("password", "==", password)
       );
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
-        setErrorPassword('Email o contraseña incorrectos.');
+        setErrorPassword("Email o contraseña incorrectos.");
         Dialog.show({
           type: ALERT_TYPE.DANGER,
-          title: 'Error al iniciar sesión',
-          textBody: 'Email o contraseña incorrectos. Inténtalo de nuevo.',
-          button: 'Cerrar',
+          title: "Error al iniciar sesión",
+          textBody: "Email o contraseña incorrectos. Inténtalo de nuevo.",
+          button: "Cerrar",
         });
         setLoading(false);
         return;
@@ -109,227 +115,238 @@ const LoginScreen = ({ navigation }) => {
 
       const userDoc = snapshot.docs[0];
       const userData = { id: userDoc.id, ...userDoc.data() };
-      console.log('Usuario logueado:', userData);
 
-      // Guardar usuario en AsyncStorage para que otras pantallas lo usen
+      // Guardar en AsyncStorage
       await saveUserToStorage({
         id: userData.id,
         email: userData.email,
-        nombre: userData.nombre || '',
-        rol: userData.rol || 'cliente',
+        nombre: userData.nombre || "",
+        rol: userData.rol || "cliente",
         perfilCompleto: !!userData.perfilCompleto,
         tieneFotoLocal: !!userData.tieneFotoLocal,
-        username: userData.username || '',      // por si ya lo tienes en Firestore
-        nombres: userData.nombres || '',
-        apellidos: userData.apellidos || '',
-        edad: userData.edad || '',
-        dui: userData.dui || '',
-        telefono: userData.telefono || '',
-        direccion: userData.direccion || '',
+        username: userData.username || "",
+        nombres: userData.nombres || "",
+        apellidos: userData.apellidos || "",
+        edad: userData.edad || "",
+        dui: userData.dui || "",
+        telefono: userData.telefono || "",
+        direccion: userData.direccion || "",
       });
 
+      // 🔥 RUTA ESPECIAL PARA VETERINARIO
+      if (userData.rol === "veterinario") {
+        Dialog.show({
+          type: ALERT_TYPE.SUCCESS,
+          title: "Bienvenido doctor",
+          textBody: `Hola ${userData.nombre || ""}, entrando al panel profesional 🐾`,
+          button: "Continuar",
+          onHide: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "VetDashboard" }],
+            });
+          },
+        });
+        setLoading(false);
+        return;
+      }
 
-      // decidir a dónde va
-    const hasPhoto =
-        userData.fotoPerfilUrl || userData.tieneFotoLocal === true;
+      // 🔥 Flujo normal para cliente
+      const hasPhoto = userData.fotoPerfilUrl || userData.tieneFotoLocal;
 
       const needsProfile = !userData.perfilCompleto;
       const needsPhoto = userData.perfilCompleto && !hasPhoto;
 
-      let nextRoute = 'MainTabs';
+      let nextRoute = "MainTabs";
       let nextParams = {};
 
       if (needsProfile) {
-        nextRoute = 'CompleteProfile';
+        nextRoute = "CompleteProfile";
         nextParams = { userId: userData.id };
       } else if (needsPhoto) {
-        nextRoute = 'ProfilePhotoSetup';
+        nextRoute = "ProfilePhotoSetup";
         nextParams = { userId: userData.id };
-}
+      }
+
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
-        title: 'Bienvenido',
-        textBody: `Hola ${userData.nombre || ''}, nos alegra verte de nuevo 🐾`,
-        button: 'Continuar',
+        title: "Bienvenido",
+        textBody: `Hola ${userData.nombre || ""}, nos alegra verte 🐶💚`,
+        button: "Continuar",
         onHide: () => {
-          if (nextRoute === 'MainTabs') {
-            // Ya tiene todo → entra a la app
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs' }],
-            });
-          } else {
-            // Onboarding obligatorio → NO hay back al login
-            navigation.reset({
-              index: 0,
-              routes: [{ name: nextRoute, params: nextParams }],
-            });
-          }
+          navigation.reset({
+            index: 0,
+            routes: [{ name: nextRoute, params: nextParams }],
+          });
         },
       });
 
     } catch (error) {
-      console.log('Error en login:', error);
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: 'Error inesperado',
-        textBody: 'Ocurrió un problema al iniciar sesión. Inténtalo más tarde.',
-        button: 'Cerrar',
+        title: "Error inesperado",
+        textBody: "Ocurrió un problema al iniciar sesión. Inténtalo más tarde.",
+        button: "Cerrar",
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔥 Botón “Eres veterinario”
   const handleVetLoginInfo = () => {
-    Dialog.show({
-      type: ALERT_TYPE.INFO,
-      title: 'Acceso para veterinarios',
-      textBody:
-        'El módulo de acceso para veterinarios estará disponible en una próxima versión. Por ahora, esta sección es solo para clientes.',
-      button: 'Entendido',
-    });
+    navigation.navigate("VetRegister");
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: theme.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <KeyboardAwareScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      enableOnAndroid={true}
+      extraScrollHeight={32}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
+          {/* LOGO */}
           <View style={styles.logoContainer}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
-            <Text style={[styles.appName, { color: theme.textPrimary }]}>PetHealthyApp</Text>
-            <Text style={[styles.appSubtitle, { color: theme.textSecondary }]}>
+            <AppText style={styles.appName}>PetHealthyApp</AppText>
+            <AppText small style={styles.appSubtitle}>
               Tu clínica veterinaria en el bolsillo 🐶💚
-            </Text>
+            </AppText>
           </View>
 
-          <View style={[styles.card, { backgroundColor: darkMode ? theme.card2 : theme.card }]}>
+          {/* CARD */}
+          <AppCard style={styles.card}>
             <View style={styles.pawBackground}>
-              <Ionicons name="paw" size={80} color={theme.textSecondary} />
+              <Ionicons name="paw" size={80} color="#90A4AE" />
             </View>
 
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Iniciar sesión</Text>
-            <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-              Ingresa con tu correo para ver la información de tus mascotas y sus
-              consultas.
-            </Text>
+            <AppText title style={styles.cardTitle}>
+              Iniciar sesión
+            </AppText>
 
+            <AppText small style={styles.cardSubtitle}>
+              Ingresa con tu correo para ver la información de tus mascotas.
+            </AppText>
+
+            {/* EMAIL */}
             <TextInput
-              style={[styles.input, { 
-                backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
-                borderColor: darkMode ? '#444' : '#CFD8DC',
-                color: theme.textPrimary 
-              }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                  color: colors.text,
+                },
+              ]}
               placeholder="Correo electrónico"
-              placeholderTextColor={theme.textSecondary}
+              placeholderTextColor={colors.placeholder}
               value={email}
-              onChangeText={text => {
-                setEmail(text);
-                if (errorEmail) setErrorEmail('');
+              onChangeText={(t) => {
+                setEmail(t);
+                setErrorEmail("");
               }}
               autoCapitalize="none"
               keyboardType="email-address"
               returnKeyType="next"
-              autoFocus={true}
               onSubmitEditing={() => passwordInputRef.current?.focus()}
             />
-            {errorEmail ? <Text style={styles.errorText}>{errorEmail}</Text> : null}
+            {errorEmail ? <AppText small style={styles.errorText}>{errorEmail}</AppText> : null}
 
-            <View style={[styles.inputPasswordContainer, { 
-              backgroundColor: darkMode ? '#2A2A2A' : '#F9FAFB',
-              borderColor: darkMode ? '#444' : '#CFD8DC'
-            }]}>
+            {/* PASSWORD */}
+            <View
+              style={[
+                styles.inputPasswordContainer,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.inputBorder,
+                },
+              ]}
+            >
               <TextInput
                 ref={passwordInputRef}
-                style={[styles.inputPassword, { color: theme.textPrimary }]}
+                style={[styles.inputPassword, { color: colors.text }]}
                 placeholder="Contraseña"
-                placeholderTextColor={theme.textSecondary}
-                value={password}
-                onChangeText={text => {
-                  setPassword(text);
-                  if (errorPassword) setErrorPassword('');
-                }}
+                placeholderTextColor={colors.placeholder}
                 secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  setErrorPassword("");
+                }}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
-                  color={theme.textSecondary}
+                  color={colors.textSmall}
                 />
               </TouchableOpacity>
             </View>
-            {errorPassword ? (
-              <Text style={styles.errorText}>{errorPassword}</Text>
-            ) : null}
+            {errorPassword ? <AppText small style={styles.errorText}>{errorPassword}</AppText> : null}
 
-            <TouchableOpacity
-              style={styles.primaryButton}
+            {/* BUTTON */}
+            <AppButton
+              title={loading ? "" : "Ingresar"}
               onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Ingresar</Text>
-              )}
+              style={{ marginTop: 16, marginBottom: 12 }}
+            />
+            {loading && <ActivityIndicator color="#fff" />}
+
+            {/* LINKS */}
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+              <AppText small style={styles.linkText}>
+                ¿Es tu primera vez?{" "}
+                <AppText small style={styles.linkTextBold}>Crea una cuenta</AppText>
+              </AppText>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={[styles.linkText, { color: theme.textSecondary }]}>
-                ¿Es tu primera vez?{' '}
-                <Text style={[styles.linkTextBold, { color: theme.accent }]}>Crea una cuenta</Text>
-              </Text>
+            {/* Veterinarios */}
+            <TouchableOpacity onPress={handleVetLoginInfo}>
+              <AppText small style={styles.vetLinkText}>
+                ¿Eres veterinario?{" "}
+                <AppText small style={styles.vetLinkBold}>Acceso profesional</AppText>
+              </AppText>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleVetLoginInfo} style={{ marginTop: 8 }}>
-              <Text style={[styles.vetLinkText, { color: theme.textSecondary }]}>
-                ¿Eres veterinario?{' '}
-                <Text style={[styles.vetLinkBold, { color: '#00897B' }]}>Acceso profesional</Text>
-              </Text>
-            </TouchableOpacity>
+            <AppText small style={styles.helperText}>
+              Al iniciar sesión podrás ver el historial de vacunas y consultas.
+            </AppText>
+          </AppCard>
 
-            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
-              Al iniciar sesión podrás ver el historial de vacunas y consultas de
-              tus mascotas.
-            </Text>
-          </View>
-
-          <Text style={[styles.footerText, { color: theme.textSecondary }]}>Hecho con ❤️ para tus mascotas</Text>
+          <AppText small style={styles.footerText}>
+            Hecho con ❤️ para tus mascotas
+          </AppText>
         </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+      </TouchableWithoutFeedback>
+    </KeyboardAwareScrollView>
   );
 };
-
 
 const styles = StyleSheet.create({
   fontLoadingContainer: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#E3F2FD',
+  container: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   inner: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
+    paddingBottom: 16,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   logo: {
@@ -339,61 +356,44 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 26,
-    fontFamily: 'Poppins_700Bold',
-    color: '#365b6d',
+    fontFamily: "Poppins_700Bold",
+    color: "#365b6d",
   },
   appSubtitle: {
     fontSize: 14,
-    color: '#558B2F',
     marginTop: 2,
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   card: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 150,
-    elevation: 4,
-    overflow: 'hidden',
+    width: "100%",
+    marginBottom: 16,
+    overflow: "hidden",
   },
   pawBackground: {
-    position: 'absolute',
+    position: "absolute",
     right: -10,
     top: -10,
     opacity: 0.06,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-    color: '#263238',
-  },
+  cardTitle: { marginBottom: 4 },
   cardSubtitle: {
-    fontSize: 13,
-    color: '#607D8B',
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
-    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 4,
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
     fontSize: 14,
-    color: '#263238',
+    borderWidth: 1,
   },
   inputPasswordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CFD8DC',
     paddingHorizontal: 8,
     marginTop: 8,
   },
@@ -402,59 +402,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     fontSize: 14,
-    color: '#263238',
-  },
-  eyeButton: {
-    padding: 4,
-  },
-  primaryButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  linkText: {
-    textAlign: 'center',
-    color: '#455A64',
-    fontSize: 13,
-  },
-  linkTextBold: {
-    color: '#1E88E5',
-    fontWeight: '600',
-  },
-  vetLinkText: {
-    textAlign: 'center',
-    color: '#607D8B',
-    fontSize: 12,
-  },
-  vetLinkBold: {
-    color: '#00897B',
-    fontWeight: '600',
-  },
-  helperText: {
-    fontSize: 11,
-    color: '#90A4AE',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#78909C',
-    textAlign: 'center',
   },
   errorText: {
-    color: '#e53935',
-    fontSize: 12,
+    color: "#e53935",
     marginBottom: 4,
     marginTop: 2,
   },
+  linkText: {
+    textAlign: "center",
+    marginTop: 8,
+  },
+  linkTextBold: { fontWeight: "600" },
+  vetLinkText: { textAlign: "center", marginTop: 8 },
+  vetLinkBold: { fontWeight: "600" },
+  helperText: { textAlign: "center", marginTop: 8 },
+  footerText: { textAlign: "center", marginBottom: 4 },
 });
 
 export default LoginScreen;
