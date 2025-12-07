@@ -27,7 +27,14 @@ import { COL_USUARIOS } from "../../../shared/utils/collections";
 
 const avatarPlaceholder = require("../../../../assets/logoPH.png");
 
-// helpers para fecha/edad
+// 🔹 CONFIG CLOUDINARY (USA LOS MISMOS QUE EN MASCOTAS)
+const CLOUDINARY_UPLOAD_URL =
+  "https://api.cloudinary.com/v1_1/TU_CLOUD_NAME/image/upload";
+const CLOUDINARY_UPLOAD_PRESET = "TU_UPLOAD_PRESET";
+
+// =========================
+//   HELPERS FECHA / EDAD
+// =========================
 const calculateAge = (birthDate) => {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -44,7 +51,7 @@ const parseBirthDate = (value) => {
 
   const day = parseInt(match[1], 10);
   const month = parseInt(match[2], 10) - 1;
-  const year = parseInt(match[3], 10);
+  const year = parseInt(match[3], 10); // ← radix 10
 
   const date = new Date(year, month, day);
   if (
@@ -55,6 +62,37 @@ const parseBirthDate = (value) => {
     return null;
   }
   return date;
+};
+
+// =========================
+//   SUBIR IMAGEN CLOUDINARY
+// =========================
+const uploadImageToCloudinary = async (imageUri) => {
+  console.log("Subiendo a Cloudinary:", imageUri);
+
+  const data = new FormData();
+  data.append("file", {
+    uri: imageUri,
+    type: "image/jpeg",
+    name: "profile.jpg",
+  });
+  data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  const res = await fetch(CLOUDINARY_UPLOAD_URL, {
+    method: "POST",
+    body: data,
+  });
+
+  const json = await res.json();
+  console.log("Respuesta Cloudinary:", json);
+
+  if (!res.ok || !json.secure_url) {
+    throw new Error(
+      json.error?.message || "No se pudo subir la imagen a Cloudinary"
+    );
+  }
+
+  return json.secure_url;
 };
 
 const UserInfoScreen = ({ navigation }) => {
@@ -161,7 +199,7 @@ const UserInfoScreen = ({ navigation }) => {
           apellidos: data.apellidos || "",
           email: data.email || parsed.email || "",
           edad: (edadCalculada && String(edadCalculada)) || "",
-          fechaNacimiento: fechaNacimientoStr, // ⬅️ nuevo
+          fechaNacimiento: fechaNacimientoStr,
           dui: data.dui || "",
           telefono: data.telefono || "",
           direccion: data.direccion || "",
@@ -171,15 +209,29 @@ const UserInfoScreen = ({ navigation }) => {
         setUserData(merged);
         setOriginalData(merged);
 
+        // FOTO PERFIL:
+        // 🔸 Solo aceptamos URLs remotas (http/https) para multi-dispositivo
         const localPhoto = await AsyncStorage.getItem(`@userPhoto_${uid}`);
 
-        if (localPhoto) {
-          setPhotoUri(localPhoto);
-        } else if (data.fotoPerfilUrl) {
-          setPhotoUri(data.fotoPerfilUrl);
+        let finalPhoto = null;
+
+        if (
+          data.fotoPerfilUrl &&
+          (data.fotoPerfilUrl.startsWith("http://") ||
+            data.fotoPerfilUrl.startsWith("https://"))
+        ) {
+          finalPhoto = data.fotoPerfilUrl;
+        } else if (
+          localPhoto &&
+          (localPhoto.startsWith("http://") || localPhoto.startsWith("https://"))
+        ) {
+          finalPhoto = localPhoto;
         } else {
-          setPhotoUri(null);
+          // Si lo que hay es file:// lo ignoramos para no arrastrar basura vieja
+          console.log("Sin foto remota válida, usando placeholder");
         }
+
+        setPhotoUri(finalPhoto || null);
       } catch (error) {
         console.log(
           "Error al cargar datos de usuario en UserInfoScreen:",
@@ -288,8 +340,6 @@ const UserInfoScreen = ({ navigation }) => {
     if (!isEditing) return;
 
     try {
-      setLoadingPhoto(true);
-
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
@@ -312,7 +362,32 @@ const UserInfoScreen = ({ navigation }) => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        setPhotoUri(asset.uri);
+
+        setLoadingPhoto(true);
+        try {
+          // ⬇️ Subimos inmediatamente a Cloudinary y guardamos la URL segura
+          const secureUrl = await uploadImageToCloudinary(asset.uri);
+          setPhotoUri(secureUrl);
+
+          Dialog.show({
+            type: ALERT_TYPE.SUCCESS,
+            title: "Foto actualizada",
+            textBody:
+              "Tu nueva foto de perfil se ha subido correctamente a la nube.",
+            button: "Aceptar",
+          });
+        } catch (uploadError) {
+          console.log("Error al subir imagen a Cloudinary:", uploadError);
+          Dialog.show({
+            type: ALERT_TYPE.DANGER,
+            title: "Error al subir imagen",
+            textBody:
+              "No se pudo subir tu foto de perfil. Intenta nuevamente más tarde.",
+            button: "Cerrar",
+          });
+        } finally {
+          setLoadingPhoto(false);
+        }
       }
     } catch (error) {
       console.log("Error al cambiar foto de perfil:", error);
@@ -322,7 +397,6 @@ const UserInfoScreen = ({ navigation }) => {
         textBody: "No se pudo abrir la galería. Intenta nuevamente.",
         button: "Cerrar",
       });
-    } finally {
       setLoadingPhoto(false);
     }
   };
@@ -509,6 +583,30 @@ const UserInfoScreen = ({ navigation }) => {
       const bd = parseBirthDate(userData.fechaNacimiento.trim());
       const age = calculateAge(bd);
 
+      // 🔹 Nos aseguramos de que la foto que se va a guardar NO sea file://
+      let finalPhotoUrl = photoUri;
+
+      if (photoUri && photoUri.startsWith("file://")) {
+        try {
+          console.log("Detectada foto local en handleSave, subiendo a Cloudinary...");
+          finalPhotoUrl = await uploadImageToCloudinary(photoUri);
+          setPhotoUri(finalPhotoUrl);
+        } catch (uploadError) {
+          console.log(
+            "Error al subir foto local a Cloudinary en handleSave:",
+            uploadError
+          );
+          // No hacemos throw, dejamos que guarde el resto de datos pero sin actualizar la foto
+          Dialog.show({
+            type: ALERT_TYPE.DANGER,
+            title: "Error al subir foto",
+            textBody:
+              "Ocurrió un error al subir tu foto de perfil. El resto de datos sí se guardaron.",
+            button: "Cerrar",
+          });
+        }
+      }
+
       const userRef = doc(db, COL_USUARIOS, userId);
 
       const updates = {
@@ -523,14 +621,15 @@ const UserInfoScreen = ({ navigation }) => {
         direccion: userData.direccion.trim(),
       };
 
-      if (photoUri) {
-        updates.fotoPerfilUrl = photoUri;
+      if (finalPhotoUrl && finalPhotoUrl.startsWith("http")) {
+        // Solo guardamos si es URL remota válida
+        updates.fotoPerfilUrl = finalPhotoUrl;
       }
 
       await updateDoc(userRef, updates);
 
-      if (photoUri) {
-        await AsyncStorage.setItem(`@userPhoto_${userId}`, photoUri);
+      if (finalPhotoUrl && finalPhotoUrl.startsWith("http")) {
+        await AsyncStorage.setItem(`@userPhoto_${userId}`, finalPhotoUrl);
       }
 
       const updatedForStorage = {
@@ -545,7 +644,10 @@ const UserInfoScreen = ({ navigation }) => {
         dui: userData.dui.trim(),
         telefono: userData.telefono.trim(),
         direccion: userData.direccion.trim(),
-        fotoPerfilUrl: photoUri || null,
+        fotoPerfilUrl:
+          finalPhotoUrl && finalPhotoUrl.startsWith("http")
+            ? finalPhotoUrl
+            : null,
       };
       await saveUserToStorage(updatedForStorage);
 
