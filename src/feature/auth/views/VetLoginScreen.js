@@ -21,7 +21,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as MailComposer from "expo-mail-composer";
 import { loginVeterinario } from "../services/vetAuthService";
 
-
 const logo = require("../../../../assets/logoPH.png");
 const SUPPORT_EMAIL = "soporte@pethealthy.com";
 
@@ -102,47 +101,49 @@ const VetLoginScreen = ({ navigation }) => {
 
     return valid;
   };
-    const handleLogin = async () => {
-        if (!validateFormLogin()) return;
+  const handleLogin = async () => {
+    if (!validateFormLogin()) return;
 
-        setLoading(true);
+    setLoading(true);
 
-        try {
-        const vet = await loginVeterinario(licenseNumber, password);
+    try {
+      const vet = await loginVeterinario(licenseNumber, password);
 
-        Dialog.show({
-            type: ALERT_TYPE.SUCCESS,
-            title: "Acceso profesional",
-            textBody: `Hola ${vet.fullName || ""}, tu cuenta profesional ha sido validada correctamente.`,
-            button: "Continuar",
-            onHide: () => {
-            navigation.reset({
-                index: 0,
-                routes: [{ name: "HomeVetScreen" }],
-            });
-            },
-        });
-        } catch (error) {
-        console.log("Error login veterinario:", error);
+      Dialog.show({
+        type: ALERT_TYPE.SUCCESS,
+        title: "Acceso profesional",
+        textBody: `Hola ${
+          vet.fullName || ""
+        }, tu cuenta profesional ha sido validada correctamente.`,
+        button: "Continuar",
+        onHide: () => {
+          // 👇 IMPORTANTE: ir al TabNavigator de veterinario
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "VetTabs" }], // asegúrate que este sea el nombre del Stack.Screen que muestra TabVetNavigator
+          });
+        },
+      });
+    } catch (error) {
+      console.log("Error login veterinario:", error);
 
-        let mensaje = "Número de junta o contraseña incorrectos.";
+      let mensaje = "Número de junta o contraseña incorrectos.";
 
-        if (error?.message === "CUENTA_INACTIVA") {
-            mensaje =
-            "Tu cuenta profesional está inactiva. Por favor contacta al equipo de PetHealthy.";
-        }
+      if (error?.message === "CUENTA_INACTIVA") {
+        mensaje =
+          "Tu cuenta profesional está inactiva. Por favor contacta al equipo de PetHealthy.";
+      }
 
-        Dialog.show({
-            type: ALERT_TYPE.DANGER,
-            title: "No pudimos iniciar sesión",
-            textBody: mensaje,
-            button: "Cerrar",
-        });
-        } finally {
-        setLoading(false);
-        }
-    };
-
+      Dialog.show({
+        type: ALERT_TYPE.DANGER,
+        title: "No pudimos iniciar sesión",
+        textBody: mensaje,
+        button: "Cerrar",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ====== FORMATTERS (DUI / TELÉFONO / JUNTA / NOMBRE) ======
 

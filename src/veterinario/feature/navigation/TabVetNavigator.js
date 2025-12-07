@@ -1,5 +1,6 @@
 // src/veterinario/feature/navigation/TabVetNavigator.js
 import React from "react";
+import { Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -16,12 +17,22 @@ const TabVetNavigator = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#365b6d",
-        tabBarInactiveTintColor: "#90A4AE",
+
+        // 🎨 PALETA MORADA (consistente con login vet)
+        tabBarActiveTintColor: "#7B1FA2",
+        tabBarInactiveTintColor: "#B39DDB",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          borderTopColor: "#E0E0E0",
+          borderTopColor: "#E1BEE7",
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 70 : 60,
+          paddingBottom: Platform.OS === "ios" ? 12 : 8,
+          paddingTop: 6,
         },
+        tabBarLabelStyle: {
+          fontSize: 12,
+        },
+
         tabBarIcon: ({ color, size, focused }) => {
           let iconName = "home-outline";
 

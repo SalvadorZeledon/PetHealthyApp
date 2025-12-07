@@ -2,7 +2,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// --- TAB NAVIGATOR PRINCIPAL ---
+// --- TAB NAVIGATOR ---
 import TabNavigator from "./TabNavigator";
 import TabVetNavigator from "../veterinario/feature/navigation/TabVetNavigator";
 
@@ -50,8 +50,16 @@ const AppNavigator = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
-      <Stack.Screen name="VetLogin" component={VetLoginScreen} options={{ headerShown: false }}/>
-      <Stack.Screen name="HomeVetScreen" component={HomeVetScreen} options={{ headerShown: false }}/>
+      <Stack.Screen
+        name="VetLogin"
+        component={VetLoginScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="HomeVetScreen"
+        component={HomeVetScreen}
+        options={{ headerShown: false }}
+      />
 
       {/* ===================== MAIN TABS (USUARIO / VET) ===================== */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
