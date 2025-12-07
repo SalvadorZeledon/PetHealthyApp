@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Platform,
   ActivityIndicator,
   Image,
   Keyboard,
@@ -14,22 +13,52 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import * as Location from "expo-location";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { db } from "../../../../firebase/config";
 import { COL_USUARIOS } from "../../../shared/utils/collections";
 
-
 const logo = require("../../../../assets/logoPH.png");
+
+// Calcula edad a partir de una fecha
+const calculateAge = (birthDate) => {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Parsea "dd/mm/aaaa" → Date o null
+const parseBirthDate = (value) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return null;
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1; // 0-11
+  const year = parseInt(match[3], 10);
+
+  const date = new Date(year, month, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+};
 
 const CompleteProfileScreen = ({ route, navigation }) => {
   const { userId } = route.params;
 
   const [nombres, setNombres] = useState("");
   const [apellidos, setApellidos] = useState("");
-  const [edad, setEdad] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState(""); // ⬅️ ahora fecha
   const [dui, setDui] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -39,7 +68,7 @@ const CompleteProfileScreen = ({ route, navigation }) => {
 
   const [errorNombres, setErrorNombres] = useState("");
   const [errorApellidos, setErrorApellidos] = useState("");
-  const [errorEdad, setErrorEdad] = useState("");
+  const [errorEdad, setErrorEdad] = useState(""); // error de fecha/edad
   const [errorDui, setErrorDui] = useState("");
   const [errorTelefono, setErrorTelefono] = useState("");
   const [errorDireccion, setErrorDireccion] = useState("");
@@ -76,9 +105,19 @@ const CompleteProfileScreen = ({ route, navigation }) => {
     if (errorTelefono) setErrorTelefono("");
   };
 
-  const handleChangeEdad = (text) => {
-    const digits = text.replace(/\D/g, "");
-    setEdad(digits);
+  // Formatea mientras escribe: "dd/mm/aaaa"
+  const handleChangeFechaNacimiento = (text) => {
+    let digits = text.replace(/\D/g, "").slice(0, 8);
+    let formatted = digits;
+
+    if (digits.length > 4) {
+      formatted =
+        digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4);
+    } else if (digits.length > 2) {
+      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+    }
+
+    setFechaNacimiento(formatted);
     if (errorEdad) setErrorEdad("");
   };
 
@@ -152,7 +191,7 @@ const CompleteProfileScreen = ({ route, navigation }) => {
     });
   };
 
-  // --- validación completa (incluye edad >= 18) ---
+  // --- validación completa (fecha → edad >= 18) ---
   const validateForm = () => {
     clearErrors();
     let valid = true;
@@ -167,14 +206,20 @@ const CompleteProfileScreen = ({ route, navigation }) => {
       valid = false;
     }
 
-    if (!edad.trim()) {
-      setErrorEdad("Ingresa tu edad.");
+    if (!fechaNacimiento.trim()) {
+      setErrorEdad("Ingresa tu fecha de nacimiento.");
       valid = false;
     } else {
-      const edadNum = parseInt(edad, 10);
-      if (isNaN(edadNum) || edadNum < 18 || edadNum > 120) {
-        setErrorEdad("Debes tener 18 años o más.");
+      const birthDate = parseBirthDate(fechaNacimiento.trim());
+      if (!birthDate) {
+        setErrorEdad("Ingresa una fecha válida (dd/mm/aaaa).");
         valid = false;
+      } else {
+        const age = calculateAge(birthDate);
+        if (age < 18 || age > 120) {
+          setErrorEdad("Debes tener 18 años o más.");
+          valid = false;
+        }
       }
     }
 
@@ -219,11 +264,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
     try {
       setLoadingSave(true);
 
+      const birthDate = parseBirthDate(fechaNacimiento.trim());
+      const age = calculateAge(birthDate);
+
       const userRef = doc(db, COL_USUARIOS, userId);
       await updateDoc(userRef, {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
-        edad: parseInt(edad, 10),
+        edad: age, // seguimos guardando edad para compatibilidad
+        fechaNacimiento: Timestamp.fromDate(birthDate),
         dui: dui.trim(),
         telefono: telefono.trim(),
         direccion: direccion.trim(),
@@ -310,15 +359,15 @@ const CompleteProfileScreen = ({ route, navigation }) => {
               ) : null}
             </View>
 
-            {/* Edad y teléfono */}
+            {/* Fecha de nacimiento y teléfono */}
             <View style={styles.row}>
               <View style={[styles.field, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Edad</Text>
+                <Text style={styles.label}>Fecha de nacimiento</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej. 28"
-                  value={edad}
-                  onChangeText={handleChangeEdad}
+                  placeholder="DD/MM/AAAA"
+                  value={fechaNacimiento}
+                  onChangeText={handleChangeFechaNacimiento}
                   keyboardType="number-pad"
                 />
                 {errorEdad ? (
@@ -431,7 +480,7 @@ export default CompleteProfileScreen;
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 72, // margen arriba
+    paddingTop: 72,
     paddingBottom: 24,
   },
   logoContainer: {
