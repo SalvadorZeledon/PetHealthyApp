@@ -1,3 +1,4 @@
+// src/feature/appointments/views/AppointmentsScreen.js
 import React, { useState, useEffect, useMemo } from "react";
 import { useRoute } from "@react-navigation/native";
 import {
@@ -15,6 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { getUserFromStorage } from "../../../utils/storage";
+import {
+  subscribeOwnerEvents,
+  ownerAcceptEvent,
+  ownerRejectEvent,
+} from "../../../services/calendarEvents";
 
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS = [
@@ -33,11 +39,9 @@ const MONTHS = [
 ];
 
 const EVENTS_STORAGE_KEY = "@appointments_events";
-
-// opciones simples de minutos (incluye :40 como tu ejemplo)
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 
-// Helper para generar todos los días de un mes
+// ========= HELPERS =========
 const buildMonthDays = (year, monthIndex) => {
   const days = [];
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -55,7 +59,6 @@ const buildMonthDays = (year, monthIndex) => {
   return days;
 };
 
-// Helper: comprobar si una fecha (YYYY-MM-DD) está en el pasado
 const isDateInPast = (iso) => {
   if (!iso) return false;
   const [y, m, d] = iso.split("-").map((x) => Number(x));
@@ -65,14 +68,26 @@ const isDateInPast = (iso) => {
   return date < today;
 };
 
-// Helper: hora 12h + AM/PM → minutos desde medianoche
 const time12hToMinutes = (hour12, minute, period) => {
   let h = hour12 % 12;
   if (period === "PM") h += 12;
   return h * 60 + minute;
 };
 
-// Eventos por defecto (solo la primera vez si no hay guardados)
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hm, period] = timeStr.split(" ");
+  const [hStr, mStr] = hm.split(":");
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10) || 0;
+
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+
+  return h * 60 + m;
+};
+
+// Eventos por defecto (solo para demo local del usuario)
 const buildDefaultEvents = () => {
   const today = new Date();
   const todayISO = today.toISOString().split("T")[0];
@@ -90,7 +105,7 @@ const buildDefaultEvents = () => {
       time: "10:30 AM",
       date: todayISO,
       location: "Clínica PetHealthy",
-      source: "user", // user | vet
+      source: "user",
       status: "pending",
       vetPlaceId: null,
     },
@@ -106,54 +121,64 @@ const buildDefaultEvents = () => {
       status: "pending",
       vetPlaceId: null,
     },
-    {
-      id: "3",
-      type: "vet_appointment",
-      title: "Consulta general (asignada por tu veterinario)",
-      petName: "Bruno",
-      time: "9:00 AM",
-      date: tomorrowISO,
-      location: "Clínica VetSalud",
-      source: "vet",
-      status: "pending",
-      vetPlaceId: null,
-    },
   ];
 };
 
 const AppointmentsScreen = ({ navigation }) => {
   const route = useRoute();
-  const [userRole, setUserRole] = useState("cliente"); // "cliente" | "veterinario"
+
+  const [userRole, setUserRole] = useState("cliente");
+  const [ownerId, setOwnerId] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const stored = await getUserFromStorage();
+      console.log("🧩 Usuario en storage:", stored);
+      // aquí usa la propiedad correcta
+      setOwnerId(stored?.uid || stored?.id || null);
+    };
+    loadUser();
+  }, []);
+
+  useEffect(() => {
+    console.log("🎯 ownerId que se usará para Firestore:", ownerId);
+  }, [ownerId]);
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
   const [daysStrip, setDaysStrip] = useState([]);
   const [filter, setFilter] = useState("all"); // all | citas | meds | actividades
 
-  // Eventos (cargados desde AsyncStorage)
-  const [events, setEvents] = useState([]);
-  const [eventsLoaded, setEventsLoaded] = useState(false);
+  // Eventos personales (locales, en AsyncStorage)
+  const [userEvents, setUserEvents] = useState([]);
+  const [userEventsLoaded, setUserEventsLoaded] = useState(false);
 
-  // Modal nuevo recordatorio
+  // Eventos que vienen del veterinario desde Firestore
+  const [vetEvents, setVetEvents] = useState([]);
+
+  // Modal nuevo recordatorio (usuario)
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventCategory, setEventCategory] = useState("vet_visit"); // vet_visit | meds | walk | other
   const [timeHour, setTimeHour] = useState("09");
   const [timeMinute, setTimeMinute] = useState("00");
-  const [timePeriod, setTimePeriod] = useState("AM"); // AM | PM
+  const [timePeriod, setTimePeriod] = useState("AM");
   const [manualLocation, setManualLocation] = useState("");
-  const [selectedVet, setSelectedVet] = useState(null); // { placeId, name, address }
+  const [selectedVet, setSelectedVet] = useState(null);
   const [timeError, setTimeError] = useState("");
 
-  // Modal calendario mensual completo
+  // Modal calendario mensual
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [monthCursor, setMonthCursor] = useState(() => new Date());
 
-  // Cargar rol de usuario
+  // ====== Carga de usuario (rol + ownerId) ======
   useEffect(() => {
     const loadUser = async () => {
       try {
         const stored = await getUserFromStorage();
         if (stored?.rol) setUserRole(stored.rol);
+
+        const uid = stored?.uid || stored?.id || stored?.userId || null;
+        if (uid) setOwnerId(uid);
       } catch (err) {
         console.log("Error cargando usuario en AppointmentsScreen:", err);
       }
@@ -161,7 +186,7 @@ const AppointmentsScreen = ({ navigation }) => {
     loadUser();
   }, []);
 
-  // Cargar eventos desde AsyncStorage (una sola vez)
+  // ====== Cargar eventos personales desde AsyncStorage ======
   useEffect(() => {
     const loadEvents = async () => {
       try {
@@ -169,64 +194,99 @@ const AppointmentsScreen = ({ navigation }) => {
         if (json) {
           const parsed = JSON.parse(json);
           if (Array.isArray(parsed)) {
-            setEvents(parsed);
+            setUserEvents(parsed);
           } else {
-            setEvents(buildDefaultEvents());
+            setUserEvents(buildDefaultEvents());
           }
         } else {
-          setEvents(buildDefaultEvents());
+          setUserEvents(buildDefaultEvents());
         }
       } catch (e) {
         console.log("Error cargando eventos:", e);
-        setEvents(buildDefaultEvents());
+        setUserEvents(buildDefaultEvents());
       } finally {
-        setEventsLoaded(true);
+        setUserEventsLoaded(true);
       }
     };
 
     loadEvents();
   }, []);
 
-  // Guardar eventos en AsyncStorage cada vez que cambian
+  // ====== Guardar eventos personales cuando cambian ======
   useEffect(() => {
-    if (!eventsLoaded) return;
+    if (!userEventsLoaded) return;
 
     const saveEvents = async () => {
       try {
-        await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+        await AsyncStorage.setItem(
+          EVENTS_STORAGE_KEY,
+          JSON.stringify(userEvents)
+        );
       } catch (e) {
         console.log("Error guardando eventos:", e);
       }
     };
 
     saveEvents();
-  }, [events, eventsLoaded]);
+  }, [userEvents, userEventsLoaded]);
 
-  // 👉 Cuando venimos desde el mapa (VetMap → "Crear recordatorio")
+  // ====== Suscribirse a eventos del vet en Firestore (para este dueño) ======
+  useEffect(() => {
+    if (!ownerId) return;
+
+    const unsubscribe = subscribeOwnerEvents(ownerId, (fireEvents) => {
+      console.log("🔥 Eventos recibidos de Firestore:", fireEvents);
+      const mapped = (fireEvents || []).map((ev) => {
+        const isMedication = ev.type === "MEDICATION";
+        return {
+          id: ev.id, // ID de Firestore (importante para aceptar/rechazar)
+          type: isMedication ? "meds" : "vet_appointment",
+          title:
+            ev.title ||
+            (isMedication ? "Recordatorio de medicación" : "Cita médica"),
+          petName: ev.petName || null,
+          time: ev.time || null,
+          date: ev.dateISO || null,
+          location: ev.description || null,
+          source: "vet",
+          status: ev.status || "PENDIENTE_DUENIO",
+          vetPlaceId: ev.vetPlaceId || null,
+          medicationName: ev.medicationName || null,
+          medicationFrequency: ev.medicationFrequency || null,
+          medicationDuration: ev.medicationDuration || null,
+        };
+      });
+
+      setVetEvents(mapped);
+    });
+
+    return () => {
+      unsubscribe && unsubscribe();
+    };
+  }, [ownerId]);
+
+  // ====== Integrar eventos personales + vet ======
+  const allEvents = useMemo(
+    () => [...userEvents, ...vetEvents],
+    [userEvents, vetEvents]
+  );
+
+  // ------- Integración con VetMap (modo usuario, local) -------
   useEffect(() => {
     if (!route?.params) return;
 
     const { selectedVetForEvent, openNewEventFromMap, dateISO } = route.params;
 
     if (selectedVetForEvent) {
-      // Guardamos la vet seleccionada
       setSelectedVet({
         placeId: selectedVetForEvent.placeId,
         name: selectedVetForEvent.name,
         address: selectedVetForEvent.address,
       });
 
-      // Ajustamos la fecha si viene
-      if (dateISO) {
-        setSelectedDateISO(dateISO);
-      }
+      if (dateISO) setSelectedDateISO(dateISO);
+      if (openNewEventFromMap) setShowNewEventModal(true);
 
-      // Si nos dijeron que abramos el modal, lo abrimos
-      if (openNewEventFromMap) {
-        setShowNewEventModal(true);
-      }
-
-      // Limpiamos params para que no se repita al volver a enfocar
       navigation.setParams({
         selectedVetForEvent: undefined,
         openNewEventFromMap: undefined,
@@ -235,7 +295,7 @@ const AppointmentsScreen = ({ navigation }) => {
     }
   }, [route?.params, navigation]);
 
-  // Inicializar tira de días con TODO el mes actual
+  // ====== Inicializar calendario mes actual ======
   useEffect(() => {
     const today = new Date();
     const todayISO = today.toISOString().split("T")[0];
@@ -278,15 +338,20 @@ const AppointmentsScreen = ({ navigation }) => {
 
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDateISO) return [];
-    let list = events.filter((e) => e.date === selectedDateISO);
+    let list = allEvents.filter((e) => e.date === selectedDateISO);
     if (filter !== "all") {
       list = list.filter((e) => mapTypeToFilterCategory(e.type) === filter);
     }
-    return list;
-  }, [events, selectedDateISO, filter]);
+    // Ordenar por hora
+    return [...list].sort(
+      (a, b) =>
+        parseTimeToMinutes(a.time || "00:00 AM") -
+        parseTimeToMinutes(b.time || "00:00 AM")
+    );
+  }, [allEvents, selectedDateISO, filter]);
 
   const getDaySummary = (dateIso) => {
-    const list = events.filter((e) => e.date === dateIso);
+    const list = allEvents.filter((e) => e.date === dateIso);
     return {
       hasVet: list.some((e) =>
         ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(e.type)
@@ -296,16 +361,103 @@ const AppointmentsScreen = ({ navigation }) => {
     };
   };
 
+  const getEventVisuals = (ev) => {
+    if (
+      ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(ev.type)
+    ) {
+      return {
+        iconName: "medkit-outline",
+        iconBg: "#E3F2FD",
+        iconColor: "#1565C0",
+      };
+    }
+    if (ev.type === "meds") {
+      return {
+        iconName: "medkit",
+        iconBg: "#F3E5F5",
+        iconColor: "#6A1B9A",
+      };
+    }
+    if (ev.type === "walk") {
+      return {
+        iconName: "paw-outline",
+        iconBg: "#E8F5E9",
+        iconColor: "#2E7D32",
+      };
+    }
+    return {
+      iconName: "time-outline",
+      iconBg: "#E0E0E0",
+      iconColor: "#455A64",
+    };
+  };
+
+  const getVetStatusVisuals = (status) => {
+    switch (status) {
+      case "PENDIENTE_DUENIO":
+        return {
+          label: "Pendiente de tu respuesta",
+          bg: "#FFF3E0",
+          color: "#FB8C00",
+        };
+      case "ACEPTADO":
+        return {
+          label: "Cita confirmada",
+          bg: "#E8F5E9",
+          color: "#43A047",
+        };
+      case "RECHAZADO_DUENIO":
+        return {
+          label: "Rechazada por ti",
+          bg: "#FFEBEE",
+          color: "#E53935",
+        };
+      case "CANCELADO_VET":
+        return {
+          label: "Cancelada por la clínica",
+          bg: "#ECEFF1",
+          color: "#546E7A",
+        };
+      case "COMPLETADO":
+        return {
+          label: "Completada",
+          bg: "#E3F2FD",
+          color: "#1E88E5",
+        };
+      default:
+        return {
+          label: status || "Estado",
+          bg: "#ECEFF1",
+          color: "#546E7A",
+        };
+    }
+  };
+
+  // ====== Navegación / acciones ======
   const handleOpenSettings = () => {
     navigation.navigate("Settings");
   };
 
-  const openNewEventModal = () => {
-    if (!selectedDateISO) {
+  const handleOpenVetPicker = () => {
+    if (!selectedDateISO) return;
+
+    if (isDateInPast(selectedDateISO)) {
+      Alert.alert(
+        "Fecha no válida",
+        "Selecciona una fecha igual o posterior a hoy antes de elegir una veterinaria."
+      );
       return;
     }
 
-    // 🚫 No permitir fechas en el pasado
+    navigation.navigate("VetMap", {
+      pickMode: true,
+      dateISO: selectedDateISO,
+    });
+  };
+
+  const openNewEventModal = () => {
+    if (!selectedDateISO) return;
+
     if (isDateInPast(selectedDateISO)) {
       Alert.alert(
         "Fecha no válida",
@@ -314,8 +466,8 @@ const AppointmentsScreen = ({ navigation }) => {
       return;
     }
 
+    // Este calendario es para dueño; el del vet es otra pantalla
     if (userRole === "veterinario") {
-      // Más adelante: modo veterinario
       return;
     }
 
@@ -326,7 +478,6 @@ const AppointmentsScreen = ({ navigation }) => {
     setTimePeriod("AM");
     setManualLocation("");
     setTimeError("");
-    // No reseteamos selectedVet para que se mantenga si venimos del mapa
     setShowNewEventModal(true);
   };
 
@@ -334,9 +485,7 @@ const AppointmentsScreen = ({ navigation }) => {
     setTimeError("");
 
     const trimmedTitle = eventTitle.trim();
-    if (!trimmedTitle) {
-      return;
-    }
+    if (!trimmedTitle) return;
 
     const h = parseInt(timeHour, 10);
     const m = parseInt(timeMinute, 10);
@@ -345,7 +494,6 @@ const AppointmentsScreen = ({ navigation }) => {
       return;
     }
 
-    // Reforzar: no guardar eventos en fechas pasadas
     if (isDateInPast(selectedDateISO)) {
       Alert.alert(
         "Fecha no válida",
@@ -354,7 +502,6 @@ const AppointmentsScreen = ({ navigation }) => {
       return;
     }
 
-    // Validar que, si es hoy, la hora no sea una hora ya pasada
     const todayISO = new Date().toISOString().split("T")[0];
     if (selectedDateISO === todayISO) {
       const now = new Date();
@@ -394,12 +541,12 @@ const AppointmentsScreen = ({ navigation }) => {
       vetPlaceId,
     };
 
-    setEvents((prev) => [...prev, newEvent]);
+    setUserEvents((prev) => [...prev, newEvent]);
     setShowNewEventModal(false);
   };
 
   const handleToggleDone = (id) => {
-    setEvents((prev) =>
+    setUserEvents((prev) =>
       prev.map((e) =>
         e.id === id
           ? { ...e, status: e.status === "done" ? "pending" : "done" }
@@ -409,7 +556,7 @@ const AppointmentsScreen = ({ navigation }) => {
   };
 
   const handleDeleteEvent = (id) => {
-    const eventToDelete = events.find((e) => e.id === id);
+    const eventToDelete = userEvents.find((e) => e.id === id);
 
     Alert.alert(
       "Eliminar recordatorio",
@@ -422,66 +569,54 @@ const AppointmentsScreen = ({ navigation }) => {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
-            setEvents((prev) => prev.filter((e) => e.id !== id));
+            setUserEvents((prev) => prev.filter((e) => e.id !== id));
           },
         },
       ]
     );
   };
 
-  const getEventVisuals = (ev) => {
-    if (
-      ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(ev.type)
-    ) {
-      return {
-        iconName: "medkit-outline",
-        iconBg: "#E3F2FD",
-        iconColor: "#1565C0",
-      };
+  const handleAcceptVetEvent = async (ev) => {
+    try {
+      await ownerAcceptEvent(ev.id);
+    } catch (error) {
+      console.log("Error aceptando evento:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo aceptar la cita. Inténtalo nuevamente más tarde."
+      );
     }
-    if (ev.type === "meds") {
-      return {
-        iconName: "medkit",
-        iconBg: "#F3E5F5",
-        iconColor: "#6A1B9A",
-      };
-    }
-    if (ev.type === "walk") {
-      return {
-        iconName: "paw-outline",
-        iconBg: "#E8F5E9",
-        iconColor: "#2E7D32",
-      };
-    }
-    return {
-      iconName: "time-outline",
-      iconBg: "#E0E0E0",
-      iconColor: "#455A64",
-    };
   };
 
-  // 👉 Abrir mapa en modo "picker" con la fecha seleccionada
-  const handleOpenVetPicker = () => {
-    if (!selectedDateISO) return;
-
-    if (isDateInPast(selectedDateISO)) {
-      Alert.alert(
-        "Fecha no válida",
-        "Selecciona una fecha igual o posterior a hoy antes de elegir una veterinaria."
-      );
-      return;
-    }
-
-    navigation.navigate("VetMap", {
-      pickMode: true,
-      dateISO: selectedDateISO,
-    });
+  const handleRejectVetEvent = (ev) => {
+    Alert.alert(
+      "Rechazar cita",
+      "¿Seguro que quieres rechazar esta cita? El veterinario verá que no puedes asistir.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Rechazar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await ownerRejectEvent(ev.id);
+            } catch (error) {
+              console.log("Error rechazando evento:", error);
+              Alert.alert(
+                "Error",
+                "No se pudo rechazar la cita. Inténtalo nuevamente."
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const primaryButtonLabel =
     userRole === "veterinario" ? "Crear cita médica" : "Agregar recordatorio";
 
-  // ---------- helpers para el selector sencillo de hora/minuto ----------
+  // ====== helpers hora/minuto ======
   const incrementHour = () => {
     setTimeError("");
     setTimeHour((prev) => {
@@ -525,7 +660,7 @@ const AppointmentsScreen = ({ navigation }) => {
     });
   };
 
-  // ---------- RENDER DEL CALENDARIO MENSUAL COMPLETO ----------
+  // ====== Calendario mensual grande ======
   const renderMonthPicker = () => {
     if (!showMonthPicker) return null;
 
@@ -533,7 +668,7 @@ const AppointmentsScreen = ({ navigation }) => {
     const monthIdx = monthCursor.getMonth();
     const monthName = MONTHS[monthIdx];
 
-    const firstWeekday = new Date(year, monthIdx, 1).getDay(); // 0-6
+    const firstWeekday = new Date(year, monthIdx, 1).getDay();
     const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
 
     const cells = [];
@@ -663,7 +798,7 @@ const AppointmentsScreen = ({ navigation }) => {
     );
   };
 
-  // ---------- RENDER PRINCIPAL ----------
+  // ====== RENDER ======
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -679,7 +814,7 @@ const AppointmentsScreen = ({ navigation }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* CARD DEL CALENDARIO */}
+        {/* CARD CALENDARIO */}
         <View className="calendarCard" style={styles.calendarCard}>
           <View style={styles.calendarHeaderRow}>
             <View style={styles.calendarHeaderLeft}>
@@ -689,7 +824,6 @@ const AppointmentsScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            {/* Botón mes/año (abre calendario grande) */}
             <TouchableOpacity
               style={styles.calendarMonthPill}
               onPress={() => {
@@ -721,14 +855,13 @@ const AppointmentsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Consejo debajo del header, ocupando todo el ancho */}
           <Text style={styles.calendarHint}>
             Consejo: procura seleccionar una veterinaria y horarios correctos.
             Puedes revisar el mapa y el detalle de la clínica antes de guardar
             el recordatorio.
           </Text>
 
-          {/* TIRA HORIZONTAL DE DÍAS – todo el mes */}
+          {/* TIRA DE DÍAS */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -789,7 +922,7 @@ const AppointmentsScreen = ({ navigation }) => {
             })}
           </ScrollView>
 
-          {/* BOTÓN PRINCIPAL */}
+          {/* BOTÓN PRINCIPAL (solo usuario) */}
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={openNewEventModal}
@@ -799,7 +932,7 @@ const AppointmentsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* EVENTOS DEL DÍA + FILTROS */}
+        {/* EVENTOS DEL DÍA */}
         <View style={styles.eventsHeaderRow}>
           <Text style={styles.eventsTitle}>
             Eventos para el {formattedSelectedDate || "día seleccionado"}
@@ -850,6 +983,8 @@ const AppointmentsScreen = ({ navigation }) => {
           eventsForSelectedDay.map((ev) => {
             const visuals = getEventVisuals(ev);
             const isDone = ev.status === "done";
+            const vetStatus =
+              ev.source === "vet" ? getVetStatusVisuals(ev.status) : null;
 
             return (
               <TouchableOpacity
@@ -877,13 +1012,71 @@ const AppointmentsScreen = ({ navigation }) => {
                       isDone && styles.eventTextDone,
                     ]}
                   >
-                    {ev.petName ? `Con ${ev.petName} 🐾` : "Evento"}
+                    {ev.petName
+                      ? `Con ${ev.petName} 🐾`
+                      : ev.source === "vet"
+                      ? "Cita de tu veterinario"
+                      : "Evento"}
                   </Text>
                   <Text
                     style={[styles.eventDetail, isDone && styles.eventTextDone]}
                   >
-                    {ev.time} · {ev.location || "Sin ubicación definida"}
+                    {ev.time || "Hora por definir"} ·{" "}
+                    {ev.location || "Sin ubicación definida"}
                   </Text>
+
+                  {/* Detalles de medicación (si vienen desde Firestore) */}
+                  {ev.type === "meds" && ev.medicationName && (
+                    <Text
+                      style={[
+                        styles.eventDetail,
+                        isDone && styles.eventTextDone,
+                      ]}
+                    >
+                      Medicación: {ev.medicationName}
+                    </Text>
+                  )}
+                  {ev.type === "meds" && ev.medicationFrequency && (
+                    <Text
+                      style={[
+                        styles.eventDetail,
+                        isDone && styles.eventTextDone,
+                      ]}
+                    >
+                      Frecuencia: {ev.medicationFrequency}
+                    </Text>
+                  )}
+                  {ev.type === "meds" && ev.medicationDuration && (
+                    <Text
+                      style={[
+                        styles.eventDetail,
+                        isDone && styles.eventTextDone,
+                      ]}
+                    >
+                      Duración: {ev.medicationDuration}
+                    </Text>
+                  )}
+
+                  {vetStatus && (
+                    <View
+                      style={[
+                        styles.vetStatusPill,
+                        {
+                          backgroundColor: vetStatus.bg,
+                          borderColor: vetStatus.color,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.vetStatusPillText,
+                          { color: vetStatus.color },
+                        ]}
+                      >
+                        {vetStatus.label}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.eventMeta}>
@@ -920,6 +1113,7 @@ const AppointmentsScreen = ({ navigation }) => {
                     />
                   </View>
 
+                  {/* Acciones según el origen */}
                   {ev.source === "user" && (
                     <View style={styles.eventActionsRow}>
                       <TouchableOpacity
@@ -948,6 +1142,27 @@ const AppointmentsScreen = ({ navigation }) => {
                       </TouchableOpacity>
                     </View>
                   )}
+
+                  {ev.source === "vet" && ev.status === "PENDIENTE_DUENIO" && (
+                    <View style={styles.eventActionsRow}>
+                      <TouchableOpacity
+                        style={styles.smallOutlineButton}
+                        onPress={() => handleRejectVetEvent(ev)}
+                      >
+                        <Text style={styles.smallOutlineButtonText}>
+                          Rechazar
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.smallFilledButton}
+                        onPress={() => handleAcceptVetEvent(ev)}
+                      >
+                        <Text style={styles.smallFilledButtonText}>
+                          Aceptar
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -955,7 +1170,7 @@ const AppointmentsScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* MODAL: NUEVO RECORDATORIO */}
+      {/* MODAL NUEVO RECORDATORIO (USUARIO) */}
       <Modal
         visible={showNewEventModal}
         transparent
@@ -974,7 +1189,6 @@ const AppointmentsScreen = ({ navigation }) => {
                 : "Selecciona una fecha en el calendario."}
             </Text>
 
-            {/* TÍTULO */}
             <Text style={styles.modalLabel}>Título</Text>
             <TextInput
               style={styles.modalInput}
@@ -984,7 +1198,6 @@ const AppointmentsScreen = ({ navigation }) => {
               onChangeText={setEventTitle}
             />
 
-            {/* CATEGORÍA */}
             <Text style={[styles.modalLabel, { marginTop: 10 }]}>
               Tipo de recordatorio
             </Text>
@@ -1018,10 +1231,8 @@ const AppointmentsScreen = ({ navigation }) => {
               })}
             </View>
 
-            {/* HORA */}
             <Text style={[styles.modalLabel, { marginTop: 10 }]}>Hora</Text>
             <View style={styles.timeRow}>
-              {/* selector sencillo de hora */}
               <View style={styles.timeStepper}>
                 <TouchableOpacity
                   style={styles.timeStepperButton}
@@ -1040,7 +1251,6 @@ const AppointmentsScreen = ({ navigation }) => {
 
               <Text style={styles.timeColon}>:</Text>
 
-              {/* selector sencillo de minutos */}
               <View style={styles.timeStepper}>
                 <TouchableOpacity
                   style={styles.timeStepperButton}
@@ -1086,19 +1296,16 @@ const AppointmentsScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* advertencia roja si intenta una hora pasada */}
             {timeError ? (
               <Text style={styles.timeErrorText}>{timeError}</Text>
             ) : null}
 
-            {/* nota pequeña de ayuda sobre horarios */}
             <Text style={styles.timeHint}>
               Nota: procura elegir una hora futura y, si es una cita en
               veterinaria, revisa el horario en el mapa antes de guardar el
               recordatorio.
             </Text>
 
-            {/* LUGAR / VETERINARIA */}
             {eventCategory === "vet_visit" ? (
               <>
                 <Text style={[styles.modalLabel, { marginTop: 10 }]}>
@@ -1171,7 +1378,6 @@ const AppointmentsScreen = ({ navigation }) => {
               </>
             )}
 
-            {/* BOTONES DEL MODAL */}
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
                 style={styles.modalSecondaryBtn}
@@ -1191,7 +1397,6 @@ const AppointmentsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* MODAL: CALENDARIO MENSUAL COMPLETO */}
       {renderMonthPicker()}
     </View>
   );
@@ -1209,15 +1414,12 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     backgroundColor: "#4A85A5",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -1242,7 +1444,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-
   calendarCard: {
     marginTop: 15,
     backgroundColor: "#FFFFFF",
@@ -1340,7 +1541,6 @@ const styles = StyleSheet.create({
     color: "#1E88E5",
     fontWeight: "600",
   },
-
   primaryButton: {
     marginTop: 12,
     alignSelf: "flex-end",
@@ -1357,7 +1557,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 6,
   },
-
   eventsHeaderRow: {
     marginTop: 4,
     marginBottom: 6,
@@ -1367,7 +1566,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#365b6d",
   },
-
   filterRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1395,7 +1593,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
   },
-
   placeholderCard: {
     marginTop: 4,
     backgroundColor: "#FFFFFF",
@@ -1417,7 +1614,6 @@ const styles = StyleSheet.create({
     color: "#607D8B",
     textAlign: "center",
   },
-
   eventCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
@@ -1456,7 +1652,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   badgeVet: {
     flexDirection: "row",
     alignItems: "center",
@@ -1485,7 +1680,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#43A047",
   },
-
+  vetStatusPill: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  vetStatusPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
   eventActionsRow: {
     flexDirection: "row",
     marginTop: 6,
@@ -1493,8 +1699,31 @@ const styles = StyleSheet.create({
   smallIconButton: {
     marginLeft: 4,
   },
-
-  // --- Modal genérico ---
+  smallOutlineButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#E53935",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 4,
+  },
+  smallOutlineButtonText: {
+    fontSize: 11,
+    color: "#E53935",
+    fontWeight: "600",
+  },
+  smallFilledButton: {
+    borderRadius: 999,
+    backgroundColor: "#1E88E5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: 4,
+  },
+  smallFilledButtonText: {
+    fontSize: 11,
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -1510,7 +1739,7 @@ const styles = StyleSheet.create({
   },
   modalHeaderRow: {
     flexDirection: "row",
-    justifyContent: "space_between",
+    justifyContent: "space-between",
     alignItems: "center",
   },
   modalTitle: {
@@ -1592,7 +1821,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
   },
-
   timeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1661,7 +1889,6 @@ const styles = StyleSheet.create({
     color: "#E53935",
     fontWeight: "600",
   },
-
   vetRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1689,8 +1916,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#E3F2FD",
   },
-
-  // --- Calendario mensual grande ---
   monthCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",

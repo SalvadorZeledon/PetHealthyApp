@@ -18,6 +18,9 @@ import UserInfoScreen from "../feature/profile/views/UserInfoScreen";
 import SettingsScreen from "../feature/settings/views/SettingsScreen";
 import LocationPickerScreen from "../feature/profile/views/LocationPickerScreen";
 
+// --- PERFIL VETERINARIO ---
+import VetProfileScreen from "../veterinario/feature/profile/views/VetProfileScreen";
+
 // --- MASCOTAS ---
 import DogBasicInfoScreen from "../feature/pet/views/DogBasicInfoScreen";
 import RegistroMascota from "../feature/pet/views/RegistroMascota";
@@ -34,8 +37,6 @@ import VetFinderScreen from "../feature/directory/views/VetFinderScreen";
 import VetDetailScreen from "../feature/directory/views/VetDetailScreen";
 import VetMapScreen from "../feature/directory/views/VetMapScreen";
 import VetScannerScreen from "./VetScannerScreen";
-
-import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";
@@ -56,11 +57,6 @@ const AppNavigator = () => {
         component={VetLoginScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="HomeVetScreen"
-        component={HomeVetScreen}
-        options={{ headerShown: false }}
-      />
 
       {/* ===================== MAIN TABS (USUARIO / VET) ===================== */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
@@ -70,6 +66,7 @@ const AppNavigator = () => {
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="VetProfile" component={VetProfileScreen} />
 
       {/* ===================== MASCOTAS ===================== */}
       <Stack.Screen name="DogBasicInfo" component={DogBasicInfoScreen} />
@@ -95,12 +92,12 @@ const AppNavigator = () => {
       <Stack.Screen name="VetFinder" component={VetFinderScreen} />
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
       <Stack.Screen name="VetMap" component={VetMapScreen} />
-      
+
       {/* 👇 PANTALLA DE ESCÁNER NUEVA 👇 */}
-      <Stack.Screen 
-        name="VetScanner" 
-        component={VetScannerScreen} 
-        options={{ headerShown: false }} 
+      <Stack.Screen
+        name="VetScanner"
+        component={VetScannerScreen}
+        options={{ headerShown: false }}
       />
 
       {/* ===================== LEGALES ===================== */}
@@ -111,4 +108,3 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
-
