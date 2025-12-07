@@ -96,13 +96,11 @@ const VetMapScreen = ({ navigation, route }) => {
   }, []);
 
   // 🔹 Cada vez que la pantalla gana foco solo abrimos la lista en modo pick
-  //    (la apariencia del StatusBar se gestiona globalmente desde App.js).
   useFocusEffect(
     React.useCallback(() => {
       if (isPickMode) {
         setShowList(true);
       }
-
       return () => {};
     }, [isPickMode])
   );
@@ -156,10 +154,8 @@ const VetMapScreen = ({ navigation, route }) => {
       state?.routeNames && state.routeNames.includes("Appointments");
 
     if (hasAppointmentsTab) {
-      // Estamos dentro del TabNavigator (Home, Mascotas, Citas, Mapa, Chatbot)
       navigation.navigate("Appointments", params);
     } else {
-      // Venimos desde el stack raíz (Directorio, etc.)
       navigation.navigate("MainTabs", {
         screen: "Appointments",
         params,
@@ -180,7 +176,14 @@ const VetMapScreen = ({ navigation, route }) => {
     return (
       <View style={styles.listPanel}>
         <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Veterinarias cercanas</Text>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.listTitle}>Veterinarias cercanas</Text>
+            <Text style={styles.listSubtitle}>
+              Toca una clínica para centrar el mapa o usa los botones para ver
+              detalles y crear un recordatorio.
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={() => setShowList(false)}
             style={styles.closeListBtn}
@@ -189,7 +192,10 @@ const VetMapScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.listScroll}>
+        <ScrollView
+          style={styles.listScroll}
+          contentContainerStyle={styles.listScrollContent}
+        >
           {places.map((p) => {
             const lat = p.geometry?.location?.lat;
             const lng = p.geometry?.location?.lng;
@@ -219,29 +225,88 @@ const VetMapScreen = ({ navigation, route }) => {
               ? "Usar en recordatorio"
               : "Crear recordatorio";
 
+            const isOpen = p.opening_hours?.open_now;
+
             return (
               <View key={p.place_id} style={styles.listItem}>
-                <TouchableOpacity style={{ flex: 1 }} onPress={handleCenter}>
-                  <Text style={styles.itemTitle}>{p.name}</Text>
-                  {p.vicinity ? (
-                    <Text style={styles.itemSubtitle}>{p.vicinity}</Text>
-                  ) : null}
-                </TouchableOpacity>
+                {/* fila principal: nombre, dirección, distancia y rating */}
+                <View style={styles.listItemMainRow}>
+                  <TouchableOpacity
+                    style={styles.listItemLeft}
+                    onPress={handleCenter}
+                  >
+                    <Text style={styles.itemTitle} numberOfLines={1}>
+                      {p.name}
+                    </Text>
 
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.itemDistance}>
-                    {p.distanceKm < 1
-                      ? `${Math.round(p.distanceKm * 1000)} m`
-                      : `${p.distanceKm.toFixed(1)} km`}
-                  </Text>
-                  <Text style={styles.itemMeta}>
-                    {p.rating ? `⭐ ${p.rating}` : ""}
-                  </Text>
+                    {p.vicinity ? (
+                      <Text
+                        style={styles.itemSubtitle}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        {p.vicinity}
+                      </Text>
+                    ) : null}
+
+                    {isOpen !== undefined && (
+                      <View
+                        style={[
+                          styles.openBadge,
+                          isOpen
+                            ? styles.openBadgeOpen
+                            : styles.openBadgeClosed,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.openDot,
+                            {
+                              backgroundColor: isOpen ? "#43A047" : "#E53935",
+                            },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.openBadgeText,
+                            !isOpen && styles.openBadgeTextClosed,
+                          ]}
+                        >
+                          {isOpen ? "Abierto ahora" : "Cerrado ahora"}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={styles.listItemRight}>
+                    <View style={styles.distanceChip}>
+                      <Ionicons
+                        name="navigate-outline"
+                        size={14}
+                        color="#1E88E5"
+                      />
+                      <Text style={styles.distanceChipText}>
+                        {p.distanceKm < 1
+                          ? `${Math.round(p.distanceKm * 1000)} m`
+                          : `${p.distanceKm.toFixed(1)} km`}
+                      </Text>
+                    </View>
+
+                    {p.rating ? (
+                      <View style={styles.ratingChip}>
+                        <Ionicons name="star" size={12} color="#FFB300" />
+                        <Text style={styles.ratingChipText}>
+                          {p.rating.toFixed(1)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
 
+                {/* fila de botones */}
                 <View style={styles.listActionsRow}>
                   <TouchableOpacity
-                    style={styles.detailsBtn}
+                    style={[styles.detailsBtn, styles.secondaryListBtn]}
                     onPress={handleViewDetails}
                   >
                     <Ionicons
@@ -253,15 +318,17 @@ const VetMapScreen = ({ navigation, route }) => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.detailsBtn, { marginLeft: 8 }]}
+                    style={[styles.detailsBtn, styles.primaryListBtn]}
                     onPress={handleSelectOrCreate}
                   >
                     <Ionicons
                       name={isPickMode ? "checkmark-circle-outline" : "add"}
                       size={16}
-                      color="#365b6d"
+                      color="#ffffff"
                     />
-                    <Text style={styles.detailsBtnText}>{labelSelect}</Text>
+                    <Text style={[styles.detailsBtnText, { color: "#ffffff" }]}>
+                      {labelSelect}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -474,35 +541,70 @@ const styles = StyleSheet.create({
     right: 0,
     height: Math.round(SCREEN_H * 0.45),
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 12,
-    elevation: 8,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   listTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#263238",
   },
+  listSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#78909C",
+  },
   closeListBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     backgroundColor: "#E0E9F5",
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   listScroll: { marginTop: 10 },
+  listScrollContent: {
+    paddingBottom: 12,
+  },
 
   listItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#F0F0F0",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E0E9F5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItemMainRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  listItemLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  listItemRight: {
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
   },
 
   itemTitle: { fontSize: 15, fontWeight: "700", color: "#263238" },
@@ -510,6 +612,66 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
     marginTop: 4,
+  },
+
+  distanceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "#E3F2FD",
+    marginBottom: 4,
+  },
+  distanceChipText: {
+    marginLeft: 4,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#1E88E5",
+  },
+
+  ratingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "#FFF8E1",
+  },
+  ratingChipText: {
+    marginLeft: 4,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFB300",
+  },
+
+  openBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 6,
+  },
+  openBadgeOpen: {
+    backgroundColor: "#E8F5E9",
+  },
+  openBadgeClosed: {
+    backgroundColor: "#FFEBEE",
+  },
+  openDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  openBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  openBadgeTextClosed: {
+    color: "#C62828",
   },
 
   itemDistance: {
@@ -538,7 +700,8 @@ const styles = StyleSheet.create({
 
   listActionsRow: {
     flexDirection: "row",
-    marginTop: 6,
+    marginTop: 8,
+    justifyContent: "flex-end",
   },
 
   callout: {
@@ -575,11 +738,16 @@ const styles = StyleSheet.create({
   detailsBtn: {
     flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  secondaryListBtn: {
     backgroundColor: "#E3F2FD",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginTop: 6,
+    marginRight: 8,
+  },
+  primaryListBtn: {
+    backgroundColor: "#43A047",
   },
   detailsBtnText: {
     marginLeft: 6,

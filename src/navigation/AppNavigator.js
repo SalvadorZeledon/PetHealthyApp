@@ -1,8 +1,10 @@
+// src/navigation/AppNavigator.js
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 // --- TAB NAVIGATOR PRINCIPAL ---
 import TabNavigator from "./TabNavigator";
+import TabVetNavigator from "../veterinario/feature/navigation/TabVetNavigator";
 
 // --- AUTENTICACIÓN ---
 import LoginScreen from "../feature/auth/views/LoginScreen";
@@ -48,9 +50,9 @@ const AppNavigator = () => {
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
       <Stack.Screen name="VetLogin" component={VetLoginScreen} options={{ headerShown: false }}/>
 
-      {/* ===================== MAIN TABS ===================== */}
-      {/* Se coloca aquí para que sea accesible después del login */}
+      {/* ===================== MAIN TABS (USUARIO / VET) ===================== */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen name="VetTabs" component={TabVetNavigator} />
 
       {/* ===================== PERFIL Y CONFIGURACIÓN ===================== */}
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
