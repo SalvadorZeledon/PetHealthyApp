@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { initializeFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth"; // 👈 NUEVO
+import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyARaITftNBjJpbjPNU_erDOHbHWoB44_Eg",
@@ -17,5 +18,7 @@ export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
 });
 
-// 👇 NUEVO: instancia de Auth para usar en Login/Register.
-export const auth = getAuth(app);
+// Configurar Auth con persistencia en AsyncStorage
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
