@@ -36,7 +36,11 @@ import DirectorioDetailScreen from "../feature/directory/views/DirectorioDetailS
 import VetFinderScreen from "../feature/directory/views/VetFinderScreen";
 import VetDetailScreen from "../feature/directory/views/VetDetailScreen";
 import VetMapScreen from "../feature/directory/views/VetMapScreen";
-import VetScannerScreen from "./VetScannerScreen";
+
+// --- VETERINARIO (Scanner y Consulta) ---
+import VetScannerScreen from "../veterinario/feature/patients/views/VetScannerScreen";
+// 👇👇 1. AGREGAMOS EL IMPORT DE LA CONSULTA 👇👇
+import VetConsultationScreen from "../veterinario/feature/patients/views/VetConsultationScreen";
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";
@@ -57,10 +61,17 @@ const AppNavigator = () => {
         component={VetLoginScreen}
         options={{ headerShown: false }}
       />
+      
+      {/* Home temporal */}
+      <Stack.Screen
+        name="HomeVetScreen"
+        component={HomeVetScreen}
+        options={{ headerShown: false }}
+      />
 
       {/* ===================== MAIN TABS (USUARIO / VET) ===================== */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
-      <Stack.Screen name="VetTabs" component={TabVetNavigator} />
+      <Stack.Screen name="VetMain" component={TabVetNavigator} />
 
       {/* ===================== PERFIL Y CONFIGURACIÓN ===================== */}
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
@@ -93,11 +104,18 @@ const AppNavigator = () => {
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
       <Stack.Screen name="VetMap" component={VetMapScreen} />
 
-      {/* 👇 PANTALLA DE ESCÁNER NUEVA 👇 */}
-      <Stack.Screen
-        name="VetScanner"
-        component={VetScannerScreen}
-        options={{ headerShown: false }}
+      {/* 👇 PANTALLAS DE VETERINARIO (SCANNER Y CONSULTA) 👇 */}
+      <Stack.Screen 
+        name="VetScanner" 
+        component={VetScannerScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* 👇👇 2. AGREGAMOS LA PANTALLA AL STACK 👇👇 */}
+      <Stack.Screen 
+        name="VetConsultation" 
+        component={VetConsultationScreen} 
+        options={{ headerShown: false }} 
       />
 
       {/* ===================== LEGALES ===================== */}
