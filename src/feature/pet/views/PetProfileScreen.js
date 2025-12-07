@@ -12,10 +12,10 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore"; 
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
-import QRCode from "react-native-qrcode-svg";
-import * as Brightness from "expo-brightness";
+import QRCode from 'react-native-qrcode-svg';
+import * as Brightness from 'expo-brightness';
 
 import { db } from "../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
@@ -41,7 +41,7 @@ const relacionLabels = {
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { petId, viewMode } = route.params || {};
-  const isVet = viewMode === "veterinarian";
+  const isVet = viewMode === 'veterinarian'; 
 
   const [pet, setPet] = useState(null);
   const [history, setHistory] = useState(null);
@@ -58,43 +58,35 @@ const PetProfileScreen = ({ navigation, route }) => {
 
     // 1️⃣ SUSCRIPCIÓN EN TIEMPO REAL AL PERFIL
     const petRef = doc(db, COL_MASCOTAS, petId);
-    const unsubscribePet = onSnapshot(
-      petRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setPet({ id: docSnap.id, ...docSnap.data() });
-        } else {
-          Dialog.show({
-            type: ALERT_TYPE.WARNING,
-            title: "Aviso",
-            textBody: "Esta mascota ha sido eliminada.",
-            button: "Salir",
-            onPressButton: () => navigation.goBack(),
-          });
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error perfil real-time:", error);
-        setLoading(false);
+    const unsubscribePet = onSnapshot(petRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setPet({ id: docSnap.id, ...docSnap.data() });
+      } else {
+        Dialog.show({
+          type: ALERT_TYPE.WARNING,
+          title: "Aviso",
+          textBody: "Esta mascota ha sido eliminada.",
+          button: "Salir",
+          onPressButton: () => navigation.goBack(),
+        });
       }
-    );
+      setLoading(false);
+    }, (error) => {
+      console.error("Error perfil real-time:", error);
+      setLoading(false);
+    });
 
     // 2️⃣ SUSCRIPCIÓN EN TIEMPO REAL AL HISTORIAL
     const historyRef = doc(db, COL_MASCOTAS, petId, "historial", "inicial");
-    const unsubscribeHistory = onSnapshot(
-      historyRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setHistory({ id: docSnap.id, ...docSnap.data() });
-        } else {
-          setHistory(null);
-        }
-      },
-      (error) => {
-        console.error("Error historial real-time:", error);
+    const unsubscribeHistory = onSnapshot(historyRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setHistory({ id: docSnap.id, ...docSnap.data() });
+      } else {
+        setHistory(null);
       }
-    );
+    }, (error) => {
+      console.error("Error historial real-time:", error);
+    });
 
     return () => {
       unsubscribePet();
@@ -106,14 +98,12 @@ const PetProfileScreen = ({ navigation, route }) => {
   const handleOpenQR = async () => {
     try {
       const { status } = await Brightness.requestPermissionsAsync();
-      if (status === "granted") {
+      if (status === 'granted') {
         const current = await Brightness.getBrightnessAsync();
         setPreviousBrightness(current);
         await Brightness.setBrightnessAsync(1.0);
       }
-    } catch (e) {
-      console.log(e);
-    }
+    } catch (e) { console.log(e); }
     setQrVisible(true);
   };
 
@@ -122,9 +112,7 @@ const PetProfileScreen = ({ navigation, route }) => {
       if (previousBrightness !== null) {
         await Brightness.setBrightnessAsync(previousBrightness);
       }
-    } catch (e) {
-      console.log(e);
-    }
+    } catch (e) { console.log(e); }
     setQrVisible(false);
   };
 
@@ -133,12 +121,8 @@ const PetProfileScreen = ({ navigation, route }) => {
     if (!pet.edadValor || !pet.edadTipo) return "Edad no especificada";
     const unidad =
       pet.edadTipo === "años"
-        ? pet.edadValor === 1
-          ? "año"
-          : "años"
-        : pet.edadValor === 1
-        ? "mes"
-        : "meses";
+        ? pet.edadValor === 1 ? "año" : "años"
+        : pet.edadValor === 1 ? "mes" : "meses";
     return `${pet.edadValor} ${unidad}`;
   };
 
@@ -165,10 +149,11 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   if (!pet) return null;
 
-  const qrData = JSON.stringify({ type: "pet_profile", petId: pet.id });
+  const qrData = JSON.stringify({ type: 'pet_profile', petId: pet.id });
 
   return (
     <View style={styles.container}>
+      
       {/* MODAL QR */}
       <Modal
         visible={qrVisible}
@@ -185,10 +170,7 @@ const PetProfileScreen = ({ navigation, route }) => {
             <View style={styles.qrWrapper}>
               <QRCode value={qrData} size={220} />
             </View>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleCloseQR}
-            >
+            <TouchableOpacity style={styles.closeButton} onPress={handleCloseQR}>
               <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -197,17 +179,11 @@ const PetProfileScreen = ({ navigation, route }) => {
 
       {/* HEADER */}
       <View style={styles.header}>
-        {/* Botón back */}
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {pet.nombre || "Mascota"}
-        </Text>
-
+        <Text style={styles.headerTitle} numberOfLines={1}>{pet.nombre || "Mascota"}</Text>
+        
         <TouchableOpacity
           style={styles.headerIconButton}
           onPress={() => navigation.navigate("EditPet", { petId: pet.id })}
@@ -217,15 +193,12 @@ const PetProfileScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        
         {/* SECCIÓN PERFIL */}
         <View style={styles.card}>
           <View style={styles.photoWrapper}>
             {pet.fotoUrl ? (
-              <Image
-                source={{ uri: pet.fotoUrl }}
-                style={styles.petImage}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: pet.fotoUrl }} style={styles.petImage} resizeMode="cover" />
             ) : (
               <View style={styles.petImagePlaceholder}>
                 <Ionicons name="paw-outline" size={40} color="#4B5563" />
@@ -234,28 +207,16 @@ const PetProfileScreen = ({ navigation, route }) => {
           </View>
 
           {/* ✨ MEJORA ESTÉTICA: Alineación y estilo del botón */}
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <View style={{ flex: 1, paddingRight: 10 }}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
+            <View style={{flex: 1, paddingRight: 10}}>
               <Text style={styles.petName}>{pet.nombre}</Text>
               <Text style={styles.petSubInfo}>
-                {pet.especie ? pet.especie.toUpperCase() : "ESPECIE"} ·{" "}
-                {formatAge()}
+                {pet.especie ? pet.especie.toUpperCase() : "ESPECIE"} · {formatAge()}
               </Text>
             </View>
-
+            
             {!isVet && (
-              <TouchableOpacity
-                style={styles.miniQrButton}
-                onPress={handleOpenQR}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.miniQrButton} onPress={handleOpenQR} activeOpacity={0.7}>
                 <Ionicons name="qr-code-outline" size={18} color="#4A85A5" />
                 <Text style={styles.miniQrText}>Generar QR</Text>
               </TouchableOpacity>
@@ -266,22 +227,14 @@ const PetProfileScreen = ({ navigation, route }) => {
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Sexo</Text>
               <Text style={styles.infoValue}>
-                {pet.sexo === "macho"
-                  ? "Macho"
-                  : pet.sexo === "hembra"
-                  ? "Hembra"
-                  : "No especificado"}
+                {pet.sexo === "macho" ? "Macho" : pet.sexo === "hembra" ? "Hembra" : "No especificado"}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Microchip</Text>
-              <Text style={styles.infoValue}>
-                {formatBool(pet.tieneMicrochip)}
-              </Text>
+              <Text style={styles.infoValue}>{formatBool(pet.tieneMicrochip)}</Text>
               {pet.tieneMicrochip && pet.identificadorMicrochip ? (
-                <Text style={styles.infoExtra}>
-                  {pet.identificadorMicrochip}
-                </Text>
+                <Text style={styles.infoExtra}>{pet.identificadorMicrochip}</Text>
               ) : null}
             </View>
           </View>
@@ -289,9 +242,7 @@ const PetProfileScreen = ({ navigation, route }) => {
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Tatuaje</Text>
-              <Text style={styles.infoValue}>
-                {formatBool(pet.poseeTatuaje)}
-              </Text>
+              <Text style={styles.infoValue}>{formatBool(pet.poseeTatuaje)}</Text>
             </View>
           </View>
         </View>
@@ -300,9 +251,7 @@ const PetProfileScreen = ({ navigation, route }) => {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Historial médico</Text>
           {!history ? (
-            <Text style={styles.emptyText}>
-              Aún no hay historial médico inicial.
-            </Text>
+            <Text style={styles.emptyText}>Aún no hay historial médico inicial.</Text>
           ) : (
             <>
               {/* Vacunas */}
@@ -317,15 +266,12 @@ const PetProfileScreen = ({ navigation, route }) => {
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptySubText}>
-                  No se registraron vacunas.
-                </Text>
+                <Text style={styles.emptySubText}>No se registraron vacunas.</Text>
               )}
 
               {/* Desparasitación */}
               <Text style={styles.sectionSubtitle}>Desparasitación</Text>
-              {history.desparacitaciones &&
-              history.desparacitaciones.length > 0 ? (
+              {history.desparacitaciones && history.desparacitaciones.length > 0 ? (
                 history.desparacitaciones.map((d, index) => (
                   <View key={`${d.tipo}-${index}`} style={styles.lineRow}>
                     <View style={styles.bullet} />
@@ -335,9 +281,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptySubText}>
-                  No se registraron desparasitaciones.
-                </Text>
+                <Text style={styles.emptySubText}>No se registraron desparasitaciones.</Text>
               )}
 
               {/* Condiciones / contexto */}
@@ -345,64 +289,40 @@ const PetProfileScreen = ({ navigation, route }) => {
               <View style={styles.tagRow}>
                 {history.contextoVivienda ? (
                   <View style={styles.tag}>
-                    <Text style={styles.tagText}>
-                      {contextoLabels[history.contextoVivienda] ||
-                        history.contextoVivienda}
-                    </Text>
+                    <Text style={styles.tagText}>{contextoLabels[history.contextoVivienda] || history.contextoVivienda}</Text>
                   </View>
                 ) : null}
                 {history.frecuenciaPaseo ? (
                   <View style={styles.tag}>
-                    <Text style={styles.tagText}>
-                      Paseo:{" "}
-                      {frecuenciaLabels[history.frecuenciaPaseo] ||
-                        history.frecuenciaPaseo}
-                    </Text>
+                    <Text style={styles.tagText}>Paseo: {frecuenciaLabels[history.frecuenciaPaseo] || history.frecuenciaPaseo}</Text>
                   </View>
                 ) : null}
               </View>
               {history.condicionesMedicas ? (
-                <Text style={styles.paragraph}>
-                  {history.condicionesMedicas}
-                </Text>
+                <Text style={styles.paragraph}>{history.condicionesMedicas}</Text>
               ) : (
-                <Text style={styles.emptySubText}>
-                  No se registraron condiciones médicas.
-                </Text>
+                <Text style={styles.emptySubText}>No se registraron condiciones médicas.</Text>
               )}
 
               {/* Convivencia */}
               <Text style={styles.sectionSubtitle}>Convivencia</Text>
-              <Text style={styles.paragraph}>
-                Vive con otros animales:{" "}
-                {formatBool(history.viveConOtrosAnimales)}
-              </Text>
+              <Text style={styles.paragraph}>Vive con otros animales: {formatBool(history.viveConOtrosAnimales)}</Text>
               {history.viveConOtrosAnimales && (
                 <>
                   {history.relacionConOtrosAnimales ? (
-                    <Text style={styles.paragraph}>
-                      Relación:{" "}
-                      {relacionLabels[history.relacionConOtrosAnimales] ||
-                        history.relacionConOtrosAnimales}
-                    </Text>
+                    <Text style={styles.paragraph}>Relación: {relacionLabels[history.relacionConOtrosAnimales] || history.relacionConOtrosAnimales}</Text>
                   ) : null}
                   {history.descripcionConvivencia ? (
-                    <Text style={styles.paragraph}>
-                      {history.descripcionConvivencia}
-                    </Text>
+                    <Text style={styles.paragraph}>{history.descripcionConvivencia}</Text>
                   ) : null}
                 </>
               )}
 
               {/* Agresividad */}
               <Text style={styles.sectionSubtitle}>Agresividad</Text>
-              <Text style={styles.paragraph}>
-                Es agresiva: {formatBool(history.esAgresivo)}
-              </Text>
+              <Text style={styles.paragraph}>Es agresiva: {formatBool(history.esAgresivo)}</Text>
               {history.esAgresivo && history.descripcionAgresividad ? (
-                <Text style={styles.paragraph}>
-                  {history.descripcionAgresividad}
-                </Text>
+                <Text style={styles.paragraph}>{history.descripcionAgresividad}</Text>
               ) : null}
             </>
           )}
@@ -431,7 +351,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
   },
-  /* HEADER NUEVO */
   header: {
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
@@ -464,7 +383,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "center",
   },
-
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
@@ -621,7 +539,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.85)",
+    backgroundColor: "rgba(0,0,0,0.85)", 
     justifyContent: "center",
     alignItems: "center",
   },

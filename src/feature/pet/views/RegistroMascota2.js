@@ -32,24 +32,42 @@ const RegistroMascota2 = ({ navigation, route }) => {
   /* ======================================================
      ESTADO: VACUNAS
      ====================================================== */
-  const [showVaccineDateModal, setShowVaccineDateModal] = useState(false);
+  const [showVaccineDateModal, setShowVaccineDateModal] = useState(false); // fecha aplicacion
+  const [showVaccineMfgModal, setShowVaccineMfgModal] = useState(false); // fecha fabricacion
+  const [showVaccineExpModal, setShowVaccineExpModal] = useState(false); // fecha vencimiento
+
   const [selectedVaccine, setSelectedVaccine] = useState(COMMON_VACCINES[0]);
   const [vaccineDate, setVaccineDate] = useState(new Date());
+  const [vaccineMfgDate, setVaccineMfgDate] = useState(new Date());
+  const [vaccineExpDate, setVaccineExpDate] = useState(new Date());
+
   const [isVaccineDropdownOpen, setIsVaccineDropdownOpen] = useState(false);
-  const [vaccines, setVaccines] = useState([]); // { nombre, fecha }
+  const [vaccines, setVaccines] = useState([]); // { nombre, fecha, numeroSerie, marca, fechaFabricacion, fechaVencimiento }
   const [showVaccineModal, setShowVaccineModal] = useState(false);
   const [editingVaccineIndex, setEditingVaccineIndex] = useState(null);
 
+  const [vaccineSerial, setVaccineSerial] = useState("");
+  const [vaccineBrand, setVaccineBrand] = useState("");
+
   /* ======================================================
-     ESTADO: DESPARASITACIÓN
+     ESTADO: DESPARASITACIÓN (ahora con campos similares a vacunas)
      ====================================================== */
-  const [dewormings, setDewormings] = useState([]); // { tipo, fecha }
+  const [showDewormDateModal, setShowDewormDateModal] = useState(false);
+  const [showDewormMfgModal, setShowDewormMfgModal] = useState(false);
+  const [showDewormExpModal, setShowDewormExpModal] = useState(false);
+
+  const [dewormDate, setDewormDate] = useState(new Date());
+  const [dewormMfgDate, setDewormMfgDate] = useState(new Date());
+  const [dewormExpDate, setDewormExpDate] = useState(new Date());
+
+  const [dewormSerial, setDewormSerial] = useState("");
+  const [dewormBrand, setDewormBrand] = useState("");
+
+  const [dewormings, setDewormings] = useState([]); // { tipo, fecha, numeroSerie, marca, fechaFabricacion, fechaVencimiento }
   const [showDewormModal, setShowDewormModal] = useState(false);
   const [editingDewormIndex, setEditingDewormIndex] = useState(null);
   const [selectedDewormType, setSelectedDewormType] = useState(DEWORM_TYPES[0]);
-  const [dewormDate, setDewormDate] = useState(new Date());
   const [isDewormDropdownOpen, setIsDewormDropdownOpen] = useState(false);
-  const [showDewormDateModal, setShowDewormDateModal] = useState(false);
 
   /* ======================================================
      OTROS CAMPOS
@@ -73,7 +91,9 @@ const RegistroMascota2 = ({ navigation, route }) => {
   };
 
   const formatDate = (iso) => {
+    if (!iso) return "";
     const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
@@ -81,19 +101,18 @@ const RegistroMascota2 = ({ navigation, route }) => {
   };
 
   /* ======================================================
-     VACUNAS: AGREGAR / EDITAR / ELIMINAR
+     VACUNAS: AGREGAR / EDITAR / ELIMINAR (AHORA CON CAMPOS EXTRA)
      ====================================================== */
-  const handleAddVaccine = () => {
+  const handleSaveVaccine = () => {
     if (!selectedVaccine) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
         title: "Vacuna requerida",
-        textBody: "Selecciona una vacuna antes de continuar.",
+        textBody: "Selecciona una vacuna.",
         button: "Cerrar",
       });
       return;
     }
-
     if (isFutureDate(vaccineDate)) {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
@@ -104,37 +123,23 @@ const RegistroMascota2 = ({ navigation, route }) => {
       return;
     }
 
+    // preparar ISO strings
     const isoDate = vaccineDate.toISOString();
+    const isoMfg = vaccineMfgDate ? vaccineMfgDate.toISOString() : null;
+    const isoExp = vaccineExpDate ? vaccineExpDate.toISOString() : null;
 
-    // === MODO EDICIÓN ===
+    const newVaccineObj = {
+      nombre: selectedVaccine,
+      fecha: isoDate,
+      numeroSerie: vaccineSerial.trim(),
+      marca: vaccineBrand.trim(),
+      fechaFabricacion: isoMfg,
+      fechaVencimiento: isoExp,
+    };
+
     if (editingVaccineIndex !== null) {
-      const original = vaccines[editingVaccineIndex];
-
-      const noChanges =
-        original &&
-        original.nombre === selectedVaccine &&
-        original.fecha === isoDate;
-
-      if (noChanges) {
-        Dialog.show({
-          type: ALERT_TYPE.INFO,
-          title: "Sin cambios",
-          textBody: "No se realizaron cambios en la vacuna.",
-          button: "Ok",
-        });
-
-        setShowVaccineModal(false);
-        setShowVaccineDateModal(false);
-        setIsVaccineDropdownOpen(false);
-        setEditingVaccineIndex(null);
-        return;
-      }
-
       const updated = [...vaccines];
-      updated[editingVaccineIndex] = {
-        nombre: selectedVaccine,
-        fecha: isoDate,
-      };
+      updated[editingVaccineIndex] = newVaccineObj;
       setVaccines(updated);
 
       Dialog.show({
@@ -143,61 +148,51 @@ const RegistroMascota2 = ({ navigation, route }) => {
         textBody: "Los cambios se guardaron correctamente.",
         button: "Perfecto",
       });
+    } else {
+      setVaccines((prev) => [...prev, newVaccineObj]);
 
-      setShowVaccineModal(false);
-      setShowVaccineDateModal(false);
-      setIsVaccineDropdownOpen(false);
-      setEditingVaccineIndex(null);
-      return;
+      Dialog.show({
+        type: ALERT_TYPE.SUCCESS,
+        title: "Vacuna registrada",
+        textBody: "La vacuna se agregó correctamente.",
+        button: "Listo",
+      });
     }
 
-    // === MODO AGREGAR ===
-    const newVaccine = {
-      nombre: selectedVaccine,
-      fecha: isoDate,
-    };
+    resetVaccineForm();
+  };
 
-    setVaccines([...vaccines, newVaccine]);
-    setSelectedVaccine(COMMON_VACCINES[0]);
-    setVaccineDate(new Date());
+  const resetVaccineForm = () => {
     setShowVaccineModal(false);
-    setShowVaccineDateModal(false);
     setIsVaccineDropdownOpen(false);
-
-    Dialog.show({
-      type: ALERT_TYPE.SUCCESS,
-      title: "Vacuna registrada",
-      textBody: "La vacuna se agregó correctamente.",
-      button: "Listo",
-    });
+    setEditingVaccineIndex(null);
+    setVaccineSerial("");
+    setVaccineBrand("");
+    setVaccineMfgDate(new Date());
+    setVaccineExpDate(new Date());
+    setVaccineDate(new Date());
+    setShowVaccineDateModal(false);
+    setShowVaccineMfgModal(false);
+    setShowVaccineExpModal(false);
   };
 
   const handleDeleteVaccine = (index) => {
     const v = vaccines[index];
     if (!v) return;
-
     Dialog.show({
       type: ALERT_TYPE.DANGER,
       title: "Eliminar vacuna",
-      textBody: `¿Seguro que deseas eliminar la vacuna "${
-        v.nombre
-      }" con fecha ${formatDate(v.fecha)}?`,
+      textBody: `¿Seguro que deseas eliminar la vacuna "${v.nombre}"?`,
       button: "Eliminar",
       onPressButton: () => {
         setVaccines((prev) => prev.filter((_, i) => i !== index));
         Dialog.hide();
-        Dialog.show({
-          type: ALERT_TYPE.SUCCESS,
-          title: "Vacuna eliminada",
-          textBody: "La vacuna se eliminó correctamente.",
-          button: "Ok",
-        });
       },
     });
   };
 
   /* ======================================================
-     DESPARASITACIÓN: AGREGAR / EDITAR / ELIMINAR
+     DESPARASITACIÓN: AGREGAR / EDITAR / ELIMINAR (AHORA CON CAMPOS EXTRA)
      ====================================================== */
   const handleSaveDeworming = () => {
     if (!selectedDewormType) {
@@ -221,36 +216,21 @@ const RegistroMascota2 = ({ navigation, route }) => {
     }
 
     const isoDate = dewormDate.toISOString();
+    const isoMfg = dewormMfgDate ? dewormMfgDate.toISOString() : null;
+    const isoExp = dewormExpDate ? dewormExpDate.toISOString() : null;
 
-    // === MODO EDICIÓN ===
+    const newDewormObj = {
+      tipo: selectedDewormType,
+      fecha: isoDate,
+      numeroSerie: dewormSerial.trim(),
+      marca: dewormBrand.trim(),
+      fechaFabricacion: isoMfg,
+      fechaVencimiento: isoExp,
+    };
+
     if (editingDewormIndex !== null) {
-      const original = dewormings[editingDewormIndex];
-
-      const noChanges =
-        original &&
-        original.tipo === selectedDewormType &&
-        original.fecha === isoDate;
-
-      if (noChanges) {
-        Dialog.show({
-          type: ALERT_TYPE.INFO,
-          title: "Sin cambios",
-          textBody: "No se realizaron cambios en la desparasitación.",
-          button: "Ok",
-        });
-
-        setShowDewormModal(false);
-        setShowDewormDateModal(false);
-        setIsDewormDropdownOpen(false);
-        setEditingDewormIndex(null);
-        return;
-      }
-
       const updated = [...dewormings];
-      updated[editingDewormIndex] = {
-        tipo: selectedDewormType,
-        fecha: isoDate,
-      };
+      updated[editingDewormIndex] = newDewormObj;
       setDewormings(updated);
 
       Dialog.show({
@@ -259,33 +239,32 @@ const RegistroMascota2 = ({ navigation, route }) => {
         textBody: "Los cambios se guardaron correctamente.",
         button: "Perfecto",
       });
+    } else {
+      setDewormings((prev) => [...prev, newDewormObj]);
 
-      setShowDewormModal(false);
-      setShowDewormDateModal(false);
-      setIsDewormDropdownOpen(false);
-      setEditingDewormIndex(null);
-      return;
+      Dialog.show({
+        type: ALERT_TYPE.SUCCESS,
+        title: "Desparasitación registrada",
+        textBody: "La desparasitación se agregó correctamente.",
+        button: "Listo",
+      });
     }
 
-    // === MODO AGREGAR ===
-    const newDeworm = {
-      tipo: selectedDewormType,
-      fecha: isoDate,
-    };
+    resetDewormForm();
+  };
 
-    setDewormings([...dewormings, newDeworm]);
-    setSelectedDewormType(DEWORM_TYPES[0]);
-    setDewormDate(new Date());
+  const resetDewormForm = () => {
     setShowDewormModal(false);
-    setShowDewormDateModal(false);
     setIsDewormDropdownOpen(false);
-
-    Dialog.show({
-      type: ALERT_TYPE.SUCCESS,
-      title: "Desparasitación registrada",
-      textBody: "La desparasitación se agregó correctamente.",
-      button: "Listo",
-    });
+    setEditingDewormIndex(null);
+    setDewormSerial("");
+    setDewormBrand("");
+    setDewormMfgDate(new Date());
+    setDewormExpDate(new Date());
+    setDewormDate(new Date());
+    setShowDewormDateModal(false);
+    setShowDewormMfgModal(false);
+    setShowDewormExpModal(false);
   };
 
   const handleDeleteDeworming = (index) => {
@@ -295,9 +274,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
     Dialog.show({
       type: ALERT_TYPE.DANGER,
       title: "Eliminar desparasitación",
-      textBody: `¿Seguro que deseas eliminar la desparasitación "${
-        d.tipo
-      }" con fecha ${formatDate(d.fecha)}?`,
+      textBody: `¿Seguro que deseas eliminar la desparasitación "${d.tipo}" con fecha ${formatDate(d.fecha)}?`,
       button: "Eliminar",
       onPressButton: () => {
         setDewormings((prev) => prev.filter((_, i) => i !== index));
@@ -407,9 +384,15 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   setEditingVaccineIndex(null); // modo agregar
                   setSelectedVaccine(COMMON_VACCINES[0]);
                   setVaccineDate(new Date());
+                  setVaccineMfgDate(new Date());
+                  setVaccineExpDate(new Date());
+                  setVaccineSerial("");
+                  setVaccineBrand("");
                   setShowVaccineModal(true);
                   setIsVaccineDropdownOpen(false);
                   setShowVaccineDateModal(false);
+                  setShowVaccineMfgModal(false);
+                  setShowVaccineExpModal(false);
                 }}
               >
                 <Text style={styles.addPillText}>Add +</Text>
@@ -418,38 +401,29 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
             <View style={styles.tableContainer}>
               <View style={[styles.tableRow, styles.tableHeaderRow]}>
-                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>
-                  Vacuna
-                </Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>
-                  Fecha
-                </Text>
-                <Text
-                  style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}
-                >
-                  Opciones
-                </Text>
+                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Vacuna</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>Fecha</Text>
+                <Text style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}>Opciones</Text>
               </View>
 
               {vaccines.length === 0 ? (
                 <View style={styles.emptyRow}>
                   <Text style={styles.emptyText}>
-                    Aún no has agregado vacunas. Toca &quot;Add +&quot; para
-                    registrar una.
+                    Aún no has agregado vacunas. Toca &quot;Add +&quot; para registrar una.
                   </Text>
                 </View>
               ) : (
                 vaccines.map((v, index) => (
                   <View key={index} style={styles.tableRow}>
-                    <Text
-                      style={[styles.tableCell, { flex: 2 }]}
-                      numberOfLines={1}
-                    >
-                      {v.nombre}
-                    </Text>
-                    <Text style={[styles.tableCell, { flex: 1.2 }]}>
-                      {formatDate(v.fecha)}
-                    </Text>
+                    <View style={{ flex: 2 }}>
+                      <Text style={styles.tableCell} numberOfLines={1}>
+                        {v.nombre}
+                      </Text>
+                      {v.marca ? <Text style={{ fontSize: 11, color: "#6B7280" }}>{v.marca}{v.numeroSerie ? ` • ${v.numeroSerie}` : ""}</Text> : null}
+                    </View>
+
+                    <Text style={[styles.tableCell, { flex: 1.2 }]}>{formatDate(v.fecha)}</Text>
+
                     <View style={[styles.tableCell, styles.tableCellSmall]}>
                       <View style={styles.optionsCellRow}>
                         {/* EDITAR */}
@@ -457,30 +431,26 @@ const RegistroMascota2 = ({ navigation, route }) => {
                           style={styles.editButton}
                           onPress={() => {
                             setSelectedVaccine(v.nombre);
-                            setVaccineDate(new Date(v.fecha));
+                            setVaccineDate(v.fecha ? new Date(v.fecha) : new Date());
+                            // cargar datos extra para editar
+                            setVaccineSerial(v.numeroSerie || "");
+                            setVaccineBrand(v.marca || "");
+                            setVaccineMfgDate(v.fechaFabricacion ? new Date(v.fechaFabricacion) : new Date());
+                            setVaccineExpDate(v.fechaVencimiento ? new Date(v.fechaVencimiento) : new Date());
                             setEditingVaccineIndex(index);
                             setShowVaccineModal(true);
                             setIsVaccineDropdownOpen(false);
                             setShowVaccineDateModal(false);
+                            setShowVaccineMfgModal(false);
+                            setShowVaccineExpModal(false);
                           }}
                         >
-                          <Ionicons
-                            name="create-outline"
-                            size={16}
-                            color="#111827"
-                          />
+                          <Ionicons name="create-outline" size={16} color="#111827" />
                         </TouchableOpacity>
 
                         {/* ELIMINAR */}
-                        <TouchableOpacity
-                          style={[styles.editButton, styles.deleteButton]}
-                          onPress={() => handleDeleteVaccine(index)}
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={16}
-                            color="#B91C1C"
-                          />
+                        <TouchableOpacity style={[styles.editButton, styles.deleteButton]} onPress={() => handleDeleteVaccine(index)}>
+                          <Ionicons name="trash-outline" size={16} color="#B91C1C" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -501,9 +471,15 @@ const RegistroMascota2 = ({ navigation, route }) => {
                   setEditingDewormIndex(null); // modo agregar
                   setSelectedDewormType(DEWORM_TYPES[0]);
                   setDewormDate(new Date());
+                  setDewormMfgDate(new Date());
+                  setDewormExpDate(new Date());
+                  setDewormSerial("");
+                  setDewormBrand("");
                   setShowDewormModal(true);
                   setIsDewormDropdownOpen(false);
                   setShowDewormDateModal(false);
+                  setShowDewormMfgModal(false);
+                  setShowDewormExpModal(false);
                 }}
               >
                 <Text style={styles.addPillText}>Add +</Text>
@@ -512,69 +488,53 @@ const RegistroMascota2 = ({ navigation, route }) => {
 
             <View style={styles.tableContainer}>
               <View style={[styles.tableRow, styles.tableHeaderRow]}>
-                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>
-                  Desparasitación
-                </Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>
-                  Fecha
-                </Text>
-                <Text
-                  style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}
-                >
-                  Opciones
-                </Text>
+                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Desparasitación</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>Fecha</Text>
+                <Text style={[styles.tableHeaderCell, styles.tableHeaderCellSmall]}>Opciones</Text>
               </View>
 
               {dewormings.length === 0 ? (
                 <View style={styles.emptyRow}>
                   <Text style={styles.emptyText}>
-                    Aún no has agregado desparasitaciones. Toca &quot;Add
-                    +&quot; para registrar una.
+                    Aún no has agregado desparasitaciones. Toca &quot;Add +&quot; para registrar una.
                   </Text>
                 </View>
               ) : (
                 dewormings.map((d, index) => (
                   <View key={index} style={styles.tableRow}>
-                    <Text
-                      style={[styles.tableCell, { flex: 2 }]}
-                      numberOfLines={1}
-                    >
-                      {d.tipo}
-                    </Text>
-                    <Text style={[styles.tableCell, { flex: 1.2 }]}>
-                      {formatDate(d.fecha)}
-                    </Text>
+                    <View style={{ flex: 2 }}>
+                      <Text style={styles.tableCell} numberOfLines={1}>
+                        {d.tipo}
+                      </Text>
+                      {d.marca ? <Text style={{ fontSize: 11, color: "#6B7280" }}>{d.marca}{d.numeroSerie ? ` • ${d.numeroSerie}` : ""}</Text> : null}
+                    </View>
+
+                    <Text style={[styles.tableCell, { flex: 1.2 }]}>{formatDate(d.fecha)}</Text>
+
                     <View style={[styles.tableCell, styles.tableCellSmall]}>
                       <View style={styles.optionsCellRow}>
-                        {/* EDITAR */}
                         <TouchableOpacity
                           style={styles.editButton}
                           onPress={() => {
                             setSelectedDewormType(d.tipo);
-                            setDewormDate(new Date(d.fecha));
+                            setDewormDate(d.fecha ? new Date(d.fecha) : new Date());
+                            setDewormSerial(d.numeroSerie || "");
+                            setDewormBrand(d.marca || "");
+                            setDewormMfgDate(d.fechaFabricacion ? new Date(d.fechaFabricacion) : new Date());
+                            setDewormExpDate(d.fechaVencimiento ? new Date(d.fechaVencimiento) : new Date());
                             setEditingDewormIndex(index);
                             setShowDewormModal(true);
                             setIsDewormDropdownOpen(false);
                             setShowDewormDateModal(false);
+                            setShowDewormMfgModal(false);
+                            setShowDewormExpModal(false);
                           }}
                         >
-                          <Ionicons
-                            name="create-outline"
-                            size={16}
-                            color="#111827"
-                          />
+                          <Ionicons name="create-outline" size={16} color="#111827" />
                         </TouchableOpacity>
 
-                        {/* ELIMINAR */}
-                        <TouchableOpacity
-                          style={[styles.editButton, styles.deleteButton]}
-                          onPress={() => handleDeleteDeworming(index)}
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={16}
-                            color="#B91C1C"
-                          />
+                        <TouchableOpacity style={[styles.editButton, styles.deleteButton]} onPress={() => handleDeleteDeworming(index)}>
+                          <Ionicons name="trash-outline" size={16} color="#B91C1C" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -610,32 +570,14 @@ const RegistroMascota2 = ({ navigation, route }) => {
           <View style={styles.section}>
             <Text style={styles.label}>Frecuencia de paseo</Text>
             <View style={styles.rowWrap}>
-              {renderChip(
-                "Casi no se pasea",
-                "nulo",
-                walkFrequency,
-                setWalkFrequency
-              )}
-              {renderChip(
-                "Paseos regulares",
-                "regular",
-                walkFrequency,
-                setWalkFrequency
-              )}
-              {renderChip(
-                "Todos los días",
-                "diario",
-                walkFrequency,
-                setWalkFrequency
-              )}
+              {renderChip("Casi no se pasea", "nulo", walkFrequency, setWalkFrequency)}
+              {renderChip("Paseos regulares", "regular", walkFrequency, setWalkFrequency)}
+              {renderChip("Todos los días", "diario", walkFrequency, setWalkFrequency)}
             </View>
           </View>
 
           {/* BOTÓN FINAL */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleContinue}
-          >
+          <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
             <Text style={styles.primaryButtonText}>Continuar</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </TouchableOpacity>
@@ -650,80 +592,39 @@ const RegistroMascota2 = ({ navigation, route }) => {
         transparent
         animationType="fade"
         onRequestClose={() => {
-          setShowVaccineModal(false);
-          setIsVaccineDropdownOpen(false);
-          setShowVaccineDateModal(false);
-          setEditingVaccineIndex(null);
+          resetVaccineForm();
         }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingVaccineIndex !== null
-                ? "Editar vacuna"
-                : "Registrar vacuna"}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              Selecciona la vacuna aplicada y la fecha.
-            </Text>
+            <Text style={styles.modalTitle}>{editingVaccineIndex !== null ? "Editar vacuna" : "Registrar vacuna"}</Text>
+            <Text style={styles.modalSubtitle}>Ingresa los datos de la vacuna.</Text>
 
             {/* Tipo de vacuna */}
-            <Text style={[styles.label, { marginTop: 16 }]}>
-              Tipo de vacuna
-            </Text>
-
+            <Text style={[styles.label, { marginTop: 16 }]}>Tipo de vacuna</Text>
             <View style={styles.dropdownWrapper}>
-              <TouchableOpacity
-                style={styles.dropdown}
-                activeOpacity={0.8}
-                onPress={() => setIsVaccineDropdownOpen((prev) => !prev)}
-              >
-                <Text
-                  style={
-                    selectedVaccine
-                      ? styles.dropdownText
-                      : styles.dropdownPlaceholder
-                  }
-                  numberOfLines={1}
-                >
+              <TouchableOpacity style={styles.dropdown} onPress={() => setIsVaccineDropdownOpen((prev) => !prev)} activeOpacity={0.8}>
+                <Text style={selectedVaccine ? styles.dropdownText : styles.dropdownPlaceholder} numberOfLines={1}>
                   {selectedVaccine || "Selecciona una vacuna"}
                 </Text>
-
-                <Ionicons
-                  name={isVaccineDropdownOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color="#6B7280"
-                />
+                <Ionicons name={isVaccineDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#6B7280" />
               </TouchableOpacity>
 
               {isVaccineDropdownOpen && (
                 <View style={styles.dropdownList}>
-                  <ScrollView
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator={false}
-                  >
+                  <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                     {COMMON_VACCINES.map((vac) => {
                       const isSelected = vac === selectedVaccine;
                       return (
                         <TouchableOpacity
                           key={vac}
-                          style={[
-                            styles.dropdownItem,
-                            isSelected && styles.dropdownItemSelected,
-                          ]}
+                          style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]}
                           onPress={() => {
                             setSelectedVaccine(vac);
                             setIsVaccineDropdownOpen(false);
                           }}
                         >
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              isSelected && styles.dropdownItemTextSelected,
-                            ]}
-                          >
-                            {vac}
-                          </Text>
+                          <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>{vac}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -732,58 +633,57 @@ const RegistroMascota2 = ({ navigation, route }) => {
               )}
             </View>
 
-            {/* Fecha */}
-            <Text style={[styles.label, { marginTop: 16 }]}>Fecha</Text>
+            {/* Número de Serie */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Número de serie</Text>
+            <TextInput style={styles.input} placeholder="Ej: SN-12345" value={vaccineSerial} onChangeText={setVaccineSerial} />
 
+            {/* Marca */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Marca</Text>
+            <TextInput style={styles.input} placeholder="Ej: Pfizer / Nobivac" value={vaccineBrand} onChangeText={setVaccineBrand} />
+
+            {/* Fecha Aplicación */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha Aplicación</Text>
             <View style={styles.dateRow}>
-              <Text style={styles.dateText}>
-                {formatDate(vaccineDate.toISOString())}
-              </Text>
+              <Text style={styles.dateText}>{formatDate(vaccineDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowVaccineDateModal(true); setIsVaccineDropdownOpen(false); }}>
+                <Ionicons name="calendar" size={18} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
 
-              <TouchableOpacity
-                style={styles.dateIconButton}
-                onPress={() => {
-                  setShowVaccineDateModal(true);
-                  setIsVaccineDropdownOpen(false);
-                }}
-              >
+            {/* Fecha Fabricación */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha Fabricación</Text>
+            <View style={styles.dateRow}>
+              <Text style={styles.dateText}>{formatDate(vaccineMfgDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowVaccineMfgModal(true); setIsVaccineDropdownOpen(false); }}>
+                <Ionicons name="calendar" size={18} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Fecha Vencimiento */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha Vencimiento</Text>
+            <View style={styles.dateRow}>
+              <Text style={styles.dateText}>{formatDate(vaccineExpDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowVaccineExpModal(true); setIsVaccineDropdownOpen(false); }}>
                 <Ionicons name="calendar" size={18} color="#2563EB" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => {
-                  setShowVaccineModal(false);
-                  setIsVaccineDropdownOpen(false);
-                  setShowVaccineDateModal(false);
-                  setEditingVaccineIndex(null);
-                }}
-              >
+              <TouchableOpacity style={styles.secondaryBtn} onPress={resetVaccineForm}>
                 <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.primaryBtnSmall}
-                onPress={handleAddVaccine}
-              >
-                <Text style={styles.primaryBtnSmallText}>
-                  {editingVaccineIndex !== null ? "Guardar cambios" : "Guardar"}
-                </Text>
+              <TouchableOpacity style={styles.primaryBtnSmall} onPress={handleSaveVaccine}>
+                <Text style={styles.primaryBtnSmallText}>{editingVaccineIndex !== null ? "Guardar cambios" : "Guardar"}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Popup calendario vacunas */}
+          {/* Fecha Aplicación - popup */}
           {showVaccineDateModal && (
             <View style={styles.dateModalOverlay}>
               <View style={styles.dateModalCard}>
                 <Text style={styles.modalTitle}>Selecciona la fecha</Text>
-                <Text style={styles.modalSubtitle}>
-                  Elige la fecha en la que se aplicó la vacuna.
-                </Text>
-
+                <Text style={styles.modalSubtitle}>Elige la fecha en la que se aplicó la vacuna.</Text>
                 <View style={{ marginTop: 12, alignSelf: "stretch" }}>
                   <DateTimePicker
                     value={vaccineDate}
@@ -792,42 +692,111 @@ const RegistroMascota2 = ({ navigation, route }) => {
                     maximumDate={new Date()}
                     locale="es-ES"
                     onChange={(event, date) => {
-                      if (event.type === "dismissed") {
+                      // En Android y iOS nos aseguramos de cerrar el modal al seleccionar o descartar.
+                      if (event?.type === "dismissed") {
                         setShowVaccineDateModal(false);
                         return;
                       }
                       if (date) {
                         if (isFutureDate(date)) {
-                          Dialog.show({
-                            type: ALERT_TYPE.WARNING,
-                            title: "Fecha no válida",
-                            textBody:
-                              "La fecha de la vacuna no puede ser futura.",
-                            button: "Entendido",
-                          });
+                          Dialog.show({ type: ALERT_TYPE.WARNING, title: "Fecha no válida", textBody: "La fecha de la vacuna no puede ser futura.", button: "Entendido" });
                           return;
                         }
                         setVaccineDate(date);
                       }
+                      // Siempre cerramos el popup tras la interacción para evitar "doble aceptar"
+                      setShowVaccineDateModal(false);
                     }}
                     textColor={Platform.OS === "ios" ? "#111827" : undefined}
                     themeVariant={Platform.OS === "ios" ? "light" : undefined}
                     style={styles.datePicker}
                   />
                 </View>
-
                 <View style={styles.dateModalButtonsRow}>
-                  <TouchableOpacity
-                    style={styles.secondaryBtn}
-                    onPress={() => setShowVaccineDateModal(false)}
-                  >
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowVaccineDateModal(false)}>
                     <Text style={styles.secondaryBtnText}>Cancelar</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowVaccineDateModal(false)}>
+                    <Text style={styles.primaryBtnSmallText}>Listo</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
 
-                  <TouchableOpacity
-                    style={styles.primaryBtnSmall}
-                    onPress={() => setShowVaccineDateModal(false)}
-                  >
+          {/* Fecha Fabricación - popup */}
+          {showVaccineMfgModal && (
+            <View style={styles.dateModalOverlay}>
+              <View style={styles.dateModalCard}>
+                <Text style={styles.modalTitle}>Selecciona la fecha de fabricación</Text>
+                <Text style={styles.modalSubtitle}>Elige la fecha de fabricación de la vacuna.</Text>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
+                  <DateTimePicker
+                    value={vaccineMfgDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
+                    maximumDate={new Date()}
+                    locale="es-ES"
+                    onChange={(event, date) => {
+                      if (event?.type === "dismissed") {
+                        setShowVaccineMfgModal(false);
+                        return;
+                      }
+                      if (date) {
+                        setVaccineMfgDate(date);
+                      }
+                      setShowVaccineMfgModal(false);
+                    }}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
+                    style={styles.datePicker}
+                  />
+                </View>
+                <View style={styles.dateModalButtonsRow}>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowVaccineMfgModal(false)}>
+                    <Text style={styles.secondaryBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowVaccineMfgModal(false)}>
+                    <Text style={styles.primaryBtnSmallText}>Listo</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Fecha Vencimiento - popup */}
+          {showVaccineExpModal && (
+            <View style={styles.dateModalOverlay}>
+              <View style={styles.dateModalCard}>
+                <Text style={styles.modalTitle}>Selecciona la fecha de vencimiento</Text>
+                <Text style={styles.modalSubtitle}>Elige la fecha de vencimiento de la vacuna.</Text>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
+                  <DateTimePicker
+                    value={vaccineExpDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
+                    minimumDate={new Date(1900, 0, 1)}
+                    locale="es-ES"
+                    onChange={(event, date) => {
+                      if (event?.type === "dismissed") {
+                        setShowVaccineExpModal(false);
+                        return;
+                      }
+                      if (date) {
+                        setVaccineExpDate(date);
+                      }
+                      setShowVaccineExpModal(false);
+                    }}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
+                    style={styles.datePicker}
+                  />
+                </View>
+                <View style={styles.dateModalButtonsRow}>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowVaccineExpModal(false)}>
+                    <Text style={styles.secondaryBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowVaccineExpModal(false)}>
                     <Text style={styles.primaryBtnSmallText}>Listo</Text>
                   </TouchableOpacity>
                 </View>
@@ -843,80 +812,33 @@ const RegistroMascota2 = ({ navigation, route }) => {
         transparent
         animationType="fade"
         onRequestClose={() => {
-          setShowDewormModal(false);
-          setIsDewormDropdownOpen(false);
-          setShowDewormDateModal(false);
-          setEditingDewormIndex(null);
+          resetDewormForm();
         }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingDewormIndex !== null
-                ? "Editar desparasitación"
-                : "Registrar desparasitación"}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              Selecciona el tipo de desparasitación y la fecha.
-            </Text>
+            <Text style={styles.modalTitle}>{editingDewormIndex !== null ? "Editar desparasitación" : "Registrar desparasitación"}</Text>
+            <Text style={styles.modalSubtitle}>Ingresa los datos de la desparasitación.</Text>
 
             {/* Tipo de desparasitación */}
-            <Text style={[styles.label, { marginTop: 16 }]}>
-              Tipo de desparasitación
-            </Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>Tipo de desparasitación</Text>
 
             <View style={styles.dropdownWrapper}>
-              <TouchableOpacity
-                style={styles.dropdown}
-                activeOpacity={0.8}
-                onPress={() => setIsDewormDropdownOpen((prev) => !prev)}
-              >
-                <Text
-                  style={
-                    selectedDewormType
-                      ? styles.dropdownText
-                      : styles.dropdownPlaceholder
-                  }
-                  numberOfLines={1}
-                >
+              <TouchableOpacity style={styles.dropdown} activeOpacity={0.8} onPress={() => setIsDewormDropdownOpen((prev) => !prev)}>
+                <Text style={selectedDewormType ? styles.dropdownText : styles.dropdownPlaceholder} numberOfLines={1}>
                   {selectedDewormType || "Selecciona un tipo"}
                 </Text>
-
-                <Ionicons
-                  name={isDewormDropdownOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color="#6B7280"
-                />
+                <Ionicons name={isDewormDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#6B7280" />
               </TouchableOpacity>
 
               {isDewormDropdownOpen && (
                 <View style={styles.dropdownList}>
-                  <ScrollView
-                    nestedScrollEnabled
-                    showsVerticalScrollIndicator={false}
-                  >
+                  <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                     {DEWORM_TYPES.map((tipo) => {
                       const isSelected = tipo === selectedDewormType;
                       return (
-                        <TouchableOpacity
-                          key={tipo}
-                          style={[
-                            styles.dropdownItem,
-                            isSelected && styles.dropdownItemSelected,
-                          ]}
-                          onPress={() => {
-                            setSelectedDewormType(tipo);
-                            setIsDewormDropdownOpen(false);
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              isSelected && styles.dropdownItemTextSelected,
-                            ]}
-                          >
-                            {tipo}
-                          </Text>
+                        <TouchableOpacity key={tipo} style={[styles.dropdownItem, isSelected && styles.dropdownItemSelected]} onPress={() => { setSelectedDewormType(tipo); setIsDewormDropdownOpen(false); }}>
+                          <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>{tipo}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -925,45 +847,48 @@ const RegistroMascota2 = ({ navigation, route }) => {
               )}
             </View>
 
-            {/* Fecha */}
-            <Text style={[styles.label, { marginTop: 16 }]}>Fecha</Text>
+            {/* Número de Serie */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Número de serie</Text>
+            <TextInput style={styles.input} placeholder="Ej: SN-12345" value={dewormSerial} onChangeText={setDewormSerial} />
 
+            {/* Marca */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Marca</Text>
+            <TextInput style={styles.input} placeholder="Ej: Marca del antiparasitario" value={dewormBrand} onChangeText={setDewormBrand} />
+
+            {/* Fecha Aplicación */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha</Text>
             <View style={styles.dateRow}>
-              <Text style={styles.dateText}>
-                {formatDate(dewormDate.toISOString())}
-              </Text>
+              <Text style={styles.dateText}>{formatDate(dewormDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowDewormDateModal(true); setIsDewormDropdownOpen(false); }}>
+                <Ionicons name="calendar" size={18} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
 
-              <TouchableOpacity
-                style={styles.dateIconButton}
-                onPress={() => {
-                  setShowDewormDateModal(true);
-                  setIsDewormDropdownOpen(false);
-                }}
-              >
+            {/* Fecha Fabricación */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha Fabricación</Text>
+            <View style={styles.dateRow}>
+              <Text style={styles.dateText}>{formatDate(dewormMfgDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowDewormMfgModal(true); setIsDewormDropdownOpen(false); }}>
+                <Ionicons name="calendar" size={18} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Fecha Vencimiento */}
+            <Text style={[styles.label, { marginTop: 12 }]}>Fecha Vencimiento</Text>
+            <View style={styles.dateRow}>
+              <Text style={styles.dateText}>{formatDate(dewormExpDate.toISOString())}</Text>
+              <TouchableOpacity style={styles.dateIconButton} onPress={() => { setShowDewormExpModal(true); setIsDewormDropdownOpen(false); }}>
                 <Ionicons name="calendar" size={18} color="#2563EB" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => {
-                  setShowDewormModal(false);
-                  setIsDewormDropdownOpen(false);
-                  setShowDewormDateModal(false);
-                  setEditingDewormIndex(null);
-                }}
-              >
+              <TouchableOpacity style={styles.secondaryBtn} onPress={resetDewormForm}>
                 <Text style={styles.secondaryBtnText}>Cancelar</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.primaryBtnSmall}
-                onPress={handleSaveDeworming}
-              >
-                <Text style={styles.primaryBtnSmallText}>
-                  {editingDewormIndex !== null ? "Guardar cambios" : "Guardar"}
-                </Text>
+              <TouchableOpacity style={styles.primaryBtnSmall} onPress={handleSaveDeworming}>
+                <Text style={styles.primaryBtnSmallText}>{editingDewormIndex !== null ? "Guardar cambios" : "Guardar"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -973,9 +898,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
             <View style={styles.dateModalOverlay}>
               <View style={styles.dateModalCard}>
                 <Text style={styles.modalTitle}>Selecciona la fecha</Text>
-                <Text style={styles.modalSubtitle}>
-                  Elige la fecha en la que se realizó la desparasitación.
-                </Text>
+                <Text style={styles.modalSubtitle}>Elige la fecha en la que se realizó la desparasitación.</Text>
 
                 <View style={{ marginTop: 12, alignSelf: "stretch" }}>
                   <DateTimePicker
@@ -985,7 +908,7 @@ const RegistroMascota2 = ({ navigation, route }) => {
                     maximumDate={new Date()}
                     locale="es-ES"
                     onChange={(event, date) => {
-                      if (event.type === "dismissed") {
+                      if (event?.type === "dismissed") {
                         setShowDewormDateModal(false);
                         return;
                       }
@@ -994,14 +917,14 @@ const RegistroMascota2 = ({ navigation, route }) => {
                           Dialog.show({
                             type: ALERT_TYPE.WARNING,
                             title: "Fecha no válida",
-                            textBody:
-                              "La fecha de desparasitación no puede ser futura.",
+                            textBody: "La fecha de desparasitación no puede ser futura.",
                             button: "Entendido",
                           });
                           return;
                         }
                         setDewormDate(date);
                       }
+                      setShowDewormDateModal(false);
                     }}
                     textColor={Platform.OS === "ios" ? "#111827" : undefined}
                     themeVariant={Platform.OS === "ios" ? "light" : undefined}
@@ -1010,17 +933,93 @@ const RegistroMascota2 = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.dateModalButtonsRow}>
-                  <TouchableOpacity
-                    style={styles.secondaryBtn}
-                    onPress={() => setShowDewormDateModal(false)}
-                  >
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowDewormDateModal(false)}>
                     <Text style={styles.secondaryBtnText}>Cancelar</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.primaryBtnSmall}
-                    onPress={() => setShowDewormDateModal(false)}
-                  >
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowDewormDateModal(false)}>
+                    <Text style={styles.primaryBtnSmallText}>Listo</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Fecha Fabricación - popup */}
+          {showDewormMfgModal && (
+            <View style={styles.dateModalOverlay}>
+              <View style={styles.dateModalCard}>
+                <Text style={styles.modalTitle}>Selecciona la fecha de fabricación</Text>
+                <Text style={styles.modalSubtitle}>Elige la fecha de fabricación.</Text>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
+                  <DateTimePicker
+                    value={dewormMfgDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
+                    maximumDate={new Date()}
+                    locale="es-ES"
+                    onChange={(event, date) => {
+                      if (event?.type === "dismissed") {
+                        setShowDewormMfgModal(false);
+                        return;
+                      }
+                      if (date) {
+                        setDewormMfgDate(date);
+                      }
+                      setShowDewormMfgModal(false);
+                    }}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
+                    style={styles.datePicker}
+                  />
+                </View>
+                <View style={styles.dateModalButtonsRow}>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowDewormMfgModal(false)}>
+                    <Text style={styles.secondaryBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowDewormMfgModal(false)}>
+                    <Text style={styles.primaryBtnSmallText}>Listo</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Fecha Vencimiento - popup */}
+          {showDewormExpModal && (
+            <View style={styles.dateModalOverlay}>
+              <View style={styles.dateModalCard}>
+                <Text style={styles.modalTitle}>Selecciona la fecha de vencimiento</Text>
+                <Text style={styles.modalSubtitle}>Elige la fecha de vencimiento.</Text>
+                <View style={{ marginTop: 12, alignSelf: "stretch" }}>
+                  <DateTimePicker
+                    value={dewormExpDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "calendar"}
+                    minimumDate={new Date(1900, 0, 1)}
+                    locale="es-ES"
+                    onChange={(event, date) => {
+                      if (event?.type === "dismissed") {
+                        setShowDewormExpModal(false);
+                        return;
+                      }
+                      if (date) {
+                        setDewormExpDate(date);
+                      }
+                      setShowDewormExpModal(false);
+                    }}
+                    textColor={Platform.OS === "ios" ? "#111827" : undefined}
+                    themeVariant={Platform.OS === "ios" ? "light" : undefined}
+                    style={styles.datePicker}
+                  />
+                </View>
+                <View style={styles.dateModalButtonsRow}>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowDewormExpModal(false)}>
+                    <Text style={styles.secondaryBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.primaryBtnSmall} onPress={() => setShowDewormExpModal(false)}>
                     <Text style={styles.primaryBtnSmallText}>Listo</Text>
                   </TouchableOpacity>
                 </View>

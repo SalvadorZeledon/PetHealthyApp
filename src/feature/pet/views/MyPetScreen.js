@@ -1,3 +1,4 @@
+// src/feature/pet/views/MyPetScreen.js
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -6,12 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Image,
   Platform,
 } from "react-native";
+import { Image } from "expo-image"; 
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 
 import { db } from "../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
@@ -20,6 +22,9 @@ import { getUserFromStorage } from "../../../shared/utils/storage";
 const MyPetScreen = ({ navigation }) => {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // 1. ESTADO PARA EL MODO DE ELIMINACIÓN
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
 
   const handleOpenSettings = () => {
     navigation.navigate("Settings");
@@ -27,6 +32,45 @@ const MyPetScreen = ({ navigation }) => {
 
   const handleAddPet = () => {
     navigation.navigate("RegistroMascota");
+  };
+
+  // LÓGICA PARA ALTERNAR EL MODO ELIMINAR
+  const toggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+  };
+
+  // --- LÓGICA PARA BORRAR MASCOTA ---
+  const handleDeletePet = (pet) => {
+    Dialog.show({
+      type: ALERT_TYPE.WARNING,
+      title: "Eliminar mascota",
+      textBody: `¿Estás seguro de que quieres eliminar a ${pet.nombre}?`,
+      button: "Eliminar",
+      onPressButton: async () => {
+        try {
+          Dialog.hide();
+          await deleteDoc(doc(db, COL_MASCOTAS, pet.id));
+          
+          Dialog.show({
+            type: ALERT_TYPE.SUCCESS,
+            title: "Eliminado",
+            textBody: `${pet.nombre} ha sido eliminado.`,
+            button: "Ok",
+          });
+          
+          // Opcional: Salir del modo eliminar tras borrar uno
+          // setIsDeleteMode(false); 
+        } catch (error) {
+          console.error("Error al eliminar:", error);
+          Dialog.show({
+            type: ALERT_TYPE.DANGER,
+            title: "Error",
+            textBody: "No se pudo eliminar la mascota.",
+            button: "Cerrar",
+          });
+        }
+      }
+    });
   };
 
   useFocusEffect(
@@ -73,8 +117,10 @@ const MyPetScreen = ({ navigation }) => {
 
       fetchPets();
 
+      // Si salimos de la pantalla, reseteamos el modo eliminar
       return () => {
         if (unsubscribe) unsubscribe();
+        setIsDeleteMode(false);
       };
     }, [])
   );
@@ -116,7 +162,10 @@ const MyPetScreen = ({ navigation }) => {
     return (
       <View style={styles.petsSection}>
         <View style={styles.petsCardHeaderRow}>
-          <Text style={styles.petsCardTitle}>Tus mascotas</Text>
+          <Text style={styles.petsCardTitle}>
+             {/* Cambia el título si estamos borrando para avisar al usuario */}
+             {isDeleteMode ? "Selecciona para eliminar" : "Tus mascotas"}
+          </Text>
           <Text style={styles.petsCountText}>
             {pets.length === 1 ? "1 registrada" : `${pets.length} registradas`}
           </Text>
@@ -125,24 +174,46 @@ const MyPetScreen = ({ navigation }) => {
         <View style={styles.gridContainer}>
           {pets.map((pet) => (
             <View key={pet.id} style={styles.petItem}>
+              
               <TouchableOpacity
                 activeOpacity={0.9}
-                style={styles.petCard}
-                onPress={() =>
-                  navigation.navigate("PetProfile", { petId: pet.id })
-                }
+                // 3. CAMBIO VISUAL: Borde rojo si está en modo eliminar
+                style={[
+                    styles.petCard, 
+                    isDeleteMode && styles.petCardDeleteMode
+                ]}
+                onPress={() => {
+                  // 4. LÓGICA CONDICIONAL AL TOCAR
+                  if (isDeleteMode) {
+                    handleDeletePet(pet);
+                  } else {
+                    navigation.navigate("PetProfile", { petId: pet.id });
+                  }
+                }}
               >
                 {pet.fotoUrl ? (
                   <Image
-                    source={{ uri: pet.fotoUrl }}
+                    source={pet.fotoUrl}
                     style={styles.petImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={500}
+                    cachePolicy="memory-disk" 
                   />
                 ) : (
                   <View style={styles.petImagePlaceholder}>
                     <Ionicons name="paw-outline" size={30} color="#4B5563" />
                   </View>
                 )}
+
+                {/* VISUAL: Overlay rojo o icono grande cuando está en modo eliminar */}
+                {isDeleteMode && (
+                    <View style={styles.deleteOverlay}>
+                        <Ionicons name="trash" size={32} color="#FFFFFF" />
+                    </View>
+                )}
+                
+                {/* NOTA: Eliminamos el botón pequeño flotante anterior */}
+
               </TouchableOpacity>
 
               <Text style={styles.petName} numberOfLines={1}>
@@ -167,7 +238,7 @@ const MyPetScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.headerRight}>
-          {/* Botón agregar mascota (izquierda de la tuerquita) */}
+          {/* BOTÓN AGREGAR */}
           <TouchableOpacity
             style={[styles.iconCircle, styles.iconCirclePrimary]}
             onPress={handleAddPet}
@@ -175,7 +246,24 @@ const MyPetScreen = ({ navigation }) => {
             <Ionicons name="add" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Botón configuración */}
+          {/* 2. NUEVO BOTÓN ELIMINAR (Después del mas) */}
+          <TouchableOpacity
+            style={[
+              styles.iconCircle,
+              // Si está activo es Rojo, si no, blanco normal
+              isDeleteMode ? styles.iconCircleDanger : styles.iconCircleSecondary,
+              { marginLeft: 8 },
+            ]}
+            onPress={toggleDeleteMode}
+          >
+            <Ionicons 
+                name={isDeleteMode ? "close" : "trash-outline"} 
+                size={20} 
+                color={isDeleteMode ? "#FFFFFF" : "#365b6d"} 
+            />
+          </TouchableOpacity>
+
+          {/* BOTÓN SETTINGS */}
           <TouchableOpacity
             style={[
               styles.iconCircle,
@@ -202,21 +290,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: 0, // 👈 quitamos el paddingTop de aquí
+    paddingTop: 0,
   },
   header: {
     paddingTop: Platform.OS === "ios" ? 63 : 43,
     paddingHorizontal: 20,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     backgroundColor: "#4A85A5",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -255,12 +340,14 @@ const styles = StyleSheet.create({
   iconCircleSecondary: {
     backgroundColor: "#FFFFFF",
   },
-
+  // ESTILO BOTÓN ROJO (Activo)
+  iconCircleDanger: {
+    backgroundColor: "#EF4444", // Rojo
+  },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-
   loadingContainer: {
     marginTop: 32,
     alignItems: "center",
@@ -270,7 +357,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
   },
-
   emptyWrapper: {
     marginTop: 12,
   },
@@ -298,8 +384,6 @@ const styles = StyleSheet.create({
     color: "#607D8B",
     textAlign: "center",
   },
-
-  // contenedor sin card
   petsSection: {
     marginTop: 8,
   },
@@ -320,7 +404,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#607D8B",
   },
-
   gridContainer: {
     marginTop: 4,
     flexDirection: "row",
@@ -343,6 +426,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: 'transparent', // Por defecto sin borde visible
+  },
+  // ESTILO CUANDO ESTÁ EN MODO ELIMINAR
+  petCardDeleteMode: {
+    borderColor: '#EF4444', // Borde rojo
+  },
+  deleteOverlay: {
+    ...StyleSheet.absoluteFillObject, // Cubre toda la tarjeta
+    backgroundColor: 'rgba(239, 68, 68, 0.4)', // Fondo rojo semitransparente
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
   },
   petImage: {
     width: "100%",
@@ -361,7 +458,6 @@ const styles = StyleSheet.create({
     color: "#111827",
     textAlign: "center",
   },
-
   primaryButton: {
     marginTop: 14,
     flexDirection: "row",
