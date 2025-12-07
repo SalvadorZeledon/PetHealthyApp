@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
 import * as ImagePicker from "expo-image-picker";
 import * as MailComposer from "expo-mail-composer";
+import { loginVeterinario } from "../services/vetAuthService";
 
 const logo = require("../../../../assets/logoPH.png");
 const SUPPORT_EMAIL = "soporte@pethealthy.com";
@@ -100,26 +101,43 @@ const VetLoginScreen = ({ navigation }) => {
 
     return valid;
   };
-
   const handleLogin = async () => {
     if (!validateFormLogin()) return;
 
     setLoading(true);
 
     try {
+      const vet = await loginVeterinario(licenseNumber, password);
+
       Dialog.show({
-        type: ALERT_TYPE.INFO,
-        title: "Ingreso profesional",
-        textBody:
-          "El inicio de sesión para veterinarios se habilitará cuando tu cuenta profesional esté creada en nuestro sistema.",
-        button: "Entendido",
+        type: ALERT_TYPE.SUCCESS,
+        title: "Acceso profesional",
+        textBody: `Hola ${
+          vet.fullName || ""
+        }, tu cuenta profesional ha sido validada correctamente.`,
+        button: "Continuar",
+        onHide: () => {
+          // 👇 IMPORTANTE: ir al TabNavigator de veterinario
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "VetTabs" }], // asegúrate que este sea el nombre del Stack.Screen que muestra TabVetNavigator
+          });
+        },
       });
     } catch (error) {
+      console.log("Error login veterinario:", error);
+
+      let mensaje = "Número de junta o contraseña incorrectos.";
+
+      if (error?.message === "CUENTA_INACTIVA") {
+        mensaje =
+          "Tu cuenta profesional está inactiva. Por favor contacta al equipo de PetHealthy.";
+      }
+
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: "Error inesperado",
-        textBody:
-          "Ocurrió un problema al intentar iniciar sesión. Inténtalo más tarde.",
+        title: "No pudimos iniciar sesión",
+        textBody: mensaje,
         button: "Cerrar",
       });
     } finally {
@@ -580,9 +598,7 @@ ${fullName}
                 {showForm && (
                   <>
                     {/* DATOS PERSONALES */}
-                    <Text
-                      style={[styles.modalSectionTitle, { marginTop: 12 }]}
-                    >
+                    <Text style={[styles.modalSectionTitle, { marginTop: 12 }]}>
                       Datos personales
                     </Text>
 

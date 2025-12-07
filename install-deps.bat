@@ -6,7 +6,9 @@ npx expo install \
   expo-constants \
   expo-font \
   expo-clipboard \
+  expo-brightness \
   expo-haptics \
+  expo-camera \
   expo-image \
   expo-image-picker \
   expo-linking \
@@ -17,6 +19,7 @@ npx expo install \
   expo-symbols \
   expo-system-ui \
   expo-web-browser \
+  expo-mail-composer \
   @expo-google-fonts/poppins \
   @expo/vector-icons \
   @react-native-async-storage/async-storage \
@@ -38,6 +41,9 @@ npm install \
   cloudinary \
   react-native-alert-notification \
   react-native-keyboard-aware-scroll-view
+  react-native-qrcode-svg \
+  react-native-web \
+  react-native-worklets
 
 echo "Instalando EAS CLI de forma global (opcional, solo si vas a usar EAS Build)..."
 npm install -g eas-cli

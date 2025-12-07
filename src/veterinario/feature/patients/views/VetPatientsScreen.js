@@ -1,4 +1,3 @@
-// veterinario/feature/patients/views/VetPatientsScreen.js
 import React, { useState } from "react";
 import {
   View,
@@ -41,7 +40,7 @@ const VetPatientsScreen = ({ navigation }) => {
             style={[styles.iconCircle, styles.iconCircleSecondary]}
             onPress={handleOpenSettings}
           >
-            <Ionicons name="settings-outline" size={20} color="#365b6d" />
+            <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
           </TouchableOpacity>
         </View>
       </View>
@@ -70,10 +69,10 @@ const VetPatientsScreen = ({ navigation }) => {
           })}
         </View>
 
-        {/* ESTADO VACÍO (hasta que implementemos la lista real) */}
+        {/* ESTADO VACÍO */}
         <View style={styles.emptyWrapper}>
           <View style={styles.placeholderCard}>
-            <Ionicons name="paw-outline" size={40} color="#4CAF50" />
+            <Ionicons name="paw-outline" size={40} color="#7B1FA2" />
             <Text style={styles.placeholderTitle}>
               Aún no tienes pacientes vinculados
             </Text>
@@ -87,13 +86,6 @@ const VetPatientsScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
-
-        {/* 
-          🔜 FUTURO:
-          Aquí, debajo del placeholder, pondremos el grid/lista de pacientes
-          con foto, nombre, especie, etc., similar a MyPetScreen pero
-          filtrando por el veterinario.
-        */}
       </ScrollView>
     </View>
   );
@@ -104,7 +96,7 @@ export default VetPatientsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     paddingTop: 0,
   },
   header: {
@@ -116,7 +108,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
 
-    backgroundColor: "#4A85A5",
+    backgroundColor: "#7B1FA2",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
 
@@ -129,12 +121,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#ffffffff",
+    color: "#FFFFFF",
   },
   headerSubtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#ffffffff",
+    color: "#EDE7F6",
   },
   headerRight: {
     flexDirection: "row",
@@ -173,18 +165,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#CFD8DC",
+    borderColor: "#D1C4E9",
     backgroundColor: "#FFFFFF",
     marginRight: 8,
     marginBottom: 8,
   },
   filterChipActive: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   filterChipText: {
     fontSize: 12,
-    color: "#455A64",
+    color: "#5E35B1",
     fontWeight: "500",
   },
   filterChipTextActive: {
@@ -211,19 +203,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontWeight: "600",
-    color: "#263238",
+    color: "#311B92",
     textAlign: "center",
   },
   placeholderText: {
     marginTop: 6,
     fontSize: 13,
-    color: "#607D8B",
+    color: "#5E35B1",
     textAlign: "center",
   },
   placeholderHint: {
     marginTop: 10,
     fontSize: 12,
-    color: "#90A4AE",
+    color: "#9575CD",
     textAlign: "center",
   },
 });

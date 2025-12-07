@@ -16,16 +16,10 @@ const SettingsScreen = ({ navigation }) => {
     navigation.goBack();
   };
 
-  const handleOpenProfile = () => {
-    navigation.navigate("UserInfo");
-  };
-
-  // --- FUNCIONALIDAD DE IVÁN ---
   const handleOpenAboutUs = () => {
     navigation.navigate("AboutUs");
   };
 
-  // --- TUS FUNCIONALIDADES ---
   const handleOpenDirectory = () => {
     navigation.navigate("Directorio");
   };
@@ -68,40 +62,9 @@ const SettingsScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.content}>
-        {/* SECCIÓN CUENTA */}
-        <Text style={styles.sectionTitle}>Cuenta</Text>
-
-        <TouchableOpacity style={styles.optionCard} onPress={handleOpenProfile}>
-          <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Perfil</Text>
-            <Text style={styles.optionSubtitle}>
-              Ver y editar tu información personal.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
-        </TouchableOpacity>
-
-        {/* BOTÓN DE IVÁN: ACERCA DE NOSOTROS */}
-        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
-          <Ionicons
-            name="information-circle-outline"
-            size={24}
-            color="#365b6d"
-          />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Acerca de nosotros</Text>
-            <Text style={styles.optionSubtitle}>
-              Conoce más sobre PetHealthy.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
-        </TouchableOpacity>
-
-        {/* SECCIÓN SERVICIOS EXTERNOS */}
+        {/* 1) SERVICIOS EXTERNOS */}
         <Text style={styles.sectionTitle}>Servicios externos</Text>
 
-        {/* SOLO DIRECTORIO */}
         <TouchableOpacity
           style={styles.optionCard}
           onPress={handleOpenDirectory}
@@ -116,7 +79,25 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
-        {/* SECCIÓN SESIÓN */}
+        {/* 2) ACERCA DE NOSOTROS (antes decía "Cuenta") */}
+        <Text style={styles.sectionTitle}>Acerca de nosotros</Text>
+
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color="#365b6d"
+          />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Acerca de PetHealthy</Text>
+            <Text style={styles.optionSubtitle}>
+              Conoce más sobre la aplicación.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+        {/* 3) SESIÓN */}
         <Text style={styles.sectionTitle}>Sesión</Text>
 
         <TouchableOpacity
@@ -150,15 +131,12 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     backgroundColor: "#4A85A5",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
