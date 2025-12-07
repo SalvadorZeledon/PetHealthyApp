@@ -596,9 +596,7 @@ ${fullName}
                 {showForm && (
                   <>
                     {/* DATOS PERSONALES */}
-                    <Text
-                      style={[styles.modalSectionTitle, { marginTop: 12 }]}
-                    >
+                    <Text style={[styles.modalSectionTitle, { marginTop: 12 }]}>
                       Datos personales
                     </Text>
 
