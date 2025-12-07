@@ -1,5 +1,5 @@
 // src/feature/auth/views/Loginscreen.js
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { saveUserToStorage } from "../../../shared/utils/storage";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import { useTheme } from "../../../themes/useTheme";
 import {
   signInWithEmailAndPassword,
   sendEmailVerification,
@@ -448,7 +449,7 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleVetLoginInfo}
+                onPress={handleVetLoginPress}
                 style={{ marginTop: 8 }}
               >
                 <Text style={[styles.vetLinkText, { color: colors.subtitle }]}>
