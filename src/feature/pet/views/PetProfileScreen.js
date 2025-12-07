@@ -1,4 +1,4 @@
-// screens/PetProfileScreen.js
+// src/feature/pet/views/PetProfileScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -9,14 +9,16 @@ import {
   Image,
   TouchableOpacity,
   Platform,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
+import QRCode from "react-native-qrcode-svg";
+import * as Brightness from "expo-brightness";
 
 import { db } from "../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
-
 
 const contextoLabels = {
   adentro: "Dentro de casa",
@@ -38,72 +40,93 @@ const relacionLabels = {
 };
 
 const PetProfileScreen = ({ navigation, route }) => {
-  const { petId } = route.params || {};
+  const { petId, viewMode } = route.params || {};
+  const isVet = viewMode === "veterinarian";
 
   const [pet, setPet] = useState(null);
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // --- ESTADOS PARA EL QR ---
+  const [qrVisible, setQrVisible] = useState(false);
+  const [previousBrightness, setPreviousBrightness] = useState(null);
+
   useEffect(() => {
-    if (!petId) {
-      Dialog.show({
-        type: ALERT_TYPE.DANGER,
-        title: "Error",
-        textBody: "No se pudo identificar la mascota.",
-        button: "Volver",
-        onPressButton: () => {
-          Dialog.hide();
-          navigation.goBack();
-        },
-      });
-      return;
-    }
+    if (!petId) return;
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    setLoading(true);
 
-        // Perfil de la mascota
-        const petRef = doc(db, COL_MASCOTAS, petId);
-        const petSnap = await getDoc(petRef);
-
-        if (!petSnap.exists()) {
-          throw new Error("La mascota no existe o fue eliminada.");
+    // 1️⃣ SUSCRIPCIÓN EN TIEMPO REAL AL PERFIL
+    const petRef = doc(db, COL_MASCOTAS, petId);
+    const unsubscribePet = onSnapshot(
+      petRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setPet({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          Dialog.show({
+            type: ALERT_TYPE.WARNING,
+            title: "Aviso",
+            textBody: "Esta mascota ha sido eliminada.",
+            button: "Salir",
+            onPressButton: () => navigation.goBack(),
+          });
         }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error perfil real-time:", error);
+        setLoading(false);
+      }
+    );
 
-        const petData = { id: petSnap.id, ...petSnap.data() };
-        setPet(petData);
-
-        // Historial inicial
-        const historyRef = doc(db, COL_MASCOTAS, petId, "historial", "inicial");
-        const historySnap = await getDoc(historyRef);
-
-        if (historySnap.exists()) {
-          setHistory({ id: historySnap.id, ...historySnap.data() });
+    // 2️⃣ SUSCRIPCIÓN EN TIEMPO REAL AL HISTORIAL
+    const historyRef = doc(db, COL_MASCOTAS, petId, "historial", "inicial");
+    const unsubscribeHistory = onSnapshot(
+      historyRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setHistory({ id: docSnap.id, ...docSnap.data() });
         } else {
           setHistory(null);
         }
-      } catch (error) {
-        console.error("Error cargando perfil de mascota:", error);
-        Dialog.show({
-          type: ALERT_TYPE.DANGER,
-          title: "Error",
-          textBody:
-            error.message ||
-            "Ocurrió un problema al cargar la información de la mascota.",
-          button: "Volver",
-          onPressButton: () => {
-            Dialog.hide();
-            navigation.goBack();
-          },
-        });
-      } finally {
-        setLoading(false);
+      },
+      (error) => {
+        console.error("Error historial real-time:", error);
       }
-    };
+    );
 
-    fetchData();
+    return () => {
+      unsubscribePet();
+      unsubscribeHistory();
+    };
   }, [petId, navigation]);
+
+  // --- LÓGICA DEL BRILLO Y QR ---
+  const handleOpenQR = async () => {
+    try {
+      const { status } = await Brightness.requestPermissionsAsync();
+      if (status === "granted") {
+        const current = await Brightness.getBrightnessAsync();
+        setPreviousBrightness(current);
+        await Brightness.setBrightnessAsync(1.0);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    setQrVisible(true);
+  };
+
+  const handleCloseQR = async () => {
+    try {
+      if (previousBrightness !== null) {
+        await Brightness.setBrightnessAsync(previousBrightness);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    setQrVisible(false);
+  };
 
   const formatAge = () => {
     if (!pet) return "";
@@ -123,7 +146,7 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   const formatDate = (iso) => {
     if (!iso) return "";
-    const d = new Date(iso);
+    const d = iso.toDate ? iso.toDate() : new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -131,35 +154,65 @@ const PetProfileScreen = ({ navigation, route }) => {
     return `${day}/${month}/${year}`;
   };
 
-  if (loading || !pet) {
+  if (loading && !pet) {
     return (
       <View style={styles.loadingScreen}>
         <ActivityIndicator size="large" color="#365b6d" />
-        <Text style={styles.loadingText}>
-          Cargando información de la mascota...
-        </Text>
+        <Text style={styles.loadingText}>Cargando información...</Text>
       </View>
     );
   }
 
+  if (!pet) return null;
+
+  const qrData = JSON.stringify({ type: "pet_profile", petId: pet.id });
+
   return (
     <View style={styles.container}>
+      {/* MODAL QR */}
+      <Modal
+        visible={qrVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseQR}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Código Médico de {pet.nombre}</Text>
+            <Text style={styles.modalSubtitle}>
+              Muestra este código al veterinario para que acceda al historial.
+            </Text>
+            <View style={styles.qrWrapper}>
+              <QRCode value={qrData} size={220} />
+            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleCloseQR}
+            >
+              <Text style={styles.closeButtonText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={20} color="#365b6d" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-
         <Text style={styles.headerTitle} numberOfLines={1}>
           {pet.nombre || "Mascota"}
         </Text>
 
-        <View style={styles.headerRight}>
-          {/* aquí luego puedes agregar botón editar */}
-        </View>
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() => navigation.navigate("EditPet", { petId: pet.id })}
+        >
+          <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -179,11 +232,34 @@ const PetProfileScreen = ({ navigation, route }) => {
             )}
           </View>
 
-          <Text style={styles.petName}>{pet.nombre}</Text>
-          <Text style={styles.petSubInfo}>
-            {pet.especie ? pet.especie.toUpperCase() : "ESPECIE"} ·{" "}
-            {formatAge()}
-          </Text>
+          {/* ✨ MEJORA ESTÉTICA: Alineación y estilo del botón */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 12,
+            }}
+          >
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={styles.petName}>{pet.nombre}</Text>
+              <Text style={styles.petSubInfo}>
+                {pet.especie ? pet.especie.toUpperCase() : "ESPECIE"} ·{" "}
+                {formatAge()}
+              </Text>
+            </View>
+
+            {!isVet && (
+              <TouchableOpacity
+                style={styles.miniQrButton}
+                onPress={handleOpenQR}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="qr-code-outline" size={18} color="#4A85A5" />
+                <Text style={styles.miniQrText}>Generar QR</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
@@ -222,10 +298,9 @@ const PetProfileScreen = ({ navigation, route }) => {
         {/* SECCIÓN HISTORIAL MÉDICO */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Historial médico</Text>
-
           {!history ? (
             <Text style={styles.emptyText}>
-              Aún no hay historial médico inicial registrado para esta mascota.
+              Aún no hay historial médico inicial.
             </Text>
           ) : (
             <>
@@ -242,7 +317,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                 ))
               ) : (
                 <Text style={styles.emptySubText}>
-                  No se registraron vacunas en el historial inicial.
+                  No se registraron vacunas.
                 </Text>
               )}
 
@@ -260,7 +335,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                 ))
               ) : (
                 <Text style={styles.emptySubText}>
-                  No se registraron desparasitaciones en el historial inicial.
+                  No se registraron desparasitaciones.
                 </Text>
               )}
 
@@ -291,7 +366,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                 </Text>
               ) : (
                 <Text style={styles.emptySubText}>
-                  No se registraron condiciones médicas o alergias específicas.
+                  No se registraron condiciones médicas.
                 </Text>
               )}
 
@@ -328,26 +403,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                   {history.descripcionAgresividad}
                 </Text>
               ) : null}
-
-              {/* Viajes */}
-              <Text style={styles.sectionSubtitle}>Viajes</Text>
-              <Text style={styles.paragraph}>
-                Viaja regularmente: {formatBool(history.viajaRegularmente)}
-              </Text>
-              {history.viajaRegularmente && history.descripcionViajes ? (
-                <Text style={styles.paragraph}>
-                  {history.descripcionViajes}
-                </Text>
-              ) : null}
-
-              {/* Compromiso */}
-              <Text style={styles.sectionSubtitle}>
-                Compromiso de veracidad
-              </Text>
-              <Text style={styles.paragraph}>
-                El propietario confirmó que la información proporcionada es
-                verdadera y completa: {formatBool(history.compromisoVeracidad)}
-              </Text>
             </>
           )}
         </View>
@@ -362,8 +417,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    // 👇 igual que en otras pantallas, separa del status bar
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
   },
   loadingScreen: {
     flex: 1,
@@ -377,35 +431,41 @@ const styles = StyleSheet.create({
     color: "#607D8B",
   },
   header: {
-    paddingTop: 18,
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
   },
   headerTitle: {
     flex: 1,
-    marginLeft: 12,
+    marginHorizontal: 12,
     fontSize: 18,
     fontWeight: "700",
-    color: "#263238",
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
+    color: "#FFFFFF",
+    textAlign: "center",
   },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
+    paddingTop: 16,
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -531,5 +591,78 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     color: "#374151",
+  },
+
+  /* ✨ MEJORA ESTÉTICA: Nuevo estilo para el botón QR */
+  miniQrButton: {
+    flexDirection: "row", // Horizontal
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#4A85A5",
+    // Sombra suave para que flote
+    shadowColor: "#4A85A5",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  miniQrText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4A85A5",
+    marginLeft: 6, // Separación entre icono y texto
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#333",
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  qrWrapper: {
+    padding: 10,
+    backgroundColor: "white",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  closeButton: {
+    marginTop: 24,
+    backgroundColor: "#4A85A5",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 50,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

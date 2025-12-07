@@ -369,15 +369,16 @@ const RegistroMascota2 = ({ navigation, route }) => {
      ====================================================== */
   return (
     <View style={styles.screen}>
-      {/* HEADER */}
-      <View style={styles.headerRow}>
+      {/* HEADER NUEVO */}
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.iconCircle}
+          style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={18} color="#37474F" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.stepText}>Paso 2 de 3</Text>
+        <Text style={styles.headerTitle}>Paso 2 de 3</Text>
+        <View style={styles.headerIconButton} />
       </View>
 
       {/* CONTENIDO PRINCIPAL */}
@@ -1042,28 +1043,39 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#DBF4E8",
-    paddingTop: Platform.OS === "ios" ? 40 : 24, // 👈 espacio seguro arriba
+    paddingTop: 0,
   },
-  headerRow: {
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 8,
+    paddingBottom: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E4E9F2",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
-  stepText: {
-    marginLeft: 12,
-    fontSize: 12,
-    color: "#7B8794",
-    fontWeight: "500",
+  headerTitle: {
+    flex: 1,
+    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
 
   /* ================================
@@ -1256,47 +1268,7 @@ const styles = StyleSheet.create({
   },
 
   /* ================================
-     DESPARASITACIÓN - LISTA
-     ================================ */
-  tableRowSmall: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  vaccineInfo: {
-    color: "#6B7280",
-    fontSize: 12,
-  },
-  addButtonInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  addButtonText: {
-    marginLeft: 4,
-    color: "#2563EB",
-    fontWeight: "600",
-  },
-
-  /* ================================
-     BOTÓN DE FECHA (SI SE USA)
-     ================================ */
-  dateButton: {
-    marginTop: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateButtonText: {
-    marginLeft: 6,
-    color: "#2563EB",
-    fontWeight: "600",
-  },
-
-  /* ================================
-     MODAL REGISTRAR VACUNA
+     MODAL / DROPDOWNS / FECHAS
      ================================ */
   modalOverlay: {
     flex: 1,
@@ -1328,9 +1300,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  /* ================================
-   DROPDOWN VACUNA / DESPARASITACIÓN
-   ================================ */
   dropdownWrapper: {
     marginTop: 4,
     position: "relative",
@@ -1390,9 +1359,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* ================================
-     FECHA DENTRO DEL MODAL
-     ================================ */
   dateRow: {
     marginTop: 4,
     flexDirection: "row",
@@ -1412,9 +1378,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* ================================
-     POPUP CALENDARIO (INTERNO)
-     ================================ */
   dateModalOverlay: {
     position: "absolute",
     top: 0,
@@ -1439,9 +1402,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  /* ================================
-     ESTILO DEL DATE PICKER
-     ================================ */
   datePicker: {
     alignSelf: "stretch",
     height: Platform.OS === "ios" ? 320 : 260,

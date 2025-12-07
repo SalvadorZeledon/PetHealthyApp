@@ -10,14 +10,14 @@ import {
   Alert,
   Dimensions,
   ScrollView,
+  StatusBar,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { getNearbyVets } from "../services/googlePlaces";
-
-
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
@@ -36,7 +36,7 @@ const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-const VetMapScreen = ({ navigation }) => {
+const VetMapScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [region, setRegion] = useState(null);
   const [places, setPlaces] = useState([]);
@@ -44,6 +44,11 @@ const VetMapScreen = ({ navigation }) => {
 
   const mapRef = useRef();
 
+  // 🔹 Modo "pick" cuando vienes desde el calendario
+  const isPickMode = route?.params?.pickMode === true;
+  const selectedDateISOFromRoute = route?.params?.dateISO || null;
+
+  // 🔹 Cargar ubicación + veterinarias UNA sola vez
   useEffect(() => {
     (async () => {
       try {
@@ -90,6 +95,16 @@ const VetMapScreen = ({ navigation }) => {
     })();
   }, []);
 
+  // 🔹 Cada vez que la pantalla gana foco solo abrimos la lista en modo pick
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isPickMode) {
+        setShowList(true);
+      }
+      return () => {};
+    }, [isPickMode])
+  );
+
   const centerOnUser = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({});
@@ -119,6 +134,35 @@ const VetMapScreen = ({ navigation }) => {
     }
   };
 
+  // 🔹 Crear recordatorio (funciona tanto desde tab "Mapa" como modo pick del calendario)
+  const createReminderFromMap = (place) => {
+    const todayISO = new Date().toISOString().split("T")[0];
+    const dateISO = selectedDateISOFromRoute || todayISO;
+
+    const params = {
+      selectedVetForEvent: {
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+      },
+      openNewEventFromMap: true,
+      dateISO,
+    };
+
+    const state = navigation.getState();
+    const hasAppointmentsTab =
+      state?.routeNames && state.routeNames.includes("Appointments");
+
+    if (hasAppointmentsTab) {
+      navigation.navigate("Appointments", params);
+    } else {
+      navigation.navigate("MainTabs", {
+        screen: "Appointments",
+        params,
+      });
+    }
+  };
+
   const renderListPanel = () => {
     if (!places.length)
       return (
@@ -132,7 +176,14 @@ const VetMapScreen = ({ navigation }) => {
     return (
       <View style={styles.listPanel}>
         <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Veterinarias cercanas</Text>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.listTitle}>Veterinarias cercanas</Text>
+            <Text style={styles.listSubtitle}>
+              Toca una clínica para centrar el mapa o usa los botones para ver
+              detalles y crear un recordatorio.
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={() => setShowList(false)}
             style={styles.closeListBtn}
@@ -141,60 +192,145 @@ const VetMapScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.listScroll}>
+        <ScrollView
+          style={styles.listScroll}
+          contentContainerStyle={styles.listScrollContent}
+        >
           {places.map((p) => {
             const lat = p.geometry?.location?.lat;
             const lng = p.geometry?.location?.lng;
+
+            const handleCenter = () => {
+              setShowList(false);
+              mapRef.current?.animateToRegion(
+                {
+                  latitude: lat,
+                  longitude: lng,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                },
+                400
+              );
+            };
+
+            const handleViewDetails = () => {
+              navigation.navigate("VetDetail", { placeId: p.place_id });
+            };
+
+            const handleSelectOrCreate = () => {
+              createReminderFromMap(p);
+            };
+
+            const labelSelect = isPickMode
+              ? "Usar en recordatorio"
+              : "Crear recordatorio";
+
+            const isOpen = p.opening_hours?.open_now;
+
             return (
               <View key={p.place_id} style={styles.listItem}>
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  onPress={() => {
-                    setShowList(false);
-                    mapRef.current?.animateToRegion(
-                      {
-                        latitude: lat,
-                        longitude: lng,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                      },
-                      400
-                    );
-                  }}
-                >
-                  <Text style={styles.itemTitle}>{p.name}</Text>
-                  {p.vicinity ? (
-                    <Text style={styles.itemSubtitle}>{p.vicinity}</Text>
-                  ) : null}
-                </TouchableOpacity>
+                {/* fila principal: nombre, dirección, distancia y rating */}
+                <View style={styles.listItemMainRow}>
+                  <TouchableOpacity
+                    style={styles.listItemLeft}
+                    onPress={handleCenter}
+                  >
+                    <Text style={styles.itemTitle} numberOfLines={1}>
+                      {p.name}
+                    </Text>
 
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.itemDistance}>
-                    {p.distanceKm < 1
-                      ? `${Math.round(p.distanceKm * 1000)} m`
-                      : `${p.distanceKm.toFixed(1)} km`}
-                  </Text>
-                  <Text style={styles.itemMeta}>
-                    {p.rating ? `⭐ ${p.rating}` : ""}
-                  </Text>
+                    {p.vicinity ? (
+                      <Text
+                        style={styles.itemSubtitle}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        {p.vicinity}
+                      </Text>
+                    ) : null}
+
+                    {isOpen !== undefined && (
+                      <View
+                        style={[
+                          styles.openBadge,
+                          isOpen
+                            ? styles.openBadgeOpen
+                            : styles.openBadgeClosed,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.openDot,
+                            {
+                              backgroundColor: isOpen ? "#43A047" : "#E53935",
+                            },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.openBadgeText,
+                            !isOpen && styles.openBadgeTextClosed,
+                          ]}
+                        >
+                          {isOpen ? "Abierto ahora" : "Cerrado ahora"}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={styles.listItemRight}>
+                    <View style={styles.distanceChip}>
+                      <Ionicons
+                        name="navigate-outline"
+                        size={14}
+                        color="#1E88E5"
+                      />
+                      <Text style={styles.distanceChipText}>
+                        {p.distanceKm < 1
+                          ? `${Math.round(p.distanceKm * 1000)} m`
+                          : `${p.distanceKm.toFixed(1)} km`}
+                      </Text>
+                    </View>
+
+                    {p.rating ? (
+                      <View style={styles.ratingChip}>
+                        <Ionicons name="star" size={12} color="#FFB300" />
+                        <Text style={styles.ratingChipText}>
+                          {p.rating.toFixed(1)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
 
-                {/* 🔥 NUEVO BOTÓN DE DETALLES */}
-                <TouchableOpacity
-                  style={styles.detailsBtn}
-                  onPress={() =>
-                    navigation.navigate("VetDetail", {
-                      placeId: p.place_id,
-                    })
-                  }
-                >
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={16}
-                    color="#365b6d"
-                  />
-                  <Text style={styles.detailsBtnText}>Ver más detalles</Text>
-                </TouchableOpacity>
+                {/* fila de botones */}
+                <View style={styles.listActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.detailsBtn, styles.secondaryListBtn]}
+                    onPress={handleViewDetails}
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={16}
+                      color="#365b6d"
+                    />
+                    <Text style={styles.detailsBtnText}>Ver detalles</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.detailsBtn, styles.primaryListBtn]}
+                    onPress={handleSelectOrCreate}
+                  >
+                    <Ionicons
+                      name={isPickMode ? "checkmark-circle-outline" : "add"}
+                      size={16}
+                      color="#ffffff"
+                    />
+                    <Text style={[styles.detailsBtnText, { color: "#ffffff" }]}>
+                      {labelSelect}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })}
@@ -211,8 +347,18 @@ const VetMapScreen = ({ navigation }) => {
     );
   }
 
+  const statusBarHeight =
+    Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const topOffset = Platform.OS === "ios" ? 50 : statusBarHeight + 10;
+  const floatingButtonsTop = topOffset + 60;
+
   return (
     <View style={styles.container}>
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
@@ -225,6 +371,18 @@ const VetMapScreen = ({ navigation }) => {
           const lat = p.geometry?.location?.lat;
           const lng = p.geometry?.location?.lng;
           if (!lat || !lng) return null;
+
+          const handleViewDetails = () => {
+            navigation.navigate("VetDetail", { placeId: p.place_id });
+          };
+
+          const handleSelectOrCreate = () => {
+            createReminderFromMap(p);
+          };
+
+          const labelSelect = isPickMode
+            ? "Usar en recordatorio"
+            : "Crear recordatorio";
 
           return (
             <Marker
@@ -243,11 +401,7 @@ const VetMapScreen = ({ navigation }) => {
                   <View style={styles.calloutRow}>
                     <TouchableOpacity
                       style={styles.calloutBtn}
-                      onPress={() =>
-                        navigation.navigate("VetDetail", {
-                          placeId: p.place_id,
-                        })
-                      }
+                      onPress={handleViewDetails}
                     >
                       <Ionicons
                         name="information-circle-outline"
@@ -259,8 +413,22 @@ const VetMapScreen = ({ navigation }) => {
 
                     <TouchableOpacity
                       style={styles.calloutBtn}
+                      onPress={handleSelectOrCreate}
+                    >
+                      <Ionicons
+                        name={isPickMode ? "checkmark-circle-outline" : "add"}
+                        size={18}
+                        color="#365b6d"
+                      />
+                      <Text style={styles.calloutBtnText}>{labelSelect}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.calloutBtn}
                       onPress={() => {
-                        const q = encodeURIComponent(`${lat},${lng} (${p.name})`);
+                        const q = encodeURIComponent(
+                          `${lat},${lng} (${p.name})`
+                        );
                         const url = Platform.select({
                           ios: `maps://?q=${q}`,
                           android: `geo:0,0?q=${q}`,
@@ -286,8 +454,8 @@ const VetMapScreen = ({ navigation }) => {
         })}
       </MapView>
 
-      {/* HEADER FLOATING */}
-      <View style={styles.topControls}>
+      {/* HEADER flotante */}
+      <View style={[styles.topControls, { top: topOffset }]}>
         <TouchableOpacity
           style={styles.topBtn}
           onPress={() => navigation.goBack()}
@@ -295,13 +463,15 @@ const VetMapScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={20} color="#365b6d" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Veterinarias</Text>
+        <Text style={styles.title}>
+          {isPickMode ? "Veterinarias" : "Veterinarias"}
+        </Text>
 
         <View style={{ width: 40 }} />
       </View>
 
-      {/* BOTONES A LA DERECHA */}
-      <View style={styles.floatingRight}>
+      {/* BOTONES flotantes a la derecha */}
+      <View style={[styles.floatingRight, { top: floatingButtonsTop }]}>
         <TouchableOpacity style={styles.floatBtn} onPress={centerOnUser}>
           <Ionicons name="locate" size={20} color="#365b6d" />
         </TouchableOpacity>
@@ -328,7 +498,6 @@ const styles = StyleSheet.create({
 
   topControls: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 50 : 24,
     left: 16,
     right: 16,
     flexDirection: "row",
@@ -347,13 +516,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#ffffffff",
   },
 
   floatingRight: {
     position: "absolute",
     right: 12,
-    top: Platform.OS === "ios" ? 110 : 80,
     alignItems: "center",
   },
   floatBtn: {
@@ -373,35 +541,70 @@ const styles = StyleSheet.create({
     right: 0,
     height: Math.round(SCREEN_H * 0.45),
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 12,
-    elevation: 8,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   listTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#263238",
   },
+  listSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#78909C",
+  },
   closeListBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     backgroundColor: "#E0E9F5",
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   listScroll: { marginTop: 10 },
+  listScrollContent: {
+    paddingBottom: 12,
+  },
 
   listItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#F0F0F0",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E0E9F5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItemMainRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  listItemLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  listItemRight: {
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
   },
 
   itemTitle: { fontSize: 15, fontWeight: "700", color: "#263238" },
@@ -409,6 +612,66 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
     marginTop: 4,
+  },
+
+  distanceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "#E3F2FD",
+    marginBottom: 4,
+  },
+  distanceChipText: {
+    marginLeft: 4,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#1E88E5",
+  },
+
+  ratingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "#FFF8E1",
+  },
+  ratingChipText: {
+    marginLeft: 4,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFB300",
+  },
+
+  openBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 6,
+  },
+  openBadgeOpen: {
+    backgroundColor: "#E8F5E9",
+  },
+  openBadgeClosed: {
+    backgroundColor: "#FFEBEE",
+  },
+  openDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  openBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+  openBadgeTextClosed: {
+    color: "#C62828",
   },
 
   itemDistance: {
@@ -435,8 +698,14 @@ const styles = StyleSheet.create({
   },
   listEmptyText: { color: "#607D8B", textAlign: "center" },
 
+  listActionsRow: {
+    flexDirection: "row",
+    marginTop: 8,
+    justifyContent: "flex-end",
+  },
+
   callout: {
-    width: 220,
+    width: 260,
     padding: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
@@ -447,6 +716,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 4,
   },
   calloutBtn: {
     flexDirection: "row",
@@ -455,6 +726,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 4,
   },
   calloutBtnText: {
     marginLeft: 6,
@@ -463,16 +735,19 @@ const styles = StyleSheet.create({
     color: "#263238",
   },
 
-  // 🔥 NUEVOS ESTILOS
   detailsBtn: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  secondaryListBtn: {
     backgroundColor: "#E3F2FD",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginTop: 6,
+    marginRight: 8,
+  },
+  primaryListBtn: {
+    backgroundColor: "#43A047",
   },
   detailsBtnText: {
     marginLeft: 6,

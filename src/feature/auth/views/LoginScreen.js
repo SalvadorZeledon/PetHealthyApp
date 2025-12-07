@@ -1,5 +1,5 @@
 // screens/Loginscreen.js
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,20 +12,31 @@ import {
   Keyboard,
   Platform,
   StatusBar,
+  Modal,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../../../firebase/config";
+import { doc, getDoc } from "firebase/firestore";
+import { db, auth } from "../../../../firebase/config";
 import { COL_USUARIOS } from "../../../shared/utils/collections";
 import { saveUserToStorage } from "../../../shared/utils/storage";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import {
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 
+// 👇 IMPORTAR EL TEMA
+import useTheme from "../../../themes/useTheme";
 
 const logo = require("../../../../assets/logoPH.png");
 
 const LoginScreen = ({ navigation }) => {
+  // 👇 usar el tema
+  const { colors, mode } = useTheme();
+  const isDark = mode === "dark";
+
   const [fontsLoaded] = useFonts({
     Poppins_700Bold,
   });
@@ -38,10 +49,33 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const passwordInputRef = useRef(null);
 
+  // 🔹 Modal + cooldown para correo no verificado
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
+  const [unverifiedUser, setUnverifiedUser] = useState(null);
+
+  // ⏱️ Timer del cooldown
+  useEffect(() => {
+    let timer;
+    if (showVerificationModal && verificationCooldown > 0) {
+      timer = setInterval(() => {
+        setVerificationCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [showVerificationModal, verificationCooldown]);
+
   if (!fontsLoaded) {
     return (
-      <View style={styles.fontLoadingContainer}>
-        <ActivityIndicator size="large" color="#365b6d" />
+      <View
+        style={[
+          styles.fontLoadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -88,28 +122,39 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const usuariosRef = collection(db, COL_USUARIOS);
-      const q = query(
-        usuariosRef,
-        where("email", "==", email.trim().toLowerCase()),
-        where("password", "==", password)
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        email.trim().toLowerCase(),
+        password
       );
-      const snapshot = await getDocs(q);
 
-      if (snapshot.empty) {
-        setErrorPassword("Email o contraseña incorrectos.");
-        Dialog.show({
-          type: ALERT_TYPE.DANGER,
-          title: "Error al iniciar sesión",
-          textBody: "Email o contraseña incorrectos. Inténtalo de nuevo.",
-          button: "Cerrar",
-        });
+      const fbUser = cred.user;
+      await fbUser.reload();
+
+      if (!fbUser.emailVerified) {
+        setUnverifiedUser(fbUser);
+        setVerificationCooldown(30);
+        setShowVerificationModal(true);
         setLoading(false);
         return;
       }
 
-      const userDoc = snapshot.docs[0];
-      const userData = { id: userDoc.id, ...userDoc.data() };
+      const userDocRef = doc(db, COL_USUARIOS, fbUser.uid);
+      const snap = await getDoc(userDocRef);
+
+      if (!snap.exists()) {
+        setLoading(false);
+        Dialog.show({
+          type: ALERT_TYPE.DANGER,
+          title: "Error",
+          textBody:
+            "Tu cuenta está verificada pero falta información de perfil. Contacta soporte.",
+          button: "Entendido",
+        });
+        return;
+      }
+
+      const userData = { id: fbUser.uid, ...snap.data() };
       console.log("Usuario logueado:", userData);
 
       await saveUserToStorage({
@@ -148,7 +193,7 @@ const LoginScreen = ({ navigation }) => {
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
         title: "Bienvenido",
-        textBody: `Hola ${userData.nombre || ""}, nos alegra verte de nuevo 🐾`,
+        textBody: `Hola ${userData.nombre || ""}, nos alegra verte 🐾`,
         button: "Continuar",
         onHide: () => {
           if (nextRoute === "MainTabs") {
@@ -166,10 +211,22 @@ const LoginScreen = ({ navigation }) => {
       });
     } catch (error) {
       console.log("Error en login:", error);
+
+      let msg = "Email o contraseña incorrectos. Inténtalo de nuevo.";
+      if (error.code === "auth/invalid-email") {
+        msg = "El correo no es válido.";
+        setErrorEmail("Correo electrónico no válido.");
+      } else if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        setErrorPassword("Email o contraseña incorrectos.");
+      }
+
       Dialog.show({
         type: ALERT_TYPE.DANGER,
-        title: "Error inesperado",
-        textBody: "Ocurrió un problema al iniciar sesión. Inténtalo más tarde.",
+        title: "Error al iniciar sesión",
+        textBody: msg,
         button: "Cerrar",
       });
     } finally {
@@ -187,123 +244,327 @@ const LoginScreen = ({ navigation }) => {
     });
   };
 
+  const handleResendVerification = async () => {
+    if (!unverifiedUser || verificationCooldown > 0) return;
+
+    try {
+      setLoading(true);
+      await sendEmailVerification(unverifiedUser);
+      setVerificationCooldown(30);
+
+      Dialog.show({
+        type: ALERT_TYPE.SUCCESS,
+        title: "Correo reenviado",
+        textBody:
+          "Te enviamos un nuevo enlace de verificación. Revisa tu bandeja de entrada o spam.",
+        button: "Entendido",
+      });
+    } catch (err) {
+      console.log("Error al reenviar verificación (login):", err);
+
+      let msg =
+        "No pudimos reenviar el correo de verificación. Inténtalo más tarde.";
+      if (err.code === "auth/too-many-requests") {
+        msg =
+          "Has solicitado varios correos de verificación en poco tiempo. Espera unos minutos antes de intentarlo de nuevo.";
+      }
+
+      Dialog.show({
+        type: ALERT_TYPE.DANGER,
+        title: "Error",
+        textBody: msg,
+        button: "Entendido",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseVerificationModal = () => {
+    setShowVerificationModal(false);
+  };
+
   return (
-    <KeyboardAwareScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      enableOnAndroid={true}
-      extraScrollHeight={32} // cuánto subir cuando aparece el teclado
-      keyboardShouldPersistTaps="handled"
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.inner}>
-          <View style={styles.logoContainer}>
-            <Image source={logo} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.appName}>PetHealthyApp</Text>
-            <Text style={styles.appSubtitle}>
-              Tu clínica veterinaria en el bolsillo 🐶💚
+    <>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={isDark ? "light-content" : "dark-content"}
+      />
+
+      <KeyboardAwareScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={32}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.inner}>
+            <View style={styles.logoContainer}>
+              <Image source={logo} style={styles.logo} resizeMode="contain" />
+              <Text
+                style={[
+                  styles.appName,
+                  { color: colors.accent }, // antes #365b6d
+                ]}
+              >
+                PetHealthyApp
+              </Text>
+              <Text
+                style={[
+                  styles.appSubtitle,
+                  { color: colors.success }, // antes #558B2F
+                ]}
+              >
+                Tu clínica veterinaria en el bolsillo 🐶💚
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.card,
+                  shadowColor: isDark ? "#000" : "#000",
+                },
+              ]}
+            >
+              <View style={styles.pawBackground}>
+                <Ionicons
+                  name="paw"
+                  size={80}
+                  color={isDark ? "#546E7A" : "#90A4AE"}
+                />
+              </View>
+
+              <Text
+                style={[
+                  styles.cardTitle,
+                  { color: colors.text }, // antes #263238
+                ]}
+              >
+                Iniciar sesión
+              </Text>
+              <Text
+                style={[
+                  styles.cardSubtitle,
+                  { color: colors.subtitle }, // antes #607D8B
+                ]}
+              >
+                Ingresa con tu correo para ver la información de tus mascotas y
+                sus consultas.
+              </Text>
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder,
+                    color: colors.text,
+                  },
+                ]}
+                placeholder="Correo electrónico"
+                placeholderTextColor={colors.placeholder}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errorEmail) setErrorEmail("");
+                }}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                returnKeyType="next"
+                autoFocus={true}
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
+              />
+              {errorEmail ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {errorEmail}
+                </Text>
+              ) : null}
+
+              <View
+                style={[
+                  styles.inputPasswordContainer,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
+                <TextInput
+                  ref={passwordInputRef}
+                  style={[styles.inputPassword, { color: colors.text }]}
+                  placeholder="Contraseña"
+                  placeholderTextColor={colors.placeholder}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errorPassword) setErrorPassword("");
+                  }}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={colors.subtitle}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errorPassword ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {errorPassword}
+                </Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: colors.primary },
+                ]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.primaryText} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.primaryButtonText,
+                      { color: colors.primaryText },
+                    ]}
+                  >
+                    Ingresar
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                <Text style={[styles.linkText, { color: colors.subtitle }]}>
+                  ¿Es tu primera vez?{" "}
+                  <Text style={[styles.linkTextBold, { color: colors.link }]}>
+                    Crea una cuenta
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleVetLoginInfo}
+                style={{ marginTop: 8 }}
+              >
+                <Text style={[styles.vetLinkText, { color: colors.subtitle }]}>
+                  ¿Eres veterinario?{" "}
+                  <Text style={[styles.vetLinkBold, { color: colors.vetLink }]}>
+                    Acceso profesional
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={[styles.helperText, { color: colors.footerText }]}>
+                Al iniciar sesión podrás ver el historial de vacunas y consultas
+                de tus mascotas.
+              </Text>
+            </View>
+
+            <Text style={[styles.footerText, { color: colors.footerText }]}>
+              Hecho con ❤️ para tus mascotas
             </Text>
           </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAwareScrollView>
 
-          <View style={styles.card}>
-            <View style={styles.pawBackground}>
-              <Ionicons name="paw" size={80} color="#90A4AE" />
-            </View>
-
-            <Text style={styles.cardTitle}>Iniciar sesión</Text>
-            <Text style={styles.cardSubtitle}>
-              Ingresa con tu correo para ver la información de tus mascotas y
-              sus consultas.
+      {/* 🔹 Modal de verificación de correo */}
+      <Modal
+        visible={showVerificationModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View
+          style={[
+            styles.modalOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+        >
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.modalCard }]}
+          >
+            <Ionicons
+              name="mail-open-outline"
+              size={40}
+              color={colors.accent}
+              style={{ marginBottom: 8 }}
+            />
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Verifica tu correo
+            </Text>
+            <Text style={[styles.modalText, { color: colors.subtitle }]}>
+              Te enviamos un enlace de verificación a tu correo electrónico.
+              {"\n\n"}
+              1️⃣ Revisa tu bandeja de entrada y spam.{"\n"}
+              2️⃣ Abre el mensaje de PetHealthyApp y abre el enlace.
+              {"\n"}
+              3️⃣ Luego vuelve aquí e intenta iniciar sesión nuevamente con tu
+              correo y contraseña.
             </Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Correo electrónico"
-              placeholderTextColor="#7a8b8c"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (errorEmail) setErrorEmail("");
-              }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              returnKeyType="next"
-              autoFocus={true}
-              onSubmitEditing={() => passwordInputRef.current?.focus()}
-            />
-            {errorEmail ? (
-              <Text style={styles.errorText}>{errorEmail}</Text>
-            ) : null}
-
-            <View style={styles.inputPasswordContainer}>
-              <TextInput
-                ref={passwordInputRef}
-                style={styles.inputPassword}
-                placeholder="Contraseña"
-                placeholderTextColor="#7a8b8c"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errorPassword) setErrorPassword("");
-                }}
-                secureTextEntry={!showPassword}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color="#90A4AE"
-                />
-              </TouchableOpacity>
-            </View>
-            {errorPassword ? (
-              <Text style={styles.errorText}>{errorPassword}</Text>
-            ) : null}
+            <Text
+              style={[styles.modalCooldownText, { color: colors.subtitle }]}
+            >
+              {verificationCooldown > 0
+                ? `Puedes reenviar otro correo en ${verificationCooldown} s`
+                : "Si no te llegó, puedes reenviar el correo ahora."}
+            </Text>
 
             <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleLogin}
-              disabled={loading}
+              onPress={handleResendVerification}
+              disabled={verificationCooldown > 0 || loading}
+              style={[
+                styles.modalButton,
+                {
+                  backgroundColor: colors.accent,
+                  opacity: verificationCooldown > 0 || loading ? 0.6 : 1,
+                },
+              ]}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.primaryText} />
               ) : (
-                <Text style={styles.primaryButtonText}>Ingresar</Text>
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    { color: colors.primaryText },
+                  ]}
+                >
+                  Reenviar correo
+                </Text>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-              <Text style={styles.linkText}>
-                ¿Es tu primera vez?{" "}
-                <Text style={styles.linkTextBold}>Crea una cuenta</Text>
-              </Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
-              onPress={handleVetLoginInfo}
-              style={{ marginTop: 8 }}
+              onPress={handleCloseVerificationModal}
+              style={styles.modalSecondaryButton}
             >
-              <Text style={styles.vetLinkText}>
-                ¿Eres veterinario?{" "}
-                <Text style={styles.vetLinkBold}>Acceso profesional</Text>
+              <Text
+                style={[
+                  styles.modalSecondaryButtonText,
+                  { color: colors.link },
+                ]}
+              >
+                Ya verifiqué mi correo
               </Text>
             </TouchableOpacity>
-
-            <Text style={styles.helperText}>
-              Al iniciar sesión podrás ver el historial de vacunas y consultas
-              de tus mascotas.
-            </Text>
           </View>
-
-          <Text style={styles.footerText}>Hecho con ❤️ para tus mascotas</Text>
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAwareScrollView>
+      </Modal>
+    </>
   );
 };
 
@@ -324,7 +585,7 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    justifyContent: "space-between", // logo arriba, card centro, footer abajo
+    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
     paddingBottom: 16,
@@ -456,6 +717,65 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 4,
     marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+    alignItems: "center",
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  modalText: {
+    fontSize: 13,
+    color: "#4B5563",
+    textAlign: "left",
+    marginBottom: 16,
+  },
+  modalCooldownText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalButton: {
+    backgroundColor: "#4A85A5",
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 999,
+    alignItems: "center",
+    marginBottom: 10,
+    alignSelf: "stretch",
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  modalSecondaryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  modalSecondaryButtonText: {
+    color: "#1E88E5",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
 

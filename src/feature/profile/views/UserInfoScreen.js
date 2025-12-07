@@ -1,4 +1,3 @@
-// screens/UserInfoScreen.js
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -16,22 +15,54 @@ import { Ionicons } from "@expo/vector-icons";
 import { Dialog, ALERT_TYPE } from "react-native-alert-notification";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { db } from "../../../../firebase/config";
-import { getUserFromStorage, saveUserToStorage } from "../../../shared/utils/storage";
+import {
+  getUserFromStorage,
+  saveUserToStorage,
+} from "../../../shared/utils/storage";
 import { COL_USUARIOS } from "../../../shared/utils/collections";
 
-
 const avatarPlaceholder = require("../../../../assets/logoPH.png");
+
+// helpers para fecha/edad
+const calculateAge = (birthDate) => {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const parseBirthDate = (value) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return null;
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10) - 1;
+  const year = parseInt(match[3], 10);
+
+  const date = new Date(year, month, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+};
 
 const UserInfoScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [originalData, setOriginalData] = useState(null); // para detectar cambios
+  const [originalData, setOriginalData] = useState(null);
 
   const [photoUri, setPhotoUri] = useState(null);
 
@@ -105,13 +136,32 @@ const UserInfoScreen = ({ navigation }) => {
 
         const data = snap.data();
 
-        // Combinamos datos de Firestore con algunos del stored (por si acaso)
+        // reconstruir fechaNacimiento (string) y edad calculada
+        let fechaNacimientoStr = "";
+        let edadCalculada = "";
+
+        if (data.fechaNacimiento) {
+          const bd = data.fechaNacimiento.toDate
+            ? data.fechaNacimiento.toDate()
+            : new Date(data.fechaNacimiento);
+
+          const dd = String(bd.getDate()).padStart(2, "0");
+          const mm = String(bd.getMonth() + 1).padStart(2, "0");
+          const yyyy = bd.getFullYear();
+          fechaNacimientoStr = `${dd}/${mm}/${yyyy}`;
+          edadCalculada = calculateAge(bd);
+        } else if (data.edad) {
+          // compatibilidad con datos antiguos sin fecha
+          edadCalculada = data.edad;
+        }
+
         const merged = {
           username: data.username || parsed.username || "",
           nombres: data.nombres || "",
           apellidos: data.apellidos || "",
           email: data.email || parsed.email || "",
-          edad: (data.edad && String(data.edad)) || "",
+          edad: (edadCalculada && String(edadCalculada)) || "",
+          fechaNacimiento: fechaNacimientoStr, // ⬅️ nuevo
           dui: data.dui || "",
           telefono: data.telefono || "",
           direccion: data.direccion || "",
@@ -119,9 +169,8 @@ const UserInfoScreen = ({ navigation }) => {
         };
 
         setUserData(merged);
-        setOriginalData(merged); // snapshot inicial
+        setOriginalData(merged);
 
-        // Cargar foto local (si existe), si no, desde Firestore
         const localPhoto = await AsyncStorage.getItem(`@userPhoto_${uid}`);
 
         if (localPhoto) {
@@ -157,13 +206,12 @@ const UserInfoScreen = ({ navigation }) => {
     if (field === "nombres") setErrorNombres("");
     if (field === "apellidos") setErrorApellidos("");
     if (field === "email") setErrorEmail("");
-    if (field === "edad") setErrorEdad("");
+    if (field === "fechaNacimiento") setErrorEdad("");
     if (field === "telefono") setErrorTelefono("");
     if (field === "dui") setErrorDui("");
     if (field === "direccion") setErrorDireccion("");
   };
 
-  // helper para saber si hay cambios sin guardar (solo campos de texto)
   const hasUnsavedChanges = useCallback(() => {
     if (!originalData || !userData) return false;
     const fields = [
@@ -171,7 +219,7 @@ const UserInfoScreen = ({ navigation }) => {
       "nombres",
       "apellidos",
       "email",
-      "edad",
+      "fechaNacimiento",
       "dui",
       "telefono",
       "direccion",
@@ -210,9 +258,26 @@ const UserInfoScreen = ({ navigation }) => {
     if (errorTelefono) setErrorTelefono("");
   };
 
-  const handleChangeEdad = (text) => {
-    const digits = text.replace(/\D/g, "");
-    setUserData((prev) => ({ ...prev, edad: digits }));
+  // escribe fecha "dd/mm/aaaa" y recalcula edad en vivo
+  const handleChangeFechaNacimiento = (text) => {
+    let digits = text.replace(/\D/g, "").slice(0, 8);
+    let formatted = digits;
+
+    if (digits.length > 4) {
+      formatted =
+        digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4);
+    } else if (digits.length > 2) {
+      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+    }
+
+    setUserData((prev) => {
+      const updated = { ...prev, fechaNacimiento: formatted };
+      const bd = parseBirthDate(formatted);
+      if (bd) {
+        updated.edad = String(calculateAge(bd));
+      }
+      return updated;
+    });
     if (errorEdad) setErrorEdad("");
   };
 
@@ -382,13 +447,21 @@ const UserInfoScreen = ({ navigation }) => {
       }
     }
 
-    const edadNum = parseInt(userData.edad, 10);
-    if (!userData.edad) {
-      setErrorEdad("Ingresa tu edad.");
+    if (!userData.fechaNacimiento || !userData.fechaNacimiento.trim()) {
+      setErrorEdad("Ingresa tu fecha de nacimiento.");
       valid = false;
-    } else if (isNaN(edadNum) || edadNum < 18 || edadNum > 120) {
-      setErrorEdad("Debes tener 18 años o más.");
-      valid = false;
+    } else {
+      const bd = parseBirthDate(userData.fechaNacimiento.trim());
+      if (!bd) {
+        setErrorEdad("Ingresa una fecha válida (dd/mm/aaaa).");
+        valid = false;
+      } else {
+        const age = calculateAge(bd);
+        if (isNaN(age) || age < 18 || age > 120) {
+          setErrorEdad("Debes tener 18 años o más.");
+          valid = false;
+        }
+      }
     }
 
     const duiDigits = userData.dui.replace(/\D/g, "");
@@ -433,6 +506,9 @@ const UserInfoScreen = ({ navigation }) => {
     try {
       setSaving(true);
 
+      const bd = parseBirthDate(userData.fechaNacimiento.trim());
+      const age = calculateAge(bd);
+
       const userRef = doc(db, COL_USUARIOS, userId);
 
       const updates = {
@@ -440,20 +516,19 @@ const UserInfoScreen = ({ navigation }) => {
         nombres: userData.nombres.trim(),
         apellidos: userData.apellidos.trim(),
         email: userData.email.trim(),
-        edad: parseInt(userData.edad, 10),
+        edad: age,
+        fechaNacimiento: Timestamp.fromDate(bd),
         dui: userData.dui.trim(),
         telefono: userData.telefono.trim(),
         direccion: userData.direccion.trim(),
       };
 
-      // 👉 si tenemos una foto seleccionada, también la persistimos
       if (photoUri) {
         updates.fotoPerfilUrl = photoUri;
       }
 
       await updateDoc(userRef, updates);
 
-      // Guardar foto local si hubo foto (aquí no borramos nada)
       if (photoUri) {
         await AsyncStorage.setItem(`@userPhoto_${userId}`, photoUri);
       }
@@ -465,7 +540,8 @@ const UserInfoScreen = ({ navigation }) => {
         rol: userData.rol || "cliente",
         nombres: userData.nombres.trim(),
         apellidos: userData.apellidos.trim(),
-        edad: parseInt(userData.edad, 10),
+        edad: age,
+        fechaNacimiento: userData.fechaNacimiento.trim(),
         dui: userData.dui.trim(),
         telefono: userData.telefono.trim(),
         direccion: userData.direccion.trim(),
@@ -473,8 +549,7 @@ const UserInfoScreen = ({ navigation }) => {
       };
       await saveUserToStorage(updatedForStorage);
 
-      // actualizamos referencia para comparar cambios
-      setOriginalData(userData);
+      setOriginalData({ ...userData, edad: String(age) });
 
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
@@ -559,8 +634,8 @@ const UserInfoScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Barra superior fija */}
-      <View style={styles.topBar}>
+      {/* HEADER */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={handleGoBack} style={styles.topIconButton}>
           <Ionicons name="arrow-back" size={22} color="#365b6d" />
         </TouchableOpacity>
@@ -579,7 +654,7 @@ const UserInfoScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Contenido scrollable y keyboard-aware */}
+      {/* Contenido scrollable */}
       <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         enableOnAndroid={true}
@@ -694,19 +769,26 @@ const UserInfoScreen = ({ navigation }) => {
             ) : null}
           </View>
 
-          {/* Edad y teléfono */}
+          {/* Fecha nacimiento + teléfono */}
           <View style={styles.fieldRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.label}>Edad</Text>
+              <Text style={styles.label}>Fecha de nacimiento</Text>
               {isEditing ? (
                 <TextInput
                   style={styles.input}
-                  value={userData.edad}
-                  onChangeText={handleChangeEdad}
+                  value={userData.fechaNacimiento}
+                  placeholder="DD/MM/AAAA"
+                  onChangeText={handleChangeFechaNacimiento}
                   keyboardType="number-pad"
                 />
               ) : (
-                <Text style={styles.value}>{userData.edad} años</Text>
+                <Text style={styles.value}>
+                  {userData.fechaNacimiento
+                    ? `${userData.fechaNacimiento} (${userData.edad} años)`
+                    : userData.edad
+                    ? `${userData.edad} años`
+                    : "No registrado"}
+                </Text>
               )}
               {errorEdad ? (
                 <Text style={styles.errorText}>{errorEdad}</Text>
@@ -827,7 +909,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E3F2FD",
-    paddingTop: Platform.OS === "ios" ? 40 : 24,
+    paddingTop: 0,
+  },
+  header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 32,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#4A85A5",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   loadingContainer: {
     flex: 1,
@@ -840,14 +938,6 @@ const styles = StyleSheet.create({
     color: "#365b6d",
     fontSize: 14,
   },
-  topBar: {
-    paddingTop: 18,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   topIconButton: {
     padding: 6,
     borderRadius: 999,
@@ -856,7 +946,7 @@ const styles = StyleSheet.create({
   topTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#ffffff",
   },
   content: {
     paddingHorizontal: 20,
@@ -867,6 +957,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatar: {
+    marginTop: 15,
     width: 90,
     height: 90,
     borderRadius: 45,

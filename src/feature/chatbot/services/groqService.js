@@ -1,6 +1,6 @@
 // src/services/groqService.js
 
-const API_KEY = "AQUI_VA_TU_API_KEY";
+const API_KEY = " TU_API_KEY_DE_GROQ_AQUI ";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Sistema de restricciones veterinarias
@@ -13,7 +13,9 @@ PROHIBIDO ABSOLUTAMENTE:
 - No diagnosticar enfermedades o condiciones médicas específicas
 - No recomendar tratamientos farmacológicos
 - No sugerir remedios caseros que involucren sustancias medicinales
-
+- No brindar consejos que puedan reemplazar la consulta veterinaria profesional
+- No respondas a preguntas sobre tematicas externas a la salud y bienestar animal
+- 
 PERMITIDO:
 - Ofrecer consejos generales de cuidado y bienestar animal y puedes recomendar suplementos alimenticios y vitaminas 
 - Sugerir cuándo es necesario visitar al veterinario
@@ -29,6 +31,8 @@ RESPUESTAS OBLIGATORIAS para consultas sobre medicamentos:
 - "Para temas de medicamentos necesitas prescripción veterinaria. Puedo ayudarte con consejos generales de cuidado."
 
 Tu tono debe ser amigable pero profesional, siempre priorizando la seguridad de las mascotas.
+No fomentes de ninguana manera la automedicación o el uso inapropiado de medicamentos.
+No fomentes las malas practicas de cuidado animal.
 `;
 
 export const getAIResponse = async (messages) => {

@@ -1,17 +1,17 @@
+// src/veterinario/feature/navigation/TabVetNavigator.js
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
-// --- PANTALLAS PRINCIPALES ---
-import HomeScreen from "../feature/home/views/HomeScreen";
-import MyPetScreen from "../feature/pet/views/MyPetScreen";
-import AppointmentsScreen from "../feature/pet/views/AppointmentsScreen";
-import ChatbotScreen from "../feature/chatbot/views/ChatbotScreen";
-import VetMapScreen from "../feature/directory/views/VetMapScreen"; // 🔥 MAPA
+// --- PANTALLAS VETERINARIO ---
+import HomeVetScreen from "../home/views/HomeVetScreen";
+import VetPatientsScreen from "../patients/views/VetPatientsScreen";
+import VetAppointmentsScreen from "../appointments/views/VetAppointmentsScreen";
+import ChatbotVetScreen from "../chatbot/views/ChatbotVetScreen";
 
 const Tab = createBottomTabNavigator();
 
-const TabNavigator = () => {
+const TabVetNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -25,15 +25,13 @@ const TabNavigator = () => {
         tabBarIcon: ({ color, size, focused }) => {
           let iconName = "home-outline";
 
-          if (route.name === "Home") {
+          if (route.name === "VetHome") {
             iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "MyPets") {
+          } else if (route.name === "VetPatients") {
             iconName = focused ? "paw" : "paw-outline";
-          } else if (route.name === "Appointments") {
+          } else if (route.name === "VetAppointments") {
             iconName = focused ? "calendar" : "calendar-outline";
-          } else if (route.name === "VetMap") {
-            iconName = focused ? "map" : "map-outline";
-          } else if (route.name === "Chatbot") {
+          } else if (route.name === "VetChatbot") {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           }
 
@@ -42,35 +40,27 @@ const TabNavigator = () => {
       })}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="VetHome"
+        component={HomeVetScreen}
         options={{ title: "Inicio" }}
       />
       <Tab.Screen
-        name="MyPets"
-        component={MyPetScreen}
-        options={{ title: "Mascotas" }}
+        name="VetPatients"
+        component={VetPatientsScreen}
+        options={{ title: "Pacientes" }}
       />
       <Tab.Screen
-        name="Appointments"
-        component={AppointmentsScreen}
+        name="VetAppointments"
+        component={VetAppointmentsScreen}
         options={{ title: "Calendario" }}
       />
-
-      {/* 🔥 NUEVA PESTAÑA PRINCIPAL */}
       <Tab.Screen
-        name="VetMap"
-        component={VetMapScreen}
-        options={{ title: "Mapa" }}
-      />
-
-      <Tab.Screen
-        name="Chatbot"
-        component={ChatbotScreen}
+        name="VetChatbot"
+        component={ChatbotVetScreen}
         options={{ title: "Chatbot" }}
       />
     </Tab.Navigator>
   );
 };
 
-export default TabNavigator;
+export default TabVetNavigator;

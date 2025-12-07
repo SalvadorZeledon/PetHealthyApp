@@ -1,4 +1,4 @@
-// screens/ChatbotScreen.js
+// screens/ChatbotVetScreen.js
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -11,81 +11,31 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getAIResponse } from "../services/groqService";
+import { getAIResponse } from "../services/groqVetService";
 
-const ChatbotScreen = ({ navigation }) => {
+const ChatbotVetScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const scrollViewRef = useRef();
 
-  // 👇 1. LISTA DE SUGERENCIAS PREDEFINIDAS
+  // 👇 SUGERENCIAS PENSADAS PARA VETERINARIO
   const SUGGESTIONS = [
-    "🐶 Consejos de alimentación",
-    "😟 Mi mascota no quiere comer, ¿qué hago?",
-    "🛁¿Cada cuánto debo bañar a mi perro/gato?",
-    "🐱 ¿Por qué mi gato duerme mucho?",
-    "🎾 Juegos para perros en casa",
-    "🦷 Cuidado dental de mascotas",
+    "📋 Abordaje inicial de vómitos crónicos en perro adulto",
+    "🦴 Manejo inicial de fractura cerrada en perro",
+    "🐱 Enfoque de enfermedad renal crónica en gatos",
+    "🧪 ¿Qué exámenes solicitar ante diarrea hemorrágica aguda?",
+    "🏥 Manejo y monitoreo en casos de parvovirosis canina",
   ];
 
-  const MEDICATION_KEYWORDS = [
-    "medicamento",
-    "medicina",
-    "pastilla",
-    "tableta",
-    "inyección",
-    "inyectable",
-    "antibiótico",
-    "analgésico",
-    "antiinflamatorio",
-    "dosis",
-    "mg",
-    "ml",
-    "paracetamol",
-    "ibuprofeno",
-    "aspirina",
-    "penicilina",
-    "vacuna",
-    "tratamiento",
-    "receta",
-    "fármaco",
-    "droga",
-    "comprimido",
-    "cápsula",
-    "jarabe",
-    "pomada",
-    "crema",
-    "gotas",
-    "supositorio",
-    "antiparasitario",
-    "desparasitante",
-  ];
-
-  const containsMedicationKeywords = (text) => {
-    const lowerText = text.toLowerCase();
-    return MEDICATION_KEYWORDS.some((keyword) => lowerText.includes(keyword));
-  };
-
-  // 👇 2. MODIFICAMOS LA FUNCIÓN PARA ACEPTAR TEXTO OPCIONAL (DEL BOTÓN)
+  // 👇 En el modo VET ysa no bloqueamos palabras de medicamentos
   const sendMessage = async (textOverride = null) => {
-    // Si viene texto del botón (textOverride), usamos ese. Si no, usamos el input.
     const textToSend = typeof textOverride === "string" ? textOverride : input;
 
     if (!textToSend.trim()) return;
-
-    if (containsMedicationKeywords(textToSend)) {
-      Alert.alert(
-        "⚠️ Consulta importante",
-        "Para temas relacionados con medicamentos, debes consultar directamente con un veterinario. Puedo ayudarte con consejos generales de cuidado y bienestar.",
-        [{ text: "Entendido", style: "default" }]
-      );
-      return;
-    }
 
     setInput(""); // Limpiamos el input siempre
 
@@ -94,10 +44,18 @@ const ChatbotScreen = ({ navigation }) => {
     setMessages(newMessages);
     setLoading(true);
 
-    // Llamamos a la IA
-    const botResponse = await getAIResponse(newMessages);
-    setMessages((prev) => [...prev, { sender: "ai", text: botResponse }]);
-    setLoading(false);
+    try {
+      const botResponse = await getAIResponse(newMessages);
+      setMessages((prev) => [...prev, { sender: "ai", text: botResponse }]);
+    } catch (err) {
+      console.log("Error en ChatbotVetScreen:", err);
+      Alert.alert(
+        "Error",
+        "Ocurrió un problema al obtener la respuesta. Intenta de nuevo."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearChat = () => {
@@ -116,12 +74,10 @@ const ChatbotScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // Puedes quitar este Alert si ya tienes las sugerencias en pantalla,
-    // o dejarlo como bienvenida extra. Yo lo dejaría por ahora.
     Alert.alert(
-      "¡Hola! 👋",
-      "Soy PetHealthyBot. Selecciona un tema o escribe tu consulta.",
-      [{ text: "¡Vamos!", style: "default" }]
+      "¡Bienvenido! 👋",
+      "Soy PetHealthyBot en modo profesional veterinario. Puedes hacer consultas clínicas, de cirugía, farmacología y protocolos.\n\nRecuerda: no sustituyo tu criterio ni la valoración presencial del paciente.",
+      [{ text: "Entendido", style: "default" }]
     );
   }, []);
 
@@ -134,7 +90,7 @@ const ChatbotScreen = ({ navigation }) => {
       <View style={styles.container}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Chat de consultas</Text>
+          <Text style={styles.headerTitle}>Chat clínico veterinario</Text>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity style={styles.iconCircle} onPress={clearChat}>
@@ -158,11 +114,11 @@ const ChatbotScreen = ({ navigation }) => {
           }
           contentContainerStyle={styles.content}
         >
-          {/* 👇 3. MOSTRAR SUGERENCIAS SOLO SI NO HAY MENSAJES */}
+          {/* SUGERENCIAS SOLO SI NO HAY MENSAJES */}
           {messages.length === 0 && (
             <View style={styles.suggestionsContainer}>
               <Text style={styles.suggestionsTitle}>
-                ¿Sobre qué quieres hablar hoy?
+                ¿Sobre qué caso clínico quieres hablar hoy?
               </Text>
               <View style={styles.chipsWrapper}>
                 {SUGGESTIONS.map((suggestion, index) => (
@@ -175,6 +131,10 @@ const ChatbotScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 ))}
               </View>
+              <Text style={styles.helperBanner}>
+                Uso exclusivo para profesionales veterinarios. Esta herramienta
+                es de apoyo y no reemplaza tu criterio clínico.
+              </Text>
             </View>
           )}
 
@@ -200,14 +160,14 @@ const ChatbotScreen = ({ navigation }) => {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Escribe tu consulta..."
+            placeholder="Describe el caso o tu consulta clínica..."
             style={styles.input}
             multiline
           />
 
           <TouchableOpacity
             style={styles.sendButton}
-            onPress={() => sendMessage()} // Llamada sin argumentos (usa el input)
+            onPress={() => sendMessage()}
             disabled={loading}
           >
             {loading ? (
@@ -222,7 +182,7 @@ const ChatbotScreen = ({ navigation }) => {
   );
 };
 
-export default ChatbotScreen;
+export default ChatbotVetScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -263,17 +223,17 @@ const styles = StyleSheet.create({
 
   content: { paddingHorizontal: 20, paddingBottom: 24 },
 
-  // 👇 ESTILOS NUEVOS
   suggestionsContainer: {
     marginTop: 40,
     alignItems: "center",
-    opacity: 0.9,
+    opacity: 0.95,
   },
   suggestionsTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#546E7A",
     marginBottom: 20,
+    textAlign: "center",
   },
   chipsWrapper: {
     flexDirection: "row",
@@ -288,16 +248,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#B3E5FC",
-    elevation: 1, // Sombra suave en Android
-    shadowColor: "#000", // Sombra en iOS
+    elevation: 1,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    marginBottom: 6,
   },
   suggestionText: {
     color: "#0277BD",
     fontWeight: "500",
     fontSize: 14,
+  },
+  helperBanner: {
+    marginTop: 16,
+    fontSize: 12,
+    color: "#455A64",
+    textAlign: "center",
   },
 
   chatBubble: {
