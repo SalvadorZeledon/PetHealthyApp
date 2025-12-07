@@ -10,17 +10,54 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+
+// 👇 lee la sesión donde guardamos fotoPerfilUrl
+import { getUserFromStorage } from "../../../../shared/utils/storage";
 
 const avatarPlaceholder = require("../../../../assets/logo.png");
 
 const HomeVetScreen = ({ navigation }) => {
+  const [avatarUri, setAvatarUri] = useState(null);
+
+  // Cargar/recargar avatar desde AsyncStorage
+  const loadAvatar = useCallback(async () => {
+    try {
+      const stored = await getUserFromStorage();
+
+      if (
+        stored &&
+        stored.rol === "veterinario" &&
+        typeof stored.fotoPerfilUrl === "string" &&
+        stored.fotoPerfilUrl.length > 0
+      ) {
+        setAvatarUri(stored.fotoPerfilUrl);
+      } else {
+        setAvatarUri(null);
+      }
+    } catch (error) {
+      console.log("Error cargando avatar del veterinario:", error);
+      setAvatarUri(null);
+    }
+  }, []);
+
+  // Al montar
+  useEffect(() => {
+    loadAvatar();
+  }, [loadAvatar]);
+
+  // Cada vez que vuelves a este tab
+  useFocusEffect(
+    useCallback(() => {
+      loadAvatar();
+    }, [loadAvatar])
+  );
+
   const handleOpenProfile = () => {
-    // 👉 Perfil del veterinario (nueva vista)
     navigation.navigate("VetProfile");
   };
 
   const handleOpenSettings = () => {
-    // 👉 Pantalla de configuración que ya tienes
     navigation.navigate("Settings");
   };
 
@@ -47,7 +84,10 @@ const HomeVetScreen = ({ navigation }) => {
             style={styles.iconCircle}
             onPress={handleOpenProfile}
           >
-            <Image source={avatarPlaceholder} style={styles.avatar} />
+            <Image
+              source={avatarUri ? { uri: avatarUri } : avatarPlaceholder}
+              style={styles.avatar}
+            />
           </TouchableOpacity>
 
           {/* Configuración */}

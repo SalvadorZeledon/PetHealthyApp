@@ -18,6 +18,9 @@ import UserInfoScreen from "../feature/profile/views/UserInfoScreen";
 import SettingsScreen from "../feature/settings/views/SettingsScreen";
 import LocationPickerScreen from "../feature/profile/views/LocationPickerScreen";
 
+// --- PERFIL VETERINARIO ---
+import VetProfileScreen from "../veterinario/feature/profile/views/VetProfileScreen";
+
 // --- MASCOTAS ---
 import DogBasicInfoScreen from "../feature/pet/views/DogBasicInfoScreen";
 import RegistroMascota from "../feature/pet/views/RegistroMascota";
@@ -38,8 +41,6 @@ import VetMapScreen from "../feature/directory/views/VetMapScreen";
 import VetScannerScreen from "../veterinario/feature/patients/views/VetScannerScreen";
 // 👇👇 1. AGREGAMOS EL IMPORT DE LA CONSULTA 👇👇
 import VetConsultationScreen from "../veterinario/feature/patients/views/VetConsultationScreen";
-
-import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";
@@ -76,6 +77,7 @@ const AppNavigator = () => {
       <Stack.Screen name="UserInfo" component={UserInfoScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="VetProfile" component={VetProfileScreen} />
 
       {/* ===================== MASCOTAS ===================== */}
       <Stack.Screen name="DogBasicInfo" component={DogBasicInfoScreen} />
