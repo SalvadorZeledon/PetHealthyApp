@@ -107,12 +107,12 @@ const VetLoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      Dialog.show({
-        type: ALERT_TYPE.INFO,
-        title: "Ingreso profesional",
-        textBody:
-          "El inicio de sesión para veterinarios se habilitará cuando tu cuenta profesional esté creada en nuestro sistema.",
-        button: "Entendido",
+      // Aquí luego pondrás la lógica real de autenticación del veterinario
+      // (Firebase, backend, etc). Si las credenciales son correctas:
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "VetTabs" }], // 👈 nombre del Stack.Screen en AppNavigator
       });
     } catch (error) {
       Dialog.show({
@@ -580,9 +580,7 @@ ${fullName}
                 {showForm && (
                   <>
                     {/* DATOS PERSONALES */}
-                    <Text
-                      style={[styles.modalSectionTitle, { marginTop: 12 }]}
-                    >
+                    <Text style={[styles.modalSectionTitle, { marginTop: 12 }]}>
                       Datos personales
                     </Text>
 
