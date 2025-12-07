@@ -1,5 +1,5 @@
+// src/veterinario/feature/appointments/views/VetAppointmentsScreen.js
 import React, { useState, useEffect, useMemo } from "react";
-import { useRoute } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -12,7 +12,15 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// 👉 YA NO usamos AsyncStorage para los eventos, van a Firestore
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getUserFromStorage } from "../../../../shared/utils/storage"; // ajusta si tu ruta es distinta
+import {
+  subscribeVetEvents,
+  createVetEvent,
+} from "../../../../services/calendarEvents";
 
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS = [
@@ -30,7 +38,6 @@ const MONTHS = [
   "diciembre",
 ];
 
-const EVENTS_STORAGE_KEY = "@appointments_events";
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 
 // ---------- Helpers de fecha/hora ----------
@@ -66,47 +73,21 @@ const time12hToMinutes = (hour12, minute, period) => {
   return h * 60 + minute;
 };
 
-// Solo ejemplos iniciales de citas vet (si no hay nada guardado)
-const buildDefaultEventsForVet = () => {
-  const today = new Date();
-  const todayISO = today.toISOString().split("T")[0];
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hm, period] = timeStr.split(" ");
+  const [hStr, mStr] = hm.split(":");
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10) || 0;
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const tomorrowISO = tomorrow.toISOString().split("T")[0];
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
 
-  return [
-    {
-      id: "vet_demo_1",
-      type: "vet_appointment",
-      title: "Consulta general",
-      petName: "Bruno",
-      time: "09:00 AM",
-      date: tomorrowISO,
-      location: "Clínica VetSalud",
-      source: "vet",
-      status: "pending",
-      vetPlaceId: null,
-    },
-    {
-      id: "vet_demo_2",
-      type: "meds",
-      title: "Control de medicación",
-      petName: "Luna",
-      time: "05:00 PM",
-      date: todayISO,
-      location: "Seguimiento tratamiento",
-      source: "vet",
-      status: "pending",
-      vetPlaceId: null,
-    },
-  ];
+  return h * 60 + m;
 };
 
 const VetAppointmentsScreen = ({ navigation }) => {
-  const route = useRoute();
-
-  const userRole = "veterinario";
+  const [vetId, setVetId] = useState(null);
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
   const [daysStrip, setDaysStrip] = useState([]);
@@ -118,88 +99,98 @@ const VetAppointmentsScreen = ({ navigation }) => {
   // Modal nueva cita
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
-  const [eventCategory, setEventCategory] = useState("vet_appointment");
+  const [eventCategory, setEventCategory] = useState("vet_appointment"); // vet_appointment | meds
+
   const [timeHour, setTimeHour] = useState("09");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timePeriod, setTimePeriod] = useState("AM");
-  const [manualLocation, setManualLocation] = useState("");
-  const [selectedVet, setSelectedVet] = useState(null);
   const [timeError, setTimeError] = useState("");
+
   const [patientName, setPatientName] = useState("");
+  const [manualNotes, setManualNotes] = useState(""); // notas internas / observaciones
+
+  // Campos extra para medicación
+  const [medicationName, setMedicationName] = useState("");
+  const [medicationFrequency, setMedicationFrequency] = useState("");
+  const [medicationDuration, setMedicationDuration] = useState("");
 
   // Modal calendario mensual
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [monthCursor, setMonthCursor] = useState(() => new Date());
 
-  // Cargar eventos
+  // ========================
+  //   CARGAR VET + SUSCRIPCIÓN
+  // ========================
   useEffect(() => {
-    const loadEvents = async () => {
+    const loadVetId = async () => {
       try {
-        const json = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
-        if (json) {
-          const parsed = JSON.parse(json);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setEvents(parsed);
-          } else {
-            setEvents(buildDefaultEventsForVet());
-          }
-        } else {
-          setEvents(buildDefaultEventsForVet());
+        const stored = await getUserFromStorage();
+        if (!stored || stored.rol !== "veterinario") {
+          console.log("No hay sesión de veterinario para el calendario.");
+          return;
         }
-      } catch (e) {
-        console.log("Error cargando eventos (vet):", e);
-        setEvents(buildDefaultEventsForVet());
-      } finally {
-        setEventsLoaded(true);
+
+        const possibleId =
+          stored.uid || stored.id || stored.userId || stored.vetId || null;
+
+        if (!possibleId) {
+          console.log(
+            "No se encontró un ID único del veterinario en la sesión."
+          );
+        }
+
+        setVetId(possibleId || "VET_DEMO"); // fallback demo
+      } catch (error) {
+        console.log("Error cargando sesión de vet:", error);
       }
     };
 
-    loadEvents();
+    loadVetId();
   }, []);
 
-  // Guardar eventos
+  // Suscripción a eventos del vet en Firestore
   useEffect(() => {
-    if (!eventsLoaded) return;
+    if (!vetId) return;
 
-    const saveEvents = async () => {
-      try {
-        await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
-      } catch (e) {
-        console.log("Error guardando eventos (vet):", e);
-      }
+    const unsubscribe = subscribeVetEvents(vetId, (fireEvents) => {
+      // Ordenamos por fecha y hora en el cliente
+      const sorted = [...fireEvents].sort((a, b) => {
+        if (a.dateISO === b.dateISO) {
+          return (
+            parseTimeToMinutes(a.time || "00:00 AM") -
+            parseTimeToMinutes(b.time || "00:00 AM")
+          );
+        }
+        return (a.dateISO || "").localeCompare(b.dateISO || "");
+      });
+
+      const mapped = sorted.map((ev) => {
+        const isMedication = ev.type === "MEDICATION";
+        return {
+          id: ev.id,
+          type: isMedication ? "meds" : "vet_appointment",
+          title: ev.title,
+          petName: ev.petName || "",
+          time: ev.time,
+          date: ev.dateISO,
+          location: ev.description || ev.location || null,
+          source: "vet",
+          status: ev.status === "COMPLETADO" ? "done" : "pending",
+          vetPlaceId: null,
+          medicationName: ev.medicationName || null,
+          medicationFrequency: ev.medicationFrequency || null,
+          medicationDuration: ev.medicationDuration || null,
+        };
+      });
+
+      setEvents(mapped);
+      setEventsLoaded(true);
+    });
+
+    return () => {
+      unsubscribe && unsubscribe();
     };
-
-    saveEvents();
-  }, [events, eventsLoaded]);
-
-  // Integración con VetMap
-  useEffect(() => {
-    if (!route?.params) return;
-
-    const { selectedVetForEvent, openNewEventFromMap, dateISO } = route.params;
-
-    if (selectedVetForEvent) {
-      setSelectedVet({
-        placeId: selectedVetForEvent.placeId,
-        name: selectedVetForEvent.name,
-        address: selectedVetForEvent.address,
-      });
-
-      if (dateISO) {
-        setSelectedDateISO(dateISO);
-      }
-
-      if (openNewEventFromMap) {
-        setShowNewEventModal(true);
-      }
-
-      navigation.setParams({
-        selectedVetForEvent: undefined,
-        openNewEventFromMap: undefined,
-        dateISO: undefined,
-      });
-    }
-  }, [route?.params, navigation]);
+  }, [vetId]);
 
   // Inicializar mes actual
   useEffect(() => {
@@ -230,11 +221,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
   }, [daysStrip]);
 
   const mapTypeToFilterCategory = (type) => {
-    if (
-      type === "personal_vet_visit" ||
-      type === "vet_appointment" ||
-      type === "vet_visit"
-    ) {
+    if (type === "vet_appointment") {
       return "citas";
     }
     if (type === "meds") return "meds";
@@ -257,9 +244,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
   const getDaySummary = (dateIso) => {
     const list = events.filter((e) => e.date === dateIso && e.source === "vet");
     return {
-      hasVet: list.some((e) =>
-        ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(e.type)
-      ),
+      hasVet: list.some((e) => e.type === "vet_appointment"),
       hasMeds: list.some((e) => e.type === "meds"),
       hasActivity: list.some((e) => ["walk", "other"].includes(e.type)),
     };
@@ -267,23 +252,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
   const handleOpenSettings = () => {
     navigation.navigate("Settings");
-  };
-
-  const handleOpenVetPicker = () => {
-    if (!selectedDateISO) return;
-
-    if (isDateInPast(selectedDateISO)) {
-      Alert.alert(
-        "Fecha no válida",
-        "Selecciona una fecha igual o posterior a hoy antes de elegir una veterinaria."
-      );
-      return;
-    }
-
-    navigation.navigate("VetMap", {
-      pickMode: true,
-      dateISO: selectedDateISO,
-    });
   };
 
   const openNewEventModal = () => {
@@ -302,25 +270,53 @@ const VetAppointmentsScreen = ({ navigation }) => {
     setTimeHour("09");
     setTimeMinute("00");
     setTimePeriod("AM");
-    setManualLocation("");
     setTimeError("");
     setPatientName("");
+    setManualNotes("");
+    setMedicationName("");
+    setMedicationFrequency("");
+    setMedicationDuration("");
     setShowNewEventModal(true);
   };
 
-  const handleSaveNewEvent = () => {
+  const handleSaveNewEvent = async () => {
+    if (!vetId) {
+      Alert.alert(
+        "Sesión inválida",
+        "No se encontró la sesión del veterinario. Vuelve a iniciar sesión."
+      );
+      return;
+    }
+
     setTimeError("");
 
     const trimmedTitle = eventTitle.trim();
-    if (!trimmedTitle) return;
+    if (!trimmedTitle) {
+      Alert.alert(
+        "Motivo requerido",
+        "Debes indicar el motivo de la cita o control."
+      );
+      return;
+    }
 
     const trimmedPatient = patientName.trim();
     if (!trimmedPatient) {
       Alert.alert(
         "Paciente requerido",
-        "Debes indicar el nombre del paciente (mascota) para crear la cita."
+        "Debes seleccionar o escribir el nombre del paciente (mascota)."
       );
       return;
+    }
+
+    // Si es medicación, validamos campos básicos
+    if (eventCategory === "meds") {
+      if (!medicationName.trim()) {
+        Alert.alert(
+          "Medicamento requerido",
+          "Indica el nombre del medicamento para esta pauta."
+        );
+        return;
+      }
     }
 
     const h = parseInt(timeHour, 10);
@@ -354,32 +350,40 @@ const VetAppointmentsScreen = ({ navigation }) => {
     const mm = m.toString().padStart(2, "0");
     const timeStr = `${hh}:${mm} ${timePeriod}`;
 
-    let locationStr = manualLocation.trim();
-    let vetPlaceId = null;
+    try {
+      const payload = {
+        vetId,
+        ownerId: null, // 👉 luego lo rellenaremos con el dueño real
+        petId: null, // 👉 luego lo rellenaremos con la mascota real
+        petName: trimmedPatient,
 
-    if (eventCategory === "vet_appointment" && selectedVet) {
-      locationStr = selectedVet.address || selectedVet.name;
-      vetPlaceId = selectedVet.placeId;
+        type: eventCategory === "meds" ? "MEDICATION" : "APPOINTMENT",
+        title: trimmedTitle,
+        description: manualNotes.trim() || null,
+        dateISO: selectedDateISO,
+        time: timeStr,
+
+        medicationName: eventCategory === "meds" ? medicationName.trim() : null,
+        medicationFrequency:
+          eventCategory === "meds" ? medicationFrequency.trim() : null,
+        medicationDuration:
+          eventCategory === "meds" ? medicationDuration.trim() : null,
+      };
+
+      await createVetEvent(payload);
+      setShowNewEventModal(false);
+    } catch (error) {
+      console.log("Error creando evento vet:", error);
+      Alert.alert(
+        "Error",
+        "Ocurrió un problema al guardar la cita. Intenta nuevamente."
+      );
     }
-
-    const newEvent = {
-      id: Date.now().toString(),
-      type: eventCategory,
-      title: trimmedTitle,
-      petName: trimmedPatient,
-      time: timeStr,
-      date: selectedDateISO,
-      location: locationStr || null,
-      source: "vet",
-      status: "pending",
-      vetPlaceId,
-    };
-
-    setEvents((prev) => [...prev, newEvent]);
-    setShowNewEventModal(false);
   };
 
   const handleToggleDone = (id) => {
+    // 👉 Más adelante haremos update a Firestore (status COMPLETADO).
+    // Por ahora solo lo cambiamos en local para no complicar.
     setEvents((prev) =>
       prev.map((e) =>
         e.id === id && e.source === "vet"
@@ -403,6 +407,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
+            // 👉 Luego esto será un deleteDoc en Firestore.
             setEvents((prev) => prev.filter((e) => e.id !== id));
           },
         },
@@ -411,9 +416,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
   };
 
   const getEventVisuals = (ev) => {
-    if (
-      ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(ev.type)
-    ) {
+    if (ev.type === "vet_appointment") {
       return {
         iconName: "medkit-outline",
         iconBg: "#EDE7F6",
@@ -441,7 +444,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     };
   };
 
-  const primaryButtonLabel = "Crear cita médica";
+  const primaryButtonLabel = "Nuevo evento";
 
   // -------- helpers hora/minuto --------
   const incrementHour = () => {
@@ -647,8 +650,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
             <View style={styles.calendarHeaderLeft}>
               <Text style={styles.calendarTitle}>Citas y controles</Text>
               <Text style={styles.calendarSubtitle}>
-                Selecciona un día para ver o crear citas médicas para tus
-                pacientes.
+                Selecciona un día para ver o crear eventos para tus pacientes.
               </Text>
             </View>
 
@@ -799,11 +801,11 @@ const VetAppointmentsScreen = ({ navigation }) => {
         {eventsForSelectedDay.length === 0 ? (
           <View style={styles.placeholderCard}>
             <Ionicons name="time-outline" size={36} color="#7B1FA2" />
-            <Text style={styles.placeholderTitle}>Sin citas este día</Text>
+            <Text style={styles.placeholderTitle}>Sin eventos este día</Text>
             <Text style={styles.placeholderText}>
               Usa el botón{" "}
               <Text style={{ fontWeight: "700" }}>{primaryButtonLabel}</Text>{" "}
-              para asignar una nueva cita a un paciente.
+              para asignar un nuevo evento a un paciente.
             </Text>
           </View>
         ) : (
@@ -815,15 +817,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
               <TouchableOpacity
                 key={ev.id}
                 style={styles.eventCard}
-                activeOpacity={ev.vetPlaceId ? 0.9 : 1}
-                onPress={
-                  ev.vetPlaceId
-                    ? () =>
-                        navigation.navigate("VetDetail", {
-                          placeId: ev.vetPlaceId,
-                        })
-                    : undefined
-                }
+                activeOpacity={0.9}
               >
                 <View style={{ flex: 1 }}>
                   <Text
@@ -841,6 +835,21 @@ const VetAppointmentsScreen = ({ navigation }) => {
                       ? `Paciente: ${ev.petName} 🐾`
                       : "Paciente sin nombre"}
                   </Text>
+
+                  {ev.type === "meds" && ev.medicationName ? (
+                    <Text
+                      style={[
+                        styles.eventDetail,
+                        isDone && styles.eventTextDone,
+                      ]}
+                    >
+                      Medicamento: {ev.medicationName}
+                      {ev.medicationFrequency
+                        ? ` · ${ev.medicationFrequency}`
+                        : ""}
+                    </Text>
+                  ) : null}
+
                   <Text
                     style={[styles.eventDetail, isDone && styles.eventTextDone]}
                   >
@@ -900,7 +909,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* MODAL: NUEVA CITA VET */}
+      {/* MODAL: NUEVO EVENTO VET */}
       <Modal
         visible={showNewEventModal}
         transparent
@@ -910,7 +919,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Nueva cita médica</Text>
+              <Text style={styles.modalTitle}>Nuevo evento</Text>
             </View>
 
             <Text style={styles.modalSubtitle}>
@@ -931,8 +940,8 @@ const VetAppointmentsScreen = ({ navigation }) => {
               onChangeText={setPatientName}
             />
 
-            {/* TÍTULO */}
-            <Text style={styles.modalLabel}>Motivo de la cita</Text>
+            {/* MOTIVO */}
+            <Text style={styles.modalLabel}>Motivo del evento</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="Ej: Vacuna anual, control postoperatorio..."
@@ -949,7 +958,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
               {[
                 { value: "vet_appointment", label: "Cita médica" },
                 { value: "meds", label: "Medicación" },
-                { value: "other", label: "Otro" },
               ].map((opt) => {
                 const selected = eventCategory === opt.value;
                 return (
@@ -1049,76 +1057,51 @@ const VetAppointmentsScreen = ({ navigation }) => {
               el propietario.
             </Text>
 
-            {/* LUGAR / VETERINARIA */}
-            <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-              Clínica / lugar
-            </Text>
-
-            {eventCategory === "vet_appointment" ? (
+            {/* CAMPOS EXTRA PARA MEDICACIÓN */}
+            {eventCategory === "meds" && (
               <>
-                <View style={styles.vetRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.vetSelectedName}>
-                      {selectedVet ? selectedVet.name : "Ninguna seleccionada"}
-                    </Text>
-                    {selectedVet?.address ? (
-                      <Text style={styles.vetSelectedAddress}>
-                        {selectedVet.address}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {selectedVet && (
-                    <TouchableOpacity
-                      style={styles.vetClearBtn}
-                      onPress={() => setSelectedVet(null)}
-                    >
-                      <Ionicons
-                        name="close-circle-outline"
-                        size={18}
-                        color="#EF5350"
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.modalSecondaryBtn, styles.vetChooseBtn]}
-                  onPress={handleOpenVetPicker}
-                >
-                  <Ionicons name="location-outline" size={16} color="#7B1FA2" />
-                  <Text
-                    style={[
-                      styles.modalSecondaryText,
-                      { color: "#7B1FA2", marginLeft: 4 },
-                    ]}
-                  >
-                    Elegir desde el mapa
-                  </Text>
-                </TouchableOpacity>
-
                 <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-                  Notas internas (opcional)
+                  Nombre del medicamento
                 </Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Ej: traer exámenes, ayuno previo, etc."
+                  placeholder="Ej: Carprofeno 50mg"
                   placeholderTextColor="#9CA3AF"
-                  value={manualLocation}
-                  onChangeText={setManualLocation}
+                  value={medicationName}
+                  onChangeText={setMedicationName}
                 />
-              </>
-            ) : (
-              <>
+
+                <Text style={styles.modalLabel}>Frecuencia (cada cuánto)</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Ej: Seguimiento telefónico, visita domiciliaria..."
+                  placeholder="Ej: 2 veces al día, cada 8 horas..."
                   placeholderTextColor="#9CA3AF"
-                  value={manualLocation}
-                  onChangeText={setManualLocation}
+                  value={medicationFrequency}
+                  onChangeText={setMedicationFrequency}
+                />
+
+                <Text style={styles.modalLabel}>Duración del tratamiento</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Ej: 7 días, 1 mes..."
+                  placeholderTextColor="#9CA3AF"
+                  value={medicationDuration}
+                  onChangeText={setMedicationDuration}
                 />
               </>
             )}
+
+            {/* NOTAS INTERNAS / CLÍNICA */}
+            <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+              Notas internas / indicaciones
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ej: traer exámenes, ayuno previo, sala 2, etc."
+              placeholderTextColor="#9CA3AF"
+              value={manualNotes}
+              onChangeText={setManualNotes}
+            />
 
             {/* BOTONES MODAL */}
             <View style={styles.modalButtonsRow}>
@@ -1580,33 +1563,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#E53935",
     fontWeight: "600",
-  },
-  vetRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  vetSelectedName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#263238",
-  },
-  vetSelectedAddress: {
-    fontSize: 12,
-    color: "#607D8B",
-  },
-  vetClearBtn: {
-    marginLeft: 8,
-  },
-  vetChooseBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#E3F2FD",
   },
   monthCard: {
     width: "100%",

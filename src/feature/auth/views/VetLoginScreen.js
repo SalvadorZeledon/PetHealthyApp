@@ -101,6 +101,7 @@ const VetLoginScreen = ({ navigation }) => {
 
     return valid;
   };
+
   const handleLogin = async () => {
     if (!validateFormLogin()) return;
 
@@ -112,15 +113,13 @@ const VetLoginScreen = ({ navigation }) => {
       Dialog.show({
         type: ALERT_TYPE.SUCCESS,
         title: "Acceso profesional",
-        textBody: `Hola ${
-          vet.fullName || ""
-        }, tu cuenta profesional ha sido validada correctamente.`,
+        textBody: `Hola ${vet.fullName || ""}, tu cuenta profesional ha sido validada correctamente.`,
         button: "Continuar",
         onHide: () => {
-          // 👇 IMPORTANTE: ir al TabNavigator de veterinario
+          // 👇 CORRECCIÓN AQUÍ: Usamos "VetMain"
           navigation.reset({
             index: 0,
-            routes: [{ name: "VetTabs" }], // asegúrate que este sea el nombre del Stack.Screen que muestra TabVetNavigator
+            routes: [{ name: "VetMain" }], 
           });
         },
       });
@@ -130,8 +129,7 @@ const VetLoginScreen = ({ navigation }) => {
       let mensaje = "Número de junta o contraseña incorrectos.";
 
       if (error?.message === "CUENTA_INACTIVA") {
-        mensaje =
-          "Tu cuenta profesional está inactiva. Por favor contacta al equipo de PetHealthy.";
+        mensaje = "Tu cuenta profesional está inactiva. Por favor contacta al equipo de PetHealthy.";
       }
 
       Dialog.show({
@@ -189,8 +187,7 @@ const VetLoginScreen = ({ navigation }) => {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       return status === "granted";
     } else {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       return status === "granted";
     }
   };
@@ -201,8 +198,7 @@ const VetLoginScreen = ({ navigation }) => {
       Dialog.show({
         type: ALERT_TYPE.WARNING,
         title: "Permiso requerido",
-        textBody:
-          "Necesitamos acceso a la cámara o a tus fotos para adjuntar los documentos.",
+        textBody: "Necesitamos acceso a la cámara o a tus fotos para adjuntar los documentos.",
         button: "Entendido",
       });
       return;
@@ -221,23 +217,12 @@ const VetLoginScreen = ({ navigation }) => {
     if (!uri) return;
 
     switch (target) {
-      case "duiFront":
-        setDuiFront(uri);
-        break;
-      case "duiBack":
-        setDuiBack(uri);
-        break;
-      case "juntaFront":
-        setJuntaFront(uri);
-        break;
-      case "juntaBack":
-        setJuntaBack(uri);
-        break;
-      case "profilePhoto":
-        setProfilePhoto(uri);
-        break;
-      default:
-        break;
+      case "duiFront": setDuiFront(uri); break;
+      case "duiBack": setDuiBack(uri); break;
+      case "juntaFront": setJuntaFront(uri); break;
+      case "juntaBack": setJuntaBack(uri); break;
+      case "profilePhoto": setProfilePhoto(uri); break;
+      default: break;
     }
   };
 
@@ -255,85 +240,37 @@ const VetLoginScreen = ({ navigation }) => {
     city.trim() &&
     motivation.trim();
 
-  const hasAllDocs =
-    duiFront && duiBack && juntaFront && juntaBack && profilePhoto;
+  const hasAllDocs = duiFront && duiBack && juntaFront && juntaBack && profilePhoto;
 
   const isSolicitudReady = Boolean(
-    isFormFilled &&
-      hasAllDocs &&
-      isDuiValid &&
-      isPhoneValid &&
-      isJuntaValid &&
-      acceptTerms
+    isFormFilled && hasAllDocs && isDuiValid && isPhoneValid && isJuntaValid && acceptTerms
   );
 
   const validateSolicitud = () => {
     if (!isFormFilled) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "Formulario incompleto",
-        textBody:
-          "Por favor completa todos los campos del formulario de solicitud.",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "Formulario incompleto", textBody: "Por favor completa todos los campos del formulario de solicitud.", button: "Entendido" });
       return false;
     }
-
     if (!isDuiValid) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "DUI no válido",
-        textBody:
-          "El número de DUI debe tener el formato 00000000-0. Verifica los dígitos ingresados.",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "DUI no válido", textBody: "El número de DUI debe tener el formato 00000000-0.", button: "Entendido" });
       return false;
     }
-
     if (!isPhoneValid) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "Teléfono no válido",
-        textBody:
-          "El número de teléfono debe tener el formato 1234-5678. Verifica los dígitos ingresados.",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "Teléfono no válido", textBody: "El número de teléfono debe tener el formato 1234-5678.", button: "Entendido" });
       return false;
     }
-
     if (!isJuntaValid) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "Número de junta no válido",
-        textBody:
-          "El número de junta debe contener solo dígitos y tener un máximo de 8 caracteres.",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "Número de junta no válido", textBody: "El número de junta debe contener solo dígitos.", button: "Entendido" });
       return false;
     }
-
     if (!hasAllDocs) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "Faltan documentos",
-        textBody:
-          "Por favor adjunta todas las fotos solicitadas (DUI, carnet de junta y foto personal).",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "Faltan documentos", textBody: "Por favor adjunta todas las fotos solicitadas.", button: "Entendido" });
       return false;
     }
-
     if (!acceptTerms) {
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: "Términos y condiciones",
-        textBody:
-          "Debes confirmar que aceptas los términos y condiciones de PetHealthy para continuar.",
-        button: "Entendido",
-      });
+      Dialog.show({ type: ALERT_TYPE.WARNING, title: "Términos y condiciones", textBody: "Debes confirmar que aceptas los términos y condiciones.", button: "Entendido" });
       return false;
     }
-
     return true;
   };
 
@@ -368,10 +305,7 @@ Adjunto a este correo la siguiente documentación de respaldo:
 
 - Fotografía de mi DUI (frente y reverso).
 - Fotografía de mi carnet de junta veterinaria (frente y reverso).
-- Fotografía personal reciente, la cual puede ser utilizada como foto de perfil dentro de la aplicación.
-
-Agradezco de antemano el tiempo dedicado a la revisión de mi solicitud y quedo atento(a) a cualquier información
-adicional que consideren necesaria.
+- Fotografía personal reciente.
 
 Atentamente,
 
@@ -383,21 +317,13 @@ ${fullName}
       Dialog.show({
         type: ALERT_TYPE.WARNING,
         title: "Correo no disponible",
-        textBody:
-          "No pudimos abrir el editor de correo. Copia esta información y envíala manualmente a " +
-          SUPPORT_EMAIL,
+        textBody: "No pudimos abrir el editor de correo. Copia esta información y envíala manualmente a " + SUPPORT_EMAIL,
         button: "Entendido",
       });
       return;
     }
 
-    const attachments = [
-      duiFront,
-      duiBack,
-      juntaFront,
-      juntaBack,
-      profilePhoto,
-    ].filter(Boolean);
+    const attachments = [duiFront, duiBack, juntaFront, juntaBack, profilePhoto].filter(Boolean);
 
     try {
       await MailComposer.composeAsync({
@@ -406,14 +332,12 @@ ${fullName}
         body,
         attachments,
       });
-
       setModalVisible(false);
     } catch (error) {
       Dialog.show({
         type: ALERT_TYPE.DANGER,
         title: "Error al enviar",
-        textBody:
-          "Ocurrió un problema al intentar preparar el correo. Inténtalo de nuevo.",
+        textBody: "Ocurrió un problema al intentar preparar el correo.",
         button: "Cerrar",
       });
     }
@@ -432,9 +356,7 @@ ${fullName}
           <View style={styles.logoContainer}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
             <Text style={styles.appName}>PetHealthyApp</Text>
-            <Text style={styles.appSubtitle}>
-              Ingreso profesional para veterinarios 🩺🐾
-            </Text>
+            <Text style={styles.appSubtitle}>Ingreso profesional para veterinarios 🩺🐾</Text>
           </View>
 
           <View style={styles.card}>
@@ -444,8 +366,7 @@ ${fullName}
 
             <Text style={styles.cardTitle}>Ingreso para profesionales</Text>
             <Text style={styles.cardSubtitle}>
-              Ingresa con tu número de junta y la contraseña que te proporcionó
-              el equipo de PetHealthy.
+              Ingresa con tu número de junta y la contraseña que te proporcionó el equipo de PetHealthy.
             </Text>
 
             <TextInput
@@ -462,9 +383,7 @@ ${fullName}
               returnKeyType="next"
               onSubmitEditing={() => passwordInputRef.current?.focus()}
             />
-            {errorLicense ? (
-              <Text style={styles.errorText}>{errorLicense}</Text>
-            ) : null}
+            {errorLicense ? <Text style={styles.errorText}>{errorLicense}</Text> : null}
 
             <View style={styles.inputPasswordContainer}>
               <TextInput
@@ -492,9 +411,7 @@ ${fullName}
                 />
               </TouchableOpacity>
             </View>
-            {errorPassword ? (
-              <Text style={styles.errorText}>{errorPassword}</Text>
-            ) : null}
+            {errorPassword ? <Text style={styles.errorText}>{errorPassword}</Text> : null}
 
             <TouchableOpacity
               style={styles.primaryButton}
@@ -508,37 +425,25 @@ ${fullName}
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-              style={{ marginTop: 8 }}
-            >
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={{ marginTop: 8 }}>
               <Text style={styles.vetLinkText}>
                 ¿Quisieras tener una cuenta con nosotros?{" "}
                 <Text style={styles.vetLinkBold}>Formulario de solicitud</Text>
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ marginTop: 8 }}
-            >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 8 }}>
               <Text style={styles.linkText}>
-                Volver al{" "}
-                <Text style={styles.linkTextBold}>
-                  inicio de sesión de clientes
-                </Text>
+                Volver al <Text style={styles.linkTextBold}>inicio de sesión de clientes</Text>
               </Text>
             </TouchableOpacity>
 
             <Text style={styles.helperText}>
-              El acceso profesional es exclusivo para veterinarios validados por
-              el equipo de PetHealthy.
+              El acceso profesional es exclusivo para veterinarios validados por el equipo de PetHealthy.
             </Text>
           </View>
 
-          <Text style={styles.footerText}>
-            Cuidando la salud de tus pacientes con PetHealthy 💜
-          </Text>
+          <Text style={styles.footerText}>Cuidando la salud de tus pacientes con PetHealthy 💜</Text>
         </View>
       </TouchableWithoutFeedback>
 
@@ -550,10 +455,7 @@ ${fullName}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback
-            onPress={Keyboard.dismiss}
-            accessible={false}
-          >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.modalCard}>
               <KeyboardAwareScrollView
                 enableOnAndroid
@@ -561,21 +463,16 @@ ${fullName}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.modalScrollContent}
               >
-                <Text style={styles.modalTitle}>
-                  Solicitud de cuenta profesional
-                </Text>
+                <Text style={styles.modalTitle}>Solicitud de cuenta profesional</Text>
 
                 <Text style={styles.modalIntro}>
-                  Para formar parte de PetHealthy como veterinario, necesitamos
-                  validar tu información profesional.
+                  Para formar parte de PetHealthy como veterinario, necesitamos validar tu información profesional.
                 </Text>
 
                 <Text style={styles.modalSectionTitle}>¿Cómo funciona?</Text>
                 <Text style={styles.modalText}>
-                  Completa brevemente el siguiente formulario{" "}
-                  <Text style={styles.required}>*</Text>, adjunta las fotos
-                  solicitadas y luego tocaremos en{" "}
-                  <Text style={styles.bold}>“Enviar solicitud”</Text> para crear
+                  Completa brevemente el siguiente formulario <Text style={styles.required}>*</Text>, adjunta las fotos
+                  solicitadas y luego tocaremos en <Text style={styles.bold}>“Enviar solicitud”</Text> para crear
                   un correo con toda la información lista para enviar.
                 </Text>
 
@@ -589,23 +486,17 @@ ${fullName}
                     color="#7B1FA2"
                   />
                   <Text style={styles.formToggleText}>
-                    {showForm
-                      ? "Ocultar formulario de solicitud"
-                      : "Mostrar formulario de solicitud"}
+                    {showForm ? "Ocultar formulario de solicitud" : "Mostrar formulario de solicitud"}
                   </Text>
                 </TouchableOpacity>
 
                 {showForm && (
                   <>
                     {/* DATOS PERSONALES */}
-                    <Text style={[styles.modalSectionTitle, { marginTop: 12 }]}>
-                      Datos personales
-                    </Text>
+                    <Text style={[styles.modalSectionTitle, { marginTop: 12 }]}>Datos personales</Text>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Nombre según DUI <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Nombre según DUI <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="NOMBRE COMPLETO SEGÚN TU DUI"
@@ -617,9 +508,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Número de DUI <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Número de DUI <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="05843324-3"
@@ -632,10 +521,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Número de junta / registro profesional{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Número de junta / registro profesional <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="Ej. 76655"
@@ -648,10 +534,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Clínica donde laboras{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Clínica donde laboras <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="Nombre de la clínica"
@@ -662,10 +545,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Teléfono de contacto{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Teléfono de contacto <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="1234-5678"
@@ -678,9 +558,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        Ciudad / País <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>Ciudad / País <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={styles.fieldInput}
                         placeholder="Ej. San Salvador, El Salvador"
@@ -691,10 +569,7 @@ ${fullName}
                     </View>
 
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>
-                        ¿Por qué quieres ser parte de PetHealthy?{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.fieldLabel}>¿Por qué quieres ser parte de PetHealthy? <Text style={styles.required}>*</Text></Text>
                       <TextInput
                         style={[styles.fieldInput, { height: 80 }]}
                         placeholder="Cuéntanos brevemente tu motivación"
@@ -710,70 +585,33 @@ ${fullName}
                     {/* DOCUMENTOS */}
                     <View style={styles.attachmentHeader}>
                       <View style={styles.attachmentIconWrapper}>
-                        <Ionicons
-                          name="document-text-outline"
-                          size={18}
-                          color="#7B1FA2"
-                        />
+                        <Ionicons name="document-text-outline" size={18} color="#7B1FA2" />
                       </View>
-                      <Text style={styles.modalSectionTitle}>
-                        Documentos que debes adjuntar{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
+                      <Text style={styles.modalSectionTitle}>Documentos que debes adjuntar <Text style={styles.required}>*</Text></Text>
                     </View>
 
                     {/* DUI */}
                     <View style={styles.docBlock}>
-                      <Text style={styles.docTitle}>
-                        DUI (frente y reverso){" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
-                      <Text style={styles.docSubtitle}>
-                        Toma o selecciona fotos claras de ambas caras de tu DUI.
-                      </Text>
+                      <Text style={styles.docTitle}>DUI (frente y reverso) <Text style={styles.required}>*</Text></Text>
+                      <Text style={styles.docSubtitle}>Toma o selecciona fotos claras de ambas caras de tu DUI.</Text>
 
                       <View style={styles.docRow}>
                         <View style={styles.docItem}>
                           <Text style={styles.docLabel}>Frente</Text>
                           <View style={styles.docPreviewWrapper}>
                             {duiFront ? (
-                              <Image
-                                source={{ uri: duiFront }}
-                                style={styles.docPreview}
-                              />
+                              <Image source={{ uri: duiFront }} style={styles.docPreview} />
                             ) : (
-                              <Ionicons
-                                name="image-outline"
-                                size={24}
-                                color="#B0BEC5"
-                              />
+                              <Ionicons name="image-outline" size={24} color="#B0BEC5" />
                             )}
                           </View>
                           <View style={styles.docButtonsRow}>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("duiFront", "camera")
-                              }
-                            >
-                              <Ionicons
-                                name="camera-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("duiFront", "camera")}>
+                              <Ionicons name="camera-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Cámara</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("duiFront", "gallery")
-                              }
-                            >
-                              <Ionicons
-                                name="images-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("duiFront", "gallery")}>
+                              <Ionicons name="images-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Galería</Text>
                             </TouchableOpacity>
                           </View>
@@ -783,43 +621,18 @@ ${fullName}
                           <Text style={styles.docLabel}>Reverso</Text>
                           <View style={styles.docPreviewWrapper}>
                             {duiBack ? (
-                              <Image
-                                source={{ uri: duiBack }}
-                                style={styles.docPreview}
-                              />
+                              <Image source={{ uri: duiBack }} style={styles.docPreview} />
                             ) : (
-                              <Ionicons
-                                name="image-outline"
-                                size={24}
-                                color="#B0BEC5"
-                              />
+                              <Ionicons name="image-outline" size={24} color="#B0BEC5" />
                             )}
                           </View>
                           <View style={styles.docButtonsRow}>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("duiBack", "camera")
-                              }
-                            >
-                              <Ionicons
-                                name="camera-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("duiBack", "camera")}>
+                              <Ionicons name="camera-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Cámara</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("duiBack", "gallery")
-                              }
-                            >
-                              <Ionicons
-                                name="images-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("duiBack", "gallery")}>
+                              <Ionicons name="images-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Galería</Text>
                             </TouchableOpacity>
                           </View>
@@ -829,57 +642,26 @@ ${fullName}
 
                     {/* CARNET JUNTA */}
                     <View style={styles.docBlock}>
-                      <Text style={styles.docTitle}>
-                        Carnet de junta veterinaria{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
-                      <Text style={styles.docSubtitle}>
-                        Adjunta fotos de tu carnet profesional (frente y
-                        reverso).
-                      </Text>
+                      <Text style={styles.docTitle}>Carnet de junta veterinaria <Text style={styles.required}>*</Text></Text>
+                      <Text style={styles.docSubtitle}>Adjunta fotos de tu carnet profesional (frente y reverso).</Text>
 
                       <View style={styles.docRow}>
                         <View style={styles.docItem}>
                           <Text style={styles.docLabel}>Frente</Text>
                           <View style={styles.docPreviewWrapper}>
                             {juntaFront ? (
-                              <Image
-                                source={{ uri: juntaFront }}
-                                style={styles.docPreview}
-                              />
+                              <Image source={{ uri: juntaFront }} style={styles.docPreview} />
                             ) : (
-                              <Ionicons
-                                name="image-outline"
-                                size={24}
-                                color="#B0BEC5"
-                              />
+                              <Ionicons name="image-outline" size={24} color="#B0BEC5" />
                             )}
                           </View>
                           <View style={styles.docButtonsRow}>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("juntaFront", "camera")
-                              }
-                            >
-                              <Ionicons
-                                name="camera-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("juntaFront", "camera")}>
+                              <Ionicons name="camera-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Cámara</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("juntaFront", "gallery")
-                              }
-                            >
-                              <Ionicons
-                                name="images-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("juntaFront", "gallery")}>
+                              <Ionicons name="images-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Galería</Text>
                             </TouchableOpacity>
                           </View>
@@ -889,43 +671,18 @@ ${fullName}
                           <Text style={styles.docLabel}>Reverso</Text>
                           <View style={styles.docPreviewWrapper}>
                             {juntaBack ? (
-                              <Image
-                                source={{ uri: juntaBack }}
-                                style={styles.docPreview}
-                              />
+                              <Image source={{ uri: juntaBack }} style={styles.docPreview} />
                             ) : (
-                              <Ionicons
-                                name="image-outline"
-                                size={24}
-                                color="#B0BEC5"
-                              />
+                              <Ionicons name="image-outline" size={24} color="#B0BEC5" />
                             )}
                           </View>
                           <View style={styles.docButtonsRow}>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("juntaBack", "camera")
-                              }
-                            >
-                              <Ionicons
-                                name="camera-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("juntaBack", "camera")}>
+                              <Ionicons name="camera-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Cámara</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("juntaBack", "gallery")
-                              }
-                            >
-                              <Ionicons
-                                name="images-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("juntaBack", "gallery")}>
+                              <Ionicons name="images-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Galería</Text>
                             </TouchableOpacity>
                           </View>
@@ -935,57 +692,26 @@ ${fullName}
 
                     {/* FOTO PERSONAL */}
                     <View style={styles.docBlock}>
-                      <Text style={styles.docTitle}>
-                        Foto personal reciente{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
-                      <Text style={styles.docSubtitle}>
-                        Esta foto se utilizará también como foto de perfil en
-                        PetHealthy.
-                      </Text>
+                      <Text style={styles.docTitle}>Foto personal reciente <Text style={styles.required}>*</Text></Text>
+                      <Text style={styles.docSubtitle}>Esta foto se utilizará también como foto de perfil en PetHealthy.</Text>
 
                       <View style={styles.docRow}>
                         <View style={[styles.docItem, { flex: 1 }]}>
                           <Text style={styles.docLabel}>Foto</Text>
                           <View style={styles.docPreviewWrapper}>
                             {profilePhoto ? (
-                              <Image
-                                source={{ uri: profilePhoto }}
-                                style={styles.docPreview}
-                              />
+                              <Image source={{ uri: profilePhoto }} style={styles.docPreview} />
                             ) : (
-                              <Ionicons
-                                name="person-circle-outline"
-                                size={32}
-                                color="#B0BEC5"
-                              />
+                              <Ionicons name="person-circle-outline" size={32} color="#B0BEC5" />
                             )}
                           </View>
                           <View style={styles.docButtonsRow}>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("profilePhoto", "camera")
-                              }
-                            >
-                              <Ionicons
-                                name="camera-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("profilePhoto", "camera")}>
+                              <Ionicons name="camera-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Cámara</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.docButton}
-                              onPress={() =>
-                                handleSelectImage("profilePhoto", "gallery")
-                              }
-                            >
-                              <Ionicons
-                                name="images-outline"
-                                size={16}
-                                color="#7B1FA2"
-                              />
+                            <TouchableOpacity style={styles.docButton} onPress={() => handleSelectImage("profilePhoto", "gallery")}>
+                              <Ionicons name="images-outline" size={16} color="#7B1FA2" />
                               <Text style={styles.docButtonText}>Galería</Text>
                             </TouchableOpacity>
                           </View>
@@ -1000,45 +726,23 @@ ${fullName}
                       onPress={() => setAcceptTerms((prev) => !prev)}
                       activeOpacity={0.7}
                     >
-                      <View
-                        style={[
-                          styles.checkboxBox,
-                          acceptTerms && styles.checkboxBoxChecked,
-                        ]}
-                      >
-                        {acceptTerms && (
-                          <Ionicons
-                            name="checkmark"
-                            size={16}
-                            color="#FFFFFF"
-                          />
-                        )}
+                      <View style={[styles.checkboxBox, acceptTerms && styles.checkboxBoxChecked]}>
+                        {acceptTerms && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                       </View>
                       <Text style={styles.checkboxText}>
-                        Confirmo que he leído y acepto los{" "}
-                        <Text style={styles.checkboxLinkText}>
-                          términos y condiciones
-                        </Text>{" "}
-                        de PetHealthy.
+                        Confirmo que he leído y acepto los <Text style={styles.checkboxLinkText}>términos y condiciones</Text> de PetHealthy.
                       </Text>
                     </TouchableOpacity>
                   </>
                 )}
 
                 <Text style={styles.modalFooterText}>
-                  Todos los campos marcados con{" "}
-                  <Text style={styles.required}>*</Text> son obligatorios. Al
-                  tocar en <Text style={styles.bold}>“Enviar solicitud”</Text>,
-                  se abrirá tu aplicación de correo con toda la información y
-                  las fotos adjuntas listas para enviar.
+                  Todos los campos marcados con <Text style={styles.required}>*</Text> son obligatorios. Al tocar en <Text style={styles.bold}>“Enviar solicitud”</Text>,
+                  se abrirá tu aplicación de correo con toda la información y las fotos adjuntas listas para enviar.
                 </Text>
 
                 <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    { marginTop: 12 },
-                    !isSolicitudReady && styles.primaryButtonDisabled,
-                  ]}
+                  style={[styles.primaryButton, { marginTop: 12 }, !isSolicitudReady && styles.primaryButtonDisabled]}
                   onPress={handleSendRequest}
                   disabled={!isSolicitudReady}
                 >

@@ -1,3 +1,4 @@
+// veterinario/feature/home/views/HomeVetScreen.js
 import React from "react";
 import {
   View,
@@ -9,18 +10,60 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+
+// 👇 lee la sesión donde guardamos fotoPerfilUrl
+import { getUserFromStorage } from "../../../../shared/utils/storage";
 
 const avatarPlaceholder = require("../../../../assets/logo.png");
 
 const HomeVetScreen = ({ navigation }) => {
+  const [avatarUri, setAvatarUri] = useState(null);
+
+  // Cargar/recargar avatar desde AsyncStorage
+  const loadAvatar = useCallback(async () => {
+    try {
+      const stored = await getUserFromStorage();
+
+      if (
+        stored &&
+        stored.rol === "veterinario" &&
+        typeof stored.fotoPerfilUrl === "string" &&
+        stored.fotoPerfilUrl.length > 0
+      ) {
+        setAvatarUri(stored.fotoPerfilUrl);
+      } else {
+        setAvatarUri(null);
+      }
+    } catch (error) {
+      console.log("Error cargando avatar del veterinario:", error);
+      setAvatarUri(null);
+    }
+  }, []);
+
+  // Al montar
+  useEffect(() => {
+    loadAvatar();
+  }, [loadAvatar]);
+
+  // Cada vez que vuelves a este tab
+  useFocusEffect(
+    useCallback(() => {
+      loadAvatar();
+    }, [loadAvatar])
+  );
+
   const handleOpenProfile = () => {
-    // 👉 Perfil del veterinario (nueva vista)
     navigation.navigate("VetProfile");
   };
 
   const handleOpenSettings = () => {
-    // 👉 Pantalla de configuración que ya tienes
     navigation.navigate("Settings");
+  };
+
+  // 👇 NUEVA FUNCIÓN PARA EL CLICK
+  const handleOpenScanner = () => {
+    navigation.navigate("VetScanner");
   };
 
   return (
@@ -41,7 +84,10 @@ const HomeVetScreen = ({ navigation }) => {
             style={styles.iconCircle}
             onPress={handleOpenProfile}
           >
-            <Image source={avatarPlaceholder} style={styles.avatar} />
+            <Image
+              source={avatarUri ? { uri: avatarUri } : avatarPlaceholder}
+              style={styles.avatar}
+            />
           </TouchableOpacity>
 
           {/* Configuración */}
@@ -56,7 +102,13 @@ const HomeVetScreen = ({ navigation }) => {
 
       {/* CONTENIDO PRINCIPAL */}
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.mainCard}>
+        
+        {/* 👇 AHORA ESTA TARJETA ES TOCABLE (TouchableOpacity) */}
+        <TouchableOpacity 
+            style={styles.mainCard} 
+            activeOpacity={0.9} 
+            onPress={handleOpenScanner} // 👈 Acción al tocar
+        >
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardIconWrapper}>
               <Ionicons name="qr-code-outline" size={26} color="#7B1FA2" />
@@ -64,21 +116,20 @@ const HomeVetScreen = ({ navigation }) => {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.mainCardTitle}>Escaneo de pacientes</Text>
               <Text style={styles.mainCardSubtitle}>
-                Desde aquí podrás escanear el código QR de las mascotas para ver
-                su perfil clínico.
+                Toca aquí para escanear el código QR de las mascotas y ver su historial.
               </Text>
             </View>
           </View>
 
-          {/* Placeholder: luego irá la cámara */}
+          {/* Placeholder visual de cámara */}
           <View style={styles.placeholderArea}>
-            <Ionicons name="camera-outline" size={42} color="#D1C4E9" />
+            <Ionicons name="camera" size={42} color="#D1C4E9" />
             <Text style={styles.placeholderText}>
-              Próximamente aquí podrás abrir la cámara para escanear el código
-              QR de tus pacientes.
+              Iniciar Escáner
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
+
       </ScrollView>
     </View>
   );
@@ -191,7 +242,8 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     marginTop: 8,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
     color: "#6A1B9A",
     textAlign: "center",
   },

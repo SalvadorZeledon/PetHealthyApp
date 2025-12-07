@@ -1,7 +1,7 @@
-// src/utils/cloudinary.js
+// src/services/cloudinary.js
 
-const CLOUD_NAME = 'ddqr9jtnd';
-const UPLOAD_PRESET = 'pethealthy_unsigned';
+const CLOUD_NAME = "ddqr9jtnd";
+const UPLOAD_PRESET = "pethealthy_unsigned";
 
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
@@ -13,24 +13,26 @@ const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/uplo
 export const uploadImageToCloudinary = async (uri) => {
   const data = new FormData();
 
-  data.append('file', {
+  data.append("file", {
     uri,
-    type: 'image/jpeg',
-    name: 'photo.jpg',
+    type: "image/jpeg",
+    name: "photo.jpg",
   });
 
-  data.append('upload_preset', UPLOAD_PRESET);
+  data.append("upload_preset", UPLOAD_PRESET);
 
   const res = await fetch(CLOUDINARY_URL, {
-    method: 'POST',
+    method: "POST",
     body: data,
   });
 
   const json = await res.json();
 
   if (!res.ok) {
-    console.log('Cloudinary error:', json);
-    throw new Error(json.error?.message || 'Error al subir imagen a Cloudinary');
+    console.log("Cloudinary error:", json);
+    throw new Error(
+      json.error?.message || "Error al subir imagen a Cloudinary"
+    );
   }
 
   return json.secure_url;
