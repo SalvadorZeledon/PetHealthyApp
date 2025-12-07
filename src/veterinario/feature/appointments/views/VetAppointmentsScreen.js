@@ -14,8 +14,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { getUserFromStorage } from "../../../utils/storage";
-
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS = [
   "enero",
@@ -33,11 +31,9 @@ const MONTHS = [
 ];
 
 const EVENTS_STORAGE_KEY = "@appointments_events";
-
-// opciones simples de minutos (incluye :40 como tu ejemplo)
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 
-// Helper para generar todos los días de un mes
+// ---------- Helpers de fecha/hora ----------
 const buildMonthDays = (year, monthIndex) => {
   const days = [];
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -55,7 +51,6 @@ const buildMonthDays = (year, monthIndex) => {
   return days;
 };
 
-// Helper: comprobar si una fecha (YYYY-MM-DD) está en el pasado
 const isDateInPast = (iso) => {
   if (!iso) return false;
   const [y, m, d] = iso.split("-").map((x) => Number(x));
@@ -65,15 +60,14 @@ const isDateInPast = (iso) => {
   return date < today;
 };
 
-// Helper: hora 12h + AM/PM → minutos desde medianoche
 const time12hToMinutes = (hour12, minute, period) => {
   let h = hour12 % 12;
   if (period === "PM") h += 12;
   return h * 60 + minute;
 };
 
-// Eventos por defecto (solo la primera vez si no hay guardados)
-const buildDefaultEvents = () => {
+// Solo ejemplos iniciales de citas vet (si no hay nada guardado)
+const buildDefaultEventsForVet = () => {
   const today = new Date();
   const todayISO = today.toISOString().split("T")[0];
 
@@ -83,37 +77,25 @@ const buildDefaultEvents = () => {
 
   return [
     {
-      id: "1",
-      type: "personal_vet_visit",
-      title: "Visita al veterinario (personal)",
-      petName: "Max",
-      time: "10:30 AM",
-      date: todayISO,
-      location: "Clínica PetHealthy",
-      source: "user", // user | vet
-      status: "pending",
-      vetPlaceId: null,
-    },
-    {
-      id: "2",
-      type: "walk",
-      title: "Paseo al parque",
-      petName: "Luna",
-      time: "5:00 PM",
-      date: todayISO,
-      location: "Parque Central",
-      source: "user",
-      status: "pending",
-      vetPlaceId: null,
-    },
-    {
-      id: "3",
+      id: "vet_demo_1",
       type: "vet_appointment",
-      title: "Consulta general (asignada por tu veterinario)",
+      title: "Consulta general",
       petName: "Bruno",
-      time: "9:00 AM",
+      time: "09:00 AM",
       date: tomorrowISO,
       location: "Clínica VetSalud",
+      source: "vet",
+      status: "pending",
+      vetPlaceId: null,
+    },
+    {
+      id: "vet_demo_2",
+      type: "meds",
+      title: "Control de medicación",
+      petName: "Luna",
+      time: "05:00 PM",
+      date: todayISO,
+      location: "Seguimiento tratamiento",
       source: "vet",
       status: "pending",
       vetPlaceId: null,
@@ -121,64 +103,52 @@ const buildDefaultEvents = () => {
   ];
 };
 
-const AppointmentsScreen = ({ navigation }) => {
+const VetAppointmentsScreen = ({ navigation }) => {
   const route = useRoute();
-  const [userRole, setUserRole] = useState("cliente"); // "cliente" | "veterinario"
+
+  const userRole = "veterinario";
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
   const [daysStrip, setDaysStrip] = useState([]);
   const [filter, setFilter] = useState("all"); // all | citas | meds | actividades
 
-  // Eventos (cargados desde AsyncStorage)
   const [events, setEvents] = useState([]);
   const [eventsLoaded, setEventsLoaded] = useState(false);
 
-  // Modal nuevo recordatorio
+  // Modal nueva cita
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
-  const [eventCategory, setEventCategory] = useState("vet_visit"); // vet_visit | meds | walk | other
+  const [eventCategory, setEventCategory] = useState("vet_appointment");
   const [timeHour, setTimeHour] = useState("09");
   const [timeMinute, setTimeMinute] = useState("00");
-  const [timePeriod, setTimePeriod] = useState("AM"); // AM | PM
+  const [timePeriod, setTimePeriod] = useState("AM");
   const [manualLocation, setManualLocation] = useState("");
-  const [selectedVet, setSelectedVet] = useState(null); // { placeId, name, address }
+  const [selectedVet, setSelectedVet] = useState(null);
   const [timeError, setTimeError] = useState("");
+  const [patientName, setPatientName] = useState("");
 
-  // Modal calendario mensual completo
+  // Modal calendario mensual
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [monthCursor, setMonthCursor] = useState(() => new Date());
 
-  // Cargar rol de usuario
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const stored = await getUserFromStorage();
-        if (stored?.rol) setUserRole(stored.rol);
-      } catch (err) {
-        console.log("Error cargando usuario en AppointmentsScreen:", err);
-      }
-    };
-    loadUser();
-  }, []);
-
-  // Cargar eventos desde AsyncStorage (una sola vez)
+  // Cargar eventos
   useEffect(() => {
     const loadEvents = async () => {
       try {
         const json = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
         if (json) {
           const parsed = JSON.parse(json);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             setEvents(parsed);
           } else {
-            setEvents(buildDefaultEvents());
+            setEvents(buildDefaultEventsForVet());
           }
         } else {
-          setEvents(buildDefaultEvents());
+          setEvents(buildDefaultEventsForVet());
         }
       } catch (e) {
-        console.log("Error cargando eventos:", e);
-        setEvents(buildDefaultEvents());
+        console.log("Error cargando eventos (vet):", e);
+        setEvents(buildDefaultEventsForVet());
       } finally {
         setEventsLoaded(true);
       }
@@ -187,7 +157,7 @@ const AppointmentsScreen = ({ navigation }) => {
     loadEvents();
   }, []);
 
-  // Guardar eventos en AsyncStorage cada vez que cambian
+  // Guardar eventos
   useEffect(() => {
     if (!eventsLoaded) return;
 
@@ -195,38 +165,34 @@ const AppointmentsScreen = ({ navigation }) => {
       try {
         await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
       } catch (e) {
-        console.log("Error guardando eventos:", e);
+        console.log("Error guardando eventos (vet):", e);
       }
     };
 
     saveEvents();
   }, [events, eventsLoaded]);
 
-  // 👉 Cuando venimos desde el mapa (VetMap → "Crear recordatorio")
+  // Integración con VetMap
   useEffect(() => {
     if (!route?.params) return;
 
     const { selectedVetForEvent, openNewEventFromMap, dateISO } = route.params;
 
     if (selectedVetForEvent) {
-      // Guardamos la vet seleccionada
       setSelectedVet({
         placeId: selectedVetForEvent.placeId,
         name: selectedVetForEvent.name,
         address: selectedVetForEvent.address,
       });
 
-      // Ajustamos la fecha si viene
       if (dateISO) {
         setSelectedDateISO(dateISO);
       }
 
-      // Si nos dijeron que abramos el modal, lo abrimos
       if (openNewEventFromMap) {
         setShowNewEventModal(true);
       }
 
-      // Limpiamos params para que no se repita al volver a enfocar
       navigation.setParams({
         selectedVetForEvent: undefined,
         openNewEventFromMap: undefined,
@@ -235,7 +201,7 @@ const AppointmentsScreen = ({ navigation }) => {
     }
   }, [route?.params, navigation]);
 
-  // Inicializar tira de días con TODO el mes actual
+  // Inicializar mes actual
   useEffect(() => {
     const today = new Date();
     const todayISO = today.toISOString().split("T")[0];
@@ -276,9 +242,12 @@ const AppointmentsScreen = ({ navigation }) => {
     return "otros";
   };
 
+  // Eventos del vet para el día seleccionado
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDateISO) return [];
-    let list = events.filter((e) => e.date === selectedDateISO);
+    let list = events.filter(
+      (e) => e.date === selectedDateISO && e.source === "vet"
+    );
     if (filter !== "all") {
       list = list.filter((e) => mapTypeToFilterCategory(e.type) === filter);
     }
@@ -286,7 +255,7 @@ const AppointmentsScreen = ({ navigation }) => {
   }, [events, selectedDateISO, filter]);
 
   const getDaySummary = (dateIso) => {
-    const list = events.filter((e) => e.date === dateIso);
+    const list = events.filter((e) => e.date === dateIso && e.source === "vet");
     return {
       hasVet: list.some((e) =>
         ["personal_vet_visit", "vet_appointment", "vet_visit"].includes(e.type)
@@ -300,33 +269,42 @@ const AppointmentsScreen = ({ navigation }) => {
     navigation.navigate("Settings");
   };
 
-  const openNewEventModal = () => {
-    if (!selectedDateISO) {
-      return;
-    }
+  const handleOpenVetPicker = () => {
+    if (!selectedDateISO) return;
 
-    // 🚫 No permitir fechas en el pasado
     if (isDateInPast(selectedDateISO)) {
       Alert.alert(
         "Fecha no válida",
-        "No puedes crear recordatorios en fechas anteriores a hoy."
+        "Selecciona una fecha igual o posterior a hoy antes de elegir una veterinaria."
       );
       return;
     }
 
-    if (userRole === "veterinario") {
-      // Más adelante: modo veterinario
+    navigation.navigate("VetMap", {
+      pickMode: true,
+      dateISO: selectedDateISO,
+    });
+  };
+
+  const openNewEventModal = () => {
+    if (!selectedDateISO) return;
+
+    if (isDateInPast(selectedDateISO)) {
+      Alert.alert(
+        "Fecha no válida",
+        "No puedes crear citas en fechas anteriores a hoy."
+      );
       return;
     }
 
     setEventTitle("");
-    setEventCategory("vet_visit");
+    setEventCategory("vet_appointment");
     setTimeHour("09");
     setTimeMinute("00");
     setTimePeriod("AM");
     setManualLocation("");
     setTimeError("");
-    // No reseteamos selectedVet para que se mantenga si venimos del mapa
+    setPatientName("");
     setShowNewEventModal(true);
   };
 
@@ -334,7 +312,14 @@ const AppointmentsScreen = ({ navigation }) => {
     setTimeError("");
 
     const trimmedTitle = eventTitle.trim();
-    if (!trimmedTitle) {
+    if (!trimmedTitle) return;
+
+    const trimmedPatient = patientName.trim();
+    if (!trimmedPatient) {
+      Alert.alert(
+        "Paciente requerido",
+        "Debes indicar el nombre del paciente (mascota) para crear la cita."
+      );
       return;
     }
 
@@ -345,16 +330,14 @@ const AppointmentsScreen = ({ navigation }) => {
       return;
     }
 
-    // Reforzar: no guardar eventos en fechas pasadas
     if (isDateInPast(selectedDateISO)) {
       Alert.alert(
         "Fecha no válida",
-        "No puedes crear recordatorios en fechas anteriores a hoy."
+        "No puedes crear citas en fechas anteriores a hoy."
       );
       return;
     }
 
-    // Validar que, si es hoy, la hora no sea una hora ya pasada
     const todayISO = new Date().toISOString().split("T")[0];
     if (selectedDateISO === todayISO) {
       const now = new Date();
@@ -362,9 +345,7 @@ const AppointmentsScreen = ({ navigation }) => {
       const selectedMinutes = time12hToMinutes(h, m, timePeriod);
 
       if (selectedMinutes <= nowMinutes) {
-        setTimeError(
-          "No puedes generar un recordatorio en una hora que ya pasó hoy."
-        );
+        setTimeError("No puedes crear una cita en una hora que ya pasó hoy.");
         return;
       }
     }
@@ -376,7 +357,7 @@ const AppointmentsScreen = ({ navigation }) => {
     let locationStr = manualLocation.trim();
     let vetPlaceId = null;
 
-    if (eventCategory === "vet_visit" && selectedVet) {
+    if (eventCategory === "vet_appointment" && selectedVet) {
       locationStr = selectedVet.address || selectedVet.name;
       vetPlaceId = selectedVet.placeId;
     }
@@ -385,11 +366,11 @@ const AppointmentsScreen = ({ navigation }) => {
       id: Date.now().toString(),
       type: eventCategory,
       title: trimmedTitle,
-      petName: null,
+      petName: trimmedPatient,
       time: timeStr,
       date: selectedDateISO,
       location: locationStr || null,
-      source: "user",
+      source: "vet",
       status: "pending",
       vetPlaceId,
     };
@@ -401,7 +382,7 @@ const AppointmentsScreen = ({ navigation }) => {
   const handleToggleDone = (id) => {
     setEvents((prev) =>
       prev.map((e) =>
-        e.id === id
+        e.id === id && e.source === "vet"
           ? { ...e, status: e.status === "done" ? "pending" : "done" }
           : e
       )
@@ -409,13 +390,13 @@ const AppointmentsScreen = ({ navigation }) => {
   };
 
   const handleDeleteEvent = (id) => {
-    const eventToDelete = events.find((e) => e.id === id);
+    const ev = events.find((e) => e.id === id && e.source === "vet");
+
+    if (!ev) return;
 
     Alert.alert(
-      "Eliminar recordatorio",
-      eventToDelete
-        ? `¿Seguro que quieres eliminar "${eventToDelete.title}"?`
-        : "¿Seguro que quieres eliminar este evento?",
+      "Eliminar cita",
+      `¿Seguro que quieres eliminar la cita "${ev.title}"?`,
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -435,15 +416,15 @@ const AppointmentsScreen = ({ navigation }) => {
     ) {
       return {
         iconName: "medkit-outline",
-        iconBg: "#E3F2FD",
-        iconColor: "#1565C0",
+        iconBg: "#EDE7F6",
+        iconColor: "#6A1B9A",
       };
     }
     if (ev.type === "meds") {
       return {
         iconName: "medkit",
         iconBg: "#F3E5F5",
-        iconColor: "#6A1B9A",
+        iconColor: "#8E24AA",
       };
     }
     if (ev.type === "walk") {
@@ -460,28 +441,9 @@ const AppointmentsScreen = ({ navigation }) => {
     };
   };
 
-  // 👉 Abrir mapa en modo "picker" con la fecha seleccionada
-  const handleOpenVetPicker = () => {
-    if (!selectedDateISO) return;
+  const primaryButtonLabel = "Crear cita médica";
 
-    if (isDateInPast(selectedDateISO)) {
-      Alert.alert(
-        "Fecha no válida",
-        "Selecciona una fecha igual o posterior a hoy antes de elegir una veterinaria."
-      );
-      return;
-    }
-
-    navigation.navigate("VetMap", {
-      pickMode: true,
-      dateISO: selectedDateISO,
-    });
-  };
-
-  const primaryButtonLabel =
-    userRole === "veterinario" ? "Crear cita médica" : "Agregar recordatorio";
-
-  // ---------- helpers para el selector sencillo de hora/minuto ----------
+  // -------- helpers hora/minuto --------
   const incrementHour = () => {
     setTimeError("");
     setTimeHour((prev) => {
@@ -525,7 +487,7 @@ const AppointmentsScreen = ({ navigation }) => {
     });
   };
 
-  // ---------- RENDER DEL CALENDARIO MENSUAL COMPLETO ----------
+  // -------- Calendario grande --------
   const renderMonthPicker = () => {
     if (!showMonthPicker) return null;
 
@@ -533,7 +495,7 @@ const AppointmentsScreen = ({ navigation }) => {
     const monthIdx = monthCursor.getMonth();
     const monthName = MONTHS[monthIdx];
 
-    const firstWeekday = new Date(year, monthIdx, 1).getDay(); // 0-6
+    const firstWeekday = new Date(year, monthIdx, 1).getDay();
     const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
 
     const cells = [];
@@ -663,33 +625,33 @@ const AppointmentsScreen = ({ navigation }) => {
     );
   };
 
-  // ---------- RENDER PRINCIPAL ----------
+  // -------- Render principal --------
   return (
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Calendario</Text>
+        <Text style={styles.headerTitle}>Calendario de pacientes</Text>
 
         <TouchableOpacity
           style={styles.iconCircle}
           onPress={handleOpenSettings}
         >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
+          <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* CARD DEL CALENDARIO */}
-        <View className="calendarCard" style={styles.calendarCard}>
+        {/* CARD CALENDARIO */}
+        <View style={styles.calendarCard}>
           <View style={styles.calendarHeaderRow}>
             <View style={styles.calendarHeaderLeft}>
-              <Text style={styles.calendarTitle}>Tu calendario</Text>
+              <Text style={styles.calendarTitle}>Citas y controles</Text>
               <Text style={styles.calendarSubtitle}>
-                Selecciona un día para ver o agregar recordatorios.
+                Selecciona un día para ver o crear citas médicas para tus
+                pacientes.
               </Text>
             </View>
 
-            {/* Botón mes/año (abre calendario grande) */}
             <TouchableOpacity
               style={styles.calendarMonthPill}
               onPress={() => {
@@ -708,7 +670,7 @@ const AppointmentsScreen = ({ navigation }) => {
               <Ionicons
                 name="calendar-outline"
                 size={14}
-                color="#1E88E5"
+                color="#7B1FA2"
                 style={{ marginRight: 4 }}
               />
               <Text
@@ -721,14 +683,12 @@ const AppointmentsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Consejo debajo del header, ocupando todo el ancho */}
           <Text style={styles.calendarHint}>
-            Consejo: procura seleccionar una veterinaria y horarios correctos.
-            Puedes revisar el mapa y el detalle de la clínica antes de guardar
-            el recordatorio.
+            Consejo: asigna horarios realistas y confirma con el propietario
+            antes de guardar cambios importantes.
           </Text>
 
-          {/* TIRA HORIZONTAL DE DÍAS – todo el mes */}
+          {/* TIRA DE DÍAS */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -766,7 +726,7 @@ const AppointmentsScreen = ({ navigation }) => {
                   <View style={styles.dayDotsRow}>
                     {summary.hasVet && (
                       <View
-                        style={[styles.dayDot, { backgroundColor: "#1E88E5" }]}
+                        style={[styles.dayDot, { backgroundColor: "#7B1FA2" }]}
                       />
                     )}
                     {summary.hasMeds && (
@@ -799,10 +759,10 @@ const AppointmentsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* EVENTOS DEL DÍA + FILTROS */}
+        {/* EVENTOS DEL DÍA */}
         <View style={styles.eventsHeaderRow}>
           <Text style={styles.eventsTitle}>
-            Eventos para el {formattedSelectedDate || "día seleccionado"}
+            Citas para el {formattedSelectedDate || "día seleccionado"}
           </Text>
         </View>
 
@@ -838,12 +798,12 @@ const AppointmentsScreen = ({ navigation }) => {
 
         {eventsForSelectedDay.length === 0 ? (
           <View style={styles.placeholderCard}>
-            <Ionicons name="time-outline" size={36} color="#1E88E5" />
-            <Text style={styles.placeholderTitle}>Sin eventos este día</Text>
+            <Ionicons name="time-outline" size={36} color="#7B1FA2" />
+            <Text style={styles.placeholderTitle}>Sin citas este día</Text>
             <Text style={styles.placeholderText}>
               Usa el botón{" "}
               <Text style={{ fontWeight: "700" }}>{primaryButtonLabel}</Text>{" "}
-              para agregar una cita o recordatorio.
+              para asignar una nueva cita a un paciente.
             </Text>
           </View>
         ) : (
@@ -877,35 +837,22 @@ const AppointmentsScreen = ({ navigation }) => {
                       isDone && styles.eventTextDone,
                     ]}
                   >
-                    {ev.petName ? `Con ${ev.petName} 🐾` : "Evento"}
+                    {ev.petName
+                      ? `Paciente: ${ev.petName} 🐾`
+                      : "Paciente sin nombre"}
                   </Text>
                   <Text
                     style={[styles.eventDetail, isDone && styles.eventTextDone]}
                   >
-                    {ev.time} · {ev.location || "Sin ubicación definida"}
+                    {ev.time} · {ev.location || "Clínica no especificada"}
                   </Text>
                 </View>
 
                 <View style={styles.eventMeta}>
-                  {ev.source === "vet" ? (
-                    <View style={styles.badgeVet}>
-                      <Ionicons
-                        name="medkit-outline"
-                        size={14}
-                        color="#1E88E5"
-                      />
-                      <Text style={styles.badgeVetText}>Vet</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.badgeUser}>
-                      <Ionicons
-                        name="person-outline"
-                        size={14}
-                        color="#43A047"
-                      />
-                      <Text style={styles.badgeUserText}>Personal</Text>
-                    </View>
-                  )}
+                  <View className="badgeVet" style={styles.badgeVet}>
+                    <Ionicons name="medkit-outline" size={14} color="#7B1FA2" />
+                    <Text style={styles.badgeVetText}>Vet</Text>
+                  </View>
 
                   <View
                     style={[
@@ -920,34 +867,32 @@ const AppointmentsScreen = ({ navigation }) => {
                     />
                   </View>
 
-                  {ev.source === "user" && (
-                    <View style={styles.eventActionsRow}>
-                      <TouchableOpacity
-                        style={styles.smallIconButton}
-                        onPress={() => handleToggleDone(ev.id)}
-                      >
-                        <Ionicons
-                          name={
-                            isDone
-                              ? "checkmark-circle"
-                              : "checkmark-circle-outline"
-                          }
-                          size={18}
-                          color={isDone ? "#43A047" : "#607D8B"}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.smallIconButton}
-                        onPress={() => handleDeleteEvent(ev.id)}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color="#E53935"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  <View style={styles.eventActionsRow}>
+                    <TouchableOpacity
+                      style={styles.smallIconButton}
+                      onPress={() => handleToggleDone(ev.id)}
+                    >
+                      <Ionicons
+                        name={
+                          isDone
+                            ? "checkmark-circle"
+                            : "checkmark-circle-outline"
+                        }
+                        size={18}
+                        color={isDone ? "#43A047" : "#607D8B"}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.smallIconButton}
+                      onPress={() => handleDeleteEvent(ev.id)}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color="#E53935"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -955,7 +900,7 @@ const AppointmentsScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* MODAL: NUEVO RECORDATORIO */}
+      {/* MODAL: NUEVA CITA VET */}
       <Modal
         visible={showNewEventModal}
         transparent
@@ -965,7 +910,7 @@ const AppointmentsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Nuevo recordatorio</Text>
+              <Text style={styles.modalTitle}>Nueva cita médica</Text>
             </View>
 
             <Text style={styles.modalSubtitle}>
@@ -974,11 +919,23 @@ const AppointmentsScreen = ({ navigation }) => {
                 : "Selecciona una fecha en el calendario."}
             </Text>
 
-            {/* TÍTULO */}
-            <Text style={styles.modalLabel}>Título</Text>
+            {/* PACIENTE */}
+            <Text style={styles.modalLabel}>
+              Paciente (nombre de la mascota)
+            </Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Ej: Vacuna anual, Paseo con Max..."
+              placeholder="Ej: Max, Luna, Bruno..."
+              placeholderTextColor="#9CA3AF"
+              value={patientName}
+              onChangeText={setPatientName}
+            />
+
+            {/* TÍTULO */}
+            <Text style={styles.modalLabel}>Motivo de la cita</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ej: Vacuna anual, control postoperatorio..."
               placeholderTextColor="#9CA3AF"
               value={eventTitle}
               onChangeText={setEventTitle}
@@ -986,13 +943,12 @@ const AppointmentsScreen = ({ navigation }) => {
 
             {/* CATEGORÍA */}
             <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-              Tipo de recordatorio
+              Tipo de evento
             </Text>
             <View style={styles.modalChipsRow}>
               {[
-                { value: "vet_visit", label: "Visita al vet" },
+                { value: "vet_appointment", label: "Cita médica" },
                 { value: "meds", label: "Medicación" },
-                { value: "walk", label: "Paseo" },
                 { value: "other", label: "Otro" },
               ].map((opt) => {
                 const selected = eventCategory === opt.value;
@@ -1021,7 +977,6 @@ const AppointmentsScreen = ({ navigation }) => {
             {/* HORA */}
             <Text style={[styles.modalLabel, { marginTop: 10 }]}>Hora</Text>
             <View style={styles.timeRow}>
-              {/* selector sencillo de hora */}
               <View style={styles.timeStepper}>
                 <TouchableOpacity
                   style={styles.timeStepperButton}
@@ -1040,7 +995,6 @@ const AppointmentsScreen = ({ navigation }) => {
 
               <Text style={styles.timeColon}>:</Text>
 
-              {/* selector sencillo de minutos */}
               <View style={styles.timeStepper}>
                 <TouchableOpacity
                   style={styles.timeStepperButton}
@@ -1086,24 +1040,22 @@ const AppointmentsScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* advertencia roja si intenta una hora pasada */}
             {timeError ? (
               <Text style={styles.timeErrorText}>{timeError}</Text>
             ) : null}
 
-            {/* nota pequeña de ayuda sobre horarios */}
             <Text style={styles.timeHint}>
-              Nota: procura elegir una hora futura y, si es una cita en
-              veterinaria, revisa el horario en el mapa antes de guardar el
-              recordatorio.
+              Nota: ajusta la hora según la agenda de la clínica y confirma con
+              el propietario.
             </Text>
 
             {/* LUGAR / VETERINARIA */}
-            {eventCategory === "vet_visit" ? (
+            <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+              Clínica / lugar
+            </Text>
+
+            {eventCategory === "vet_appointment" ? (
               <>
-                <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-                  Veterinaria
-                </Text>
                 <View style={styles.vetRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.vetSelectedName}>
@@ -1134,11 +1086,11 @@ const AppointmentsScreen = ({ navigation }) => {
                   style={[styles.modalSecondaryBtn, styles.vetChooseBtn]}
                   onPress={handleOpenVetPicker}
                 >
-                  <Ionicons name="location-outline" size={16} color="#1E88E5" />
+                  <Ionicons name="location-outline" size={16} color="#7B1FA2" />
                   <Text
                     style={[
                       styles.modalSecondaryText,
-                      { color: "#1E88E5", marginLeft: 4 },
+                      { color: "#7B1FA2", marginLeft: 4 },
                     ]}
                   >
                     Elegir desde el mapa
@@ -1146,11 +1098,11 @@ const AppointmentsScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-                  Notas sobre el lugar (opcional)
+                  Notas internas (opcional)
                 </Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Ej: Llevar carnet de vacunas, pagar en efectivo..."
+                  placeholder="Ej: traer exámenes, ayuno previo, etc."
                   placeholderTextColor="#9CA3AF"
                   value={manualLocation}
                   onChangeText={setManualLocation}
@@ -1158,12 +1110,9 @@ const AppointmentsScreen = ({ navigation }) => {
               </>
             ) : (
               <>
-                <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-                  Lugar (opcional)
-                </Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Ej: Parque central, casa de la abuela..."
+                  placeholder="Ej: Seguimiento telefónico, visita domiciliaria..."
                   placeholderTextColor="#9CA3AF"
                   value={manualLocation}
                   onChangeText={setManualLocation}
@@ -1171,7 +1120,7 @@ const AppointmentsScreen = ({ navigation }) => {
               </>
             )}
 
-            {/* BOTONES DEL MODAL */}
+            {/* BOTONES MODAL */}
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
                 style={styles.modalSecondaryBtn}
@@ -1191,33 +1140,29 @@ const AppointmentsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* MODAL: CALENDARIO MENSUAL COMPLETO */}
       {renderMonthPicker()}
     </View>
   );
 };
 
-export default AppointmentsScreen;
+export default VetAppointmentsScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     paddingTop: 0,
   },
   header: {
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
-    backgroundColor: "#4A85A5",
+    backgroundColor: "#7B1FA2",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -1227,7 +1172,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#ffffffff",
+    color: "#FFFFFF",
   },
   iconCircle: {
     width: 36,
@@ -1242,7 +1187,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-
   calendarCard: {
     marginTop: 15,
     backgroundColor: "#FFFFFF",
@@ -1265,17 +1209,17 @@ const styles = StyleSheet.create({
   calendarTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#311B92",
   },
   calendarSubtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#607D8B",
+    color: "#5E35B1",
   },
   calendarHint: {
     marginTop: 4,
     fontSize: 11,
-    color: "#607D8B",
+    color: "#7E57C2",
     flex: 1,
   },
   calendarMonthPill: {
@@ -1284,13 +1228,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#E3F2FD",
-    maxWidth: 140,
+    backgroundColor: "#EDE7F6",
+    maxWidth: 160,
   },
   calendarMonthText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#1E88E5",
+    color: "#7B1FA2",
   },
   daysStrip: {
     marginTop: 8,
@@ -1306,7 +1250,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dayChipSelected: {
-    backgroundColor: "#7ed482ff",
+    backgroundColor: "#7B1FA2",
   },
   dayWeekText: {
     fontSize: 11,
@@ -1337,16 +1281,15 @@ const styles = StyleSheet.create({
   todayBadge: {
     marginTop: 2,
     fontSize: 9,
-    color: "#1E88E5",
+    color: "#7B1FA2",
     fontWeight: "600",
   },
-
   primaryButton: {
     marginTop: 12,
     alignSelf: "flex-end",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#43A047",
+    backgroundColor: "#7B1FA2",
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -1357,7 +1300,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 6,
   },
-
   eventsHeaderRow: {
     marginTop: 4,
     marginBottom: 6,
@@ -1365,9 +1307,8 @@ const styles = StyleSheet.create({
   eventsTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#6A1B9A",
   },
-
   filterRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1384,8 +1325,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   filterChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   filterChipText: {
     fontSize: 11,
@@ -1395,7 +1336,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
   },
-
   placeholderCard: {
     marginTop: 4,
     backgroundColor: "#FFFFFF",
@@ -1409,15 +1349,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 15,
     fontWeight: "600",
-    color: "#263238",
+    color: "#311B92",
   },
   placeholderText: {
     marginTop: 4,
     fontSize: 13,
-    color: "#607D8B",
+    color: "#5E35B1",
     textAlign: "center",
   },
-
   eventCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
@@ -1456,36 +1395,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   badgeVet: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#EDE7F6",
   },
   badgeVetText: {
     marginLeft: 4,
     fontSize: 11,
     fontWeight: "600",
-    color: "#1E88E5",
+    color: "#7B1FA2",
   },
-  badgeUser: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "#E8F5E9",
-  },
-  badgeUserText: {
-    marginLeft: 4,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#43A047",
-  },
-
   eventActionsRow: {
     flexDirection: "row",
     marginTop: 6,
@@ -1493,8 +1416,6 @@ const styles = StyleSheet.create({
   smallIconButton: {
     marginLeft: 4,
   },
-
-  // --- Modal genérico ---
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -1510,18 +1431,18 @@ const styles = StyleSheet.create({
   },
   modalHeaderRow: {
     flexDirection: "row",
-    justifyContent: "space_between",
+    justifyContent: "space-between",
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#311B92",
   },
   modalSubtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: "#607D8B",
+    color: "#5E35B1",
   },
   modalLabel: {
     marginTop: 8,
@@ -1555,8 +1476,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   modalChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   modalChipText: {
     fontSize: 12,
@@ -1585,14 +1506,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
   },
   modalPrimaryText: {
     fontSize: 13,
     color: "#FFFFFF",
     fontWeight: "600",
   },
-
   timeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1639,8 +1559,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   periodChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   periodChipText: {
     fontSize: 12,
@@ -1661,7 +1581,6 @@ const styles = StyleSheet.create({
     color: "#E53935",
     fontWeight: "600",
   },
-
   vetRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1689,8 +1608,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#E3F2FD",
   },
-
-  // --- Calendario mensual grande ---
   monthCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
@@ -1738,7 +1655,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   monthDayCellSelected: {
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
     borderRadius: 999,
   },
   monthDayNumber: {
