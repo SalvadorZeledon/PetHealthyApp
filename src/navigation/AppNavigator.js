@@ -2,7 +2,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// --- TAB NAVIGATOR PRINCIPAL ---
+// --- TAB NAVIGATOR ---
 import TabNavigator from "./TabNavigator";
 import TabVetNavigator from "../veterinario/feature/navigation/TabVetNavigator";
 
@@ -33,6 +33,7 @@ import DirectorioDetailScreen from "../feature/directory/views/DirectorioDetailS
 import VetFinderScreen from "../feature/directory/views/VetFinderScreen";
 import VetDetailScreen from "../feature/directory/views/VetDetailScreen";
 import VetMapScreen from "../feature/directory/views/VetMapScreen";
+import VetScannerScreen from "./VetScannerScreen";
 
 import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
 
@@ -50,8 +51,16 @@ const AppNavigator = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
-      <Stack.Screen name="VetLogin" component={VetLoginScreen} options={{ headerShown: false }}/>
-      <Stack.Screen name="HomeVetScreen" component={HomeVetScreen} options={{ headerShown: false }}/>
+      <Stack.Screen
+        name="VetLogin"
+        component={VetLoginScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="HomeVetScreen"
+        component={HomeVetScreen}
+        options={{ headerShown: false }}
+      />
 
       {/* ===================== MAIN TABS (USUARIO / VET) ===================== */}
       <Stack.Screen name="MainTabs" component={TabNavigator} />
@@ -86,6 +95,13 @@ const AppNavigator = () => {
       <Stack.Screen name="VetFinder" component={VetFinderScreen} />
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
       <Stack.Screen name="VetMap" component={VetMapScreen} />
+      
+      {/* 👇 PANTALLA DE ESCÁNER NUEVA 👇 */}
+      <Stack.Screen 
+        name="VetScanner" 
+        component={VetScannerScreen} 
+        options={{ headerShown: false }} 
+      />
 
       {/* ===================== LEGALES ===================== */}
       <Stack.Screen name="Terms" component={TermsScreen} />
@@ -95,3 +111,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

@@ -1,4 +1,3 @@
-// veterinario/feature/appointments/views/VetAppointmentsScreen.js
 import React, { useState, useEffect, useMemo } from "react";
 import { useRoute } from "@react-navigation/native";
 import {
@@ -107,7 +106,6 @@ const buildDefaultEventsForVet = () => {
 const VetAppointmentsScreen = ({ navigation }) => {
   const route = useRoute();
 
-  // 🎯 Este calendario es SIEMPRE modo veterinario
   const userRole = "veterinario";
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
@@ -120,20 +118,20 @@ const VetAppointmentsScreen = ({ navigation }) => {
   // Modal nueva cita
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
-  const [eventCategory, setEventCategory] = useState("vet_appointment"); // vet_appointment | meds | other | walk?
+  const [eventCategory, setEventCategory] = useState("vet_appointment");
   const [timeHour, setTimeHour] = useState("09");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timePeriod, setTimePeriod] = useState("AM");
   const [manualLocation, setManualLocation] = useState("");
   const [selectedVet, setSelectedVet] = useState(null);
   const [timeError, setTimeError] = useState("");
-  const [patientName, setPatientName] = useState(""); // 🐾 paciente (nombre de la mascota)
+  const [patientName, setPatientName] = useState("");
 
   // Modal calendario mensual
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [monthCursor, setMonthCursor] = useState(() => new Date());
 
-  // 🔹 Cargar eventos desde AsyncStorage (pero NO borrar los del usuario)
+  // Cargar eventos
   useEffect(() => {
     const loadEvents = async () => {
       try {
@@ -143,7 +141,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
           if (Array.isArray(parsed) && parsed.length > 0) {
             setEvents(parsed);
           } else {
-            // si hay algo raro, cargamos solo demos vet
             setEvents(buildDefaultEventsForVet());
           }
         } else {
@@ -160,7 +157,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     loadEvents();
   }, []);
 
-  // 🔹 Guardar TODOS los eventos (user + vet) cada vez que cambian
+  // Guardar eventos
   useEffect(() => {
     if (!eventsLoaded) return;
 
@@ -175,7 +172,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     saveEvents();
   }, [events, eventsLoaded]);
 
-  // 🔹 Integración con VetMap (igual que el del usuario)
+  // Integración con VetMap
   useEffect(() => {
     if (!route?.params) return;
 
@@ -204,7 +201,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     }
   }, [route?.params, navigation]);
 
-  // 🔹 Inicializar mes actual
+  // Inicializar mes actual
   useEffect(() => {
     const today = new Date();
     const todayISO = today.toISOString().split("T")[0];
@@ -245,7 +242,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     return "otros";
   };
 
-  // 🔹 Para el vet: SOLO mostramos eventos donde source === "vet"
+  // Eventos del vet para el día seleccionado
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDateISO) return [];
     let list = events.filter(
@@ -257,7 +254,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
     return list;
   }, [events, selectedDateISO, filter]);
 
-  // Resumen de puntitos por día (también solo vet)
   const getDaySummary = (dateIso) => {
     const list = events.filter((e) => e.date === dateIso && e.source === "vet");
     return {
@@ -301,7 +297,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
       return;
     }
 
-    // 🎯 Aquí SÍ abrimos el modal (somos veterinario)
     setEventTitle("");
     setEventCategory("vet_appointment");
     setTimeHour("09");
@@ -369,13 +364,13 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
     const newEvent = {
       id: Date.now().toString(),
-      type: eventCategory, // "vet_appointment", "meds", etc.
+      type: eventCategory,
       title: trimmedTitle,
-      petName: trimmedPatient, // 🐾 importante para el usuario
+      petName: trimmedPatient,
       time: timeStr,
       date: selectedDateISO,
       location: locationStr || null,
-      source: "vet", // 🔥 clave: viene del veterinario
+      source: "vet",
       status: "pending",
       vetPlaceId,
     };
@@ -421,15 +416,15 @@ const VetAppointmentsScreen = ({ navigation }) => {
     ) {
       return {
         iconName: "medkit-outline",
-        iconBg: "#E3F2FD",
-        iconColor: "#1565C0",
+        iconBg: "#EDE7F6",
+        iconColor: "#6A1B9A",
       };
     }
     if (ev.type === "meds") {
       return {
         iconName: "medkit",
         iconBg: "#F3E5F5",
-        iconColor: "#6A1B9A",
+        iconColor: "#8E24AA",
       };
     }
     if (ev.type === "walk") {
@@ -448,7 +443,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
   const primaryButtonLabel = "Crear cita médica";
 
-  // -------- helpers hora/minuto (igual que usuario) --------
+  // -------- helpers hora/minuto --------
   const incrementHour = () => {
     setTimeError("");
     setTimeHour((prev) => {
@@ -492,7 +487,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
     });
   };
 
-  // -------- Calendario grande (igual que usuario) --------
+  // -------- Calendario grande --------
   const renderMonthPicker = () => {
     if (!showMonthPicker) return null;
 
@@ -641,7 +636,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
           style={styles.iconCircle}
           onPress={handleOpenSettings}
         >
-          <Ionicons name="settings-outline" size={20} color="#365b6d" />
+          <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
         </TouchableOpacity>
       </View>
 
@@ -675,7 +670,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
               <Ionicons
                 name="calendar-outline"
                 size={14}
-                color="#1E88E5"
+                color="#7B1FA2"
                 style={{ marginRight: 4 }}
               />
               <Text
@@ -731,7 +726,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
                   <View style={styles.dayDotsRow}>
                     {summary.hasVet && (
                       <View
-                        style={[styles.dayDot, { backgroundColor: "#1E88E5" }]}
+                        style={[styles.dayDot, { backgroundColor: "#7B1FA2" }]}
                       />
                     )}
                     {summary.hasMeds && (
@@ -803,7 +798,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
         {eventsForSelectedDay.length === 0 ? (
           <View style={styles.placeholderCard}>
-            <Ionicons name="time-outline" size={36} color="#1E88E5" />
+            <Ionicons name="time-outline" size={36} color="#7B1FA2" />
             <Text style={styles.placeholderTitle}>Sin citas este día</Text>
             <Text style={styles.placeholderText}>
               Usa el botón{" "}
@@ -854,8 +849,8 @@ const VetAppointmentsScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.eventMeta}>
-                  <View style={styles.badgeVet}>
-                    <Ionicons name="medkit-outline" size={14} color="#1E88E5" />
+                  <View className="badgeVet" style={styles.badgeVet}>
+                    <Ionicons name="medkit-outline" size={14} color="#7B1FA2" />
                     <Text style={styles.badgeVetText}>Vet</Text>
                   </View>
 
@@ -872,7 +867,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
                     />
                   </View>
 
-                  {/* 🔥 Acciones SOLO para citas vet */}
                   <View style={styles.eventActionsRow}>
                     <TouchableOpacity
                       style={styles.smallIconButton}
@@ -1092,11 +1086,11 @@ const VetAppointmentsScreen = ({ navigation }) => {
                   style={[styles.modalSecondaryBtn, styles.vetChooseBtn]}
                   onPress={handleOpenVetPicker}
                 >
-                  <Ionicons name="location-outline" size={16} color="#1E88E5" />
+                  <Ionicons name="location-outline" size={16} color="#7B1FA2" />
                   <Text
                     style={[
                       styles.modalSecondaryText,
-                      { color: "#1E88E5", marginLeft: 4 },
+                      { color: "#7B1FA2", marginLeft: 4 },
                     ]}
                   >
                     Elegir desde el mapa
@@ -1153,11 +1147,10 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
 export default VetAppointmentsScreen;
 
-// 👇 estilos: copiados del AppointmentsScreen original para mantener el look&feel
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     paddingTop: 0,
   },
   header: {
@@ -1167,7 +1160,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#4A85A5",
+    backgroundColor: "#7B1FA2",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
     shadowColor: "#000000",
@@ -1179,7 +1172,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#ffffffff",
+    color: "#FFFFFF",
   },
   iconCircle: {
     width: 36,
@@ -1216,17 +1209,17 @@ const styles = StyleSheet.create({
   calendarTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#311B92",
   },
   calendarSubtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#607D8B",
+    color: "#5E35B1",
   },
   calendarHint: {
     marginTop: 4,
     fontSize: 11,
-    color: "#607D8B",
+    color: "#7E57C2",
     flex: 1,
   },
   calendarMonthPill: {
@@ -1235,13 +1228,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#E3F2FD",
-    maxWidth: 140,
+    backgroundColor: "#EDE7F6",
+    maxWidth: 160,
   },
   calendarMonthText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#1E88E5",
+    color: "#7B1FA2",
   },
   daysStrip: {
     marginTop: 8,
@@ -1257,7 +1250,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dayChipSelected: {
-    backgroundColor: "#7ed482ff",
+    backgroundColor: "#7B1FA2",
   },
   dayWeekText: {
     fontSize: 11,
@@ -1288,7 +1281,7 @@ const styles = StyleSheet.create({
   todayBadge: {
     marginTop: 2,
     fontSize: 9,
-    color: "#1E88E5",
+    color: "#7B1FA2",
     fontWeight: "600",
   },
   primaryButton: {
@@ -1296,7 +1289,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#43A047",
+    backgroundColor: "#7B1FA2",
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -1314,7 +1307,7 @@ const styles = StyleSheet.create({
   eventsTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#365b6d",
+    color: "#6A1B9A",
   },
   filterRow: {
     flexDirection: "row",
@@ -1332,8 +1325,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   filterChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   filterChipText: {
     fontSize: 11,
@@ -1356,12 +1349,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 15,
     fontWeight: "600",
-    color: "#263238",
+    color: "#311B92",
   },
   placeholderText: {
     marginTop: 4,
     fontSize: 13,
-    color: "#607D8B",
+    color: "#5E35B1",
     textAlign: "center",
   },
   eventCard: {
@@ -1408,13 +1401,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#EDE7F6",
   },
   badgeVetText: {
     marginLeft: 4,
     fontSize: 11,
     fontWeight: "600",
-    color: "#1E88E5",
+    color: "#7B1FA2",
   },
   eventActionsRow: {
     flexDirection: "row",
@@ -1444,12 +1437,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#263238",
+    color: "#311B92",
   },
   modalSubtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: "#607D8B",
+    color: "#5E35B1",
   },
   modalLabel: {
     marginTop: 8,
@@ -1483,8 +1476,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   modalChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   modalChipText: {
     fontSize: 12,
@@ -1513,7 +1506,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
   },
   modalPrimaryText: {
     fontSize: 13,
@@ -1566,8 +1559,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   periodChipSelected: {
-    backgroundColor: "#1E88E5",
-    borderColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
+    borderColor: "#7B1FA2",
   },
   periodChipText: {
     fontSize: 12,
@@ -1662,7 +1655,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   monthDayCellSelected: {
-    backgroundColor: "#1E88E5",
+    backgroundColor: "#7B1FA2",
     borderRadius: 999,
   },
   monthDayNumber: {

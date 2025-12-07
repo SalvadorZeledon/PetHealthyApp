@@ -1,4 +1,3 @@
-// screens/ChatbotVetScreen.js
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -22,7 +21,6 @@ const ChatbotVetScreen = ({ navigation }) => {
 
   const scrollViewRef = useRef();
 
-  // 👇 SUGERENCIAS PENSADAS PARA VETERINARIO
   const SUGGESTIONS = [
     "📋 Abordaje inicial de vómitos crónicos en perro adulto",
     "🦴 Manejo inicial de fractura cerrada en perro",
@@ -31,15 +29,13 @@ const ChatbotVetScreen = ({ navigation }) => {
     "🏥 Manejo y monitoreo en casos de parvovirosis canina",
   ];
 
-  // 👇 En el modo VET ysa no bloqueamos palabras de medicamentos
   const sendMessage = async (textOverride = null) => {
     const textToSend = typeof textOverride === "string" ? textOverride : input;
 
     if (!textToSend.trim()) return;
 
-    setInput(""); // Limpiamos el input siempre
+    setInput("");
 
-    // Agregamos el mensaje del usuario
     const newMessages = [...messages, { sender: "user", text: textToSend }];
     setMessages(newMessages);
     setLoading(true);
@@ -94,14 +90,14 @@ const ChatbotVetScreen = ({ navigation }) => {
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity style={styles.iconCircle} onPress={clearChat}>
-              <Ionicons name="trash-outline" size={20} color="#d9534f" />
+              <Ionicons name="trash-outline" size={20} color="#D32F2F" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.iconCircle}
               onPress={() => navigation.navigate("Settings")}
             >
-              <Ionicons name="settings-outline" size={20} color="#365b6d" />
+              <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
             </TouchableOpacity>
           </View>
         </View>
@@ -114,7 +110,6 @@ const ChatbotVetScreen = ({ navigation }) => {
           }
           contentContainerStyle={styles.content}
         >
-          {/* SUGERENCIAS SOLO SI NO HAY MENSAJES */}
           {messages.length === 0 && (
             <View style={styles.suggestionsContainer}>
               <Text style={styles.suggestionsTitle}>
@@ -138,7 +133,6 @@ const ChatbotVetScreen = ({ navigation }) => {
             </View>
           )}
 
-          {/* MENSAJES DEL CHAT */}
           {messages.map((msg, index) => (
             <View
               key={index}
@@ -161,6 +155,7 @@ const ChatbotVetScreen = ({ navigation }) => {
             value={input}
             onChangeText={setInput}
             placeholder="Describe el caso o tu consulta clínica..."
+            placeholderTextColor="#9CA3AF"
             style={styles.input}
             multiline
           />
@@ -171,9 +166,9 @@ const ChatbotVetScreen = ({ navigation }) => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Ionicons name="send" size={20} color="white" />
+              <Ionicons name="send" size={20} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         </View>
@@ -187,7 +182,7 @@ export default ChatbotVetScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F3E5F5",
     paddingTop: 0,
   },
   header: {
@@ -199,7 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
 
-    backgroundColor: "#4A85A5",
+    backgroundColor: "#7B1FA2",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
 
@@ -209,13 +204,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#ffffffff" },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
@@ -226,12 +225,12 @@ const styles = StyleSheet.create({
   suggestionsContainer: {
     marginTop: 40,
     alignItems: "center",
-    opacity: 0.95,
+    opacity: 0.98,
   },
   suggestionsTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#546E7A",
+    color: "#5E35B1",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -247,7 +246,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#B3E5FC",
+    borderColor: "#D1C4E9",
     elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -256,14 +255,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   suggestionText: {
-    color: "#0277BD",
+    color: "#7B1FA2",
     fontWeight: "500",
     fontSize: 14,
   },
   helperBanner: {
     marginTop: 16,
     fontSize: 12,
-    color: "#455A64",
+    color: "#6A1B9A",
     textAlign: "center",
   },
 
@@ -273,40 +272,51 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     maxWidth: "80%",
   },
-  aiBubble: { backgroundColor: "#E0F2F1", alignSelf: "flex-start" },
-  userBubble: { backgroundColor: "#42A5F5", alignSelf: "flex-end" },
+  aiBubble: {
+    backgroundColor: "#EDE7F6",
+    alignSelf: "flex-start",
+  },
+  userBubble: {
+    backgroundColor: "#7B1FA2",
+    alignSelf: "flex-end",
+  },
 
   chatSender: {
     fontSize: 11,
     fontWeight: "600",
     marginBottom: 4,
-    color: "#004D40",
+    color: "#4527A0",
   },
 
-  chatText: { fontSize: 14, color: "#004D40" },
+  chatText: {
+    fontSize: 14,
+    color: "#311B92",
+  },
 
   inputContainer: {
     flexDirection: "row",
     padding: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     borderTopWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#E0E0E0",
   },
 
   input: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FAFAFA",
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#bbb",
+    borderColor: "#D1C4E9",
+    fontSize: 14,
+    color: "#263238",
   },
 
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#00796B",
+    backgroundColor: "#7B1FA2",
     padding: 12,
     borderRadius: 50,
   },

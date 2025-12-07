@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  ScrollView, // 👈 Agregué ScrollView por si la pantalla se llena
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,18 +17,17 @@ const SettingsScreen = ({ navigation }) => {
     navigation.goBack();
   };
 
-  const handleOpenProfile = () => {
-    navigation.navigate("UserInfo");
-  };
-
-  // --- FUNCIONALIDAD DE IVÁN ---
   const handleOpenAboutUs = () => {
     navigation.navigate("AboutUs");
   };
 
-  // --- TUS FUNCIONALIDADES ---
   const handleOpenDirectory = () => {
     navigation.navigate("Directorio");
+  };
+
+  // --- NUEVA FUNCIONALIDAD: ESCÁNER ---
+  const handleOpenScanner = () => {
+    navigation.navigate("VetScanner");
   };
 
   const handleLogout = async () => {
@@ -67,41 +67,10 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.topIconButton} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         {/* SECCIÓN CUENTA */}
         <Text style={styles.sectionTitle}>Cuenta</Text>
 
-        <TouchableOpacity style={styles.optionCard} onPress={handleOpenProfile}>
-          <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Perfil</Text>
-            <Text style={styles.optionSubtitle}>
-              Ver y editar tu información personal.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
-        </TouchableOpacity>
-
-        {/* BOTÓN DE IVÁN: ACERCA DE NOSOTROS */}
-        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
-          <Ionicons
-            name="information-circle-outline"
-            size={24}
-            color="#365b6d"
-          />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Acerca de nosotros</Text>
-            <Text style={styles.optionSubtitle}>
-              Conoce más sobre PetHealthy.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
-        </TouchableOpacity>
-
-        {/* SECCIÓN SERVICIOS EXTERNOS */}
-        <Text style={styles.sectionTitle}>Servicios externos</Text>
-
-        {/* SOLO DIRECTORIO */}
         <TouchableOpacity
           style={styles.optionCard}
           onPress={handleOpenDirectory}
@@ -115,6 +84,44 @@ const SettingsScreen = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
+
+        {/* 2) ACERCA DE NOSOTROS (antes decía "Cuenta") */}
+        <Text style={styles.sectionTitle}>Acerca de nosotros</Text>
+
+        <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color="#365b6d"
+          />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.optionTitle}>Acerca de PetHealthy</Text>
+            <Text style={styles.optionSubtitle}>
+              Conoce más sobre la aplicación.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
+        </TouchableOpacity>
+
+        {/* 👇👇👇 NUEVA SECCIÓN DE PRUEBAS 👇👇👇 */}
+        <Text style={styles.sectionTitle}>Zona de Pruebas</Text>
+
+        <TouchableOpacity
+          style={[styles.optionCard, { backgroundColor: "#E0F2F1" }]} // Un color menta suave
+          onPress={handleOpenScanner}
+        >
+          <Ionicons name="qr-code-outline" size={24} color="#00695C" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.optionTitle, { color: "#00695C" }]}>
+              Modo Veterinario
+            </Text>
+            <Text style={[styles.optionSubtitle, { color: "#004D40" }]}>
+              Probar Escáner QR
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#004D40" />
+        </TouchableOpacity>
+        {/* 👆👆👆 --------------------------- 👆👆👆 */}
 
         {/* SECCIÓN SESIÓN */}
         <Text style={styles.sectionTitle}>Sesión</Text>
@@ -133,7 +140,7 @@ const SettingsScreen = ({ navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -150,15 +157,12 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     backgroundColor: "#4A85A5",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -178,6 +182,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 40, // Espacio extra al final
   },
   sectionTitle: {
     fontSize: 14,
