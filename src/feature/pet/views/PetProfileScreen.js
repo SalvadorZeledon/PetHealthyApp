@@ -197,6 +197,7 @@ const PetProfileScreen = ({ navigation, route }) => {
 
       {/* HEADER */}
       <View style={styles.header}>
+        {/* Botón back */}
         <TouchableOpacity
           style={styles.headerIconButton}
           onPress={() => navigation.goBack()}
@@ -430,6 +431,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#607D8B",
   },
+  /* HEADER NUEVO */
   header: {
     paddingTop: Platform.OS === "ios" ? 52 : 32,
     paddingHorizontal: 20,
@@ -462,6 +464,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "center",
   },
+
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,

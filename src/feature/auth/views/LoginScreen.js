@@ -1,5 +1,5 @@
-// screens/Loginscreen.js
-import React, { useState, useRef, useEffect } from "react";
+// src/feature/auth/views/Loginscreen.js
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -26,9 +26,6 @@ import {
   signInWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-
-// 👇 IMPORTAR EL TEMA
-import useTheme from "../../../themes/useTheme";
 
 const logo = require("../../../../assets/logoPH.png");
 
@@ -234,14 +231,9 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  const handleVetLoginInfo = () => {
-    Dialog.show({
-      type: ALERT_TYPE.INFO,
-      title: "Acceso para veterinarios",
-      textBody:
-        "El módulo de acceso para veterinarios estará disponible en una próxima versión. Por ahora, esta sección es solo para clientes.",
-      button: "Entendido",
-    });
+  const handleVetLoginPress = () => {
+    // Nuevo flujo: ir a la pantalla de login para veterinarios
+    navigation.navigate("VetLogin");
   };
 
   const handleResendVerification = async () => {
@@ -549,8 +541,8 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={handleCloseVerificationModal}
-              style={styles.modalSecondaryButton}
+              onPress={handleVetLoginPress}
+              style={{ marginTop: 8 }}
             >
               <Text
                 style={[
