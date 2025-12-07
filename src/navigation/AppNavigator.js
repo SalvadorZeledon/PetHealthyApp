@@ -9,6 +9,7 @@ import LoginScreen from "../feature/auth/views/LoginScreen";
 import RegisterScreen from "../feature/auth/views/RegisterScreen";
 import CompleteProfileScreen from "../feature/profile/views/CompleteProfileScreen";
 import ProfilePhotoScreen from "../feature/profile/views/ProfilePhotoScreen";
+import VetLoginScreen from "../feature/auth/views/VetLoginScreen";
 
 // --- PERFIL ---
 import UserInfoScreen from "../feature/profile/views/UserInfoScreen";
@@ -45,6 +46,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="ProfilePhotoSetup" component={ProfilePhotoScreen} />
+      <Stack.Screen name="VetLogin" component={VetLoginScreen} options={{ headerShown: false }}/>
 
       {/* ===================== MAIN TABS ===================== */}
       {/* Se coloca aquí para que sea accesible después del login */}
