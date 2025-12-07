@@ -116,9 +116,10 @@ const VetLoginScreen = ({ navigation }) => {
             textBody: `Hola ${vet.fullName || ""}, tu cuenta profesional ha sido validada correctamente.`,
             button: "Continuar",
             onHide: () => {
-            // 🔜 Aquí más adelante enviaremos al panel de veterinarios (VetHome, VetTabs, etc.)
-            // Por ahora, si quieres solo lo dejamos en la misma pantalla:
-            // navigation.navigate("VetHome");  <-- lo usaremos cuando exista esa pantalla
+            navigation.reset({
+                index: 0,
+                routes: [{ name: "HomeVetScreen" }],
+            });
             },
         });
         } catch (error) {
