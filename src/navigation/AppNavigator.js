@@ -30,6 +30,7 @@ import DirectorioDetailScreen from "../feature/directory/views/DirectorioDetailS
 import VetFinderScreen from "../feature/directory/views/VetFinderScreen";
 import VetDetailScreen from "../feature/directory/views/VetDetailScreen";
 import VetMapScreen from "../feature/directory/views/VetMapScreen";
+import VetScannerScreen from "./VetScannerScreen";
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";
@@ -79,6 +80,13 @@ const AppNavigator = () => {
       <Stack.Screen name="VetFinder" component={VetFinderScreen} />
       <Stack.Screen name="VetDetail" component={VetDetailScreen} />
       <Stack.Screen name="VetMap" component={VetMapScreen} />
+      
+      {/* 👇 PANTALLA DE ESCÁNER NUEVA 👇 */}
+      <Stack.Screen 
+        name="VetScanner" 
+        component={VetScannerScreen} 
+        options={{ headerShown: false }} 
+      />
 
       {/* ===================== LEGALES ===================== */}
       <Stack.Screen name="Terms" component={TermsScreen} />
@@ -88,3 +96,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  ScrollView, // 👈 Agregué ScrollView por si la pantalla se llena
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,6 +29,11 @@ const SettingsScreen = ({ navigation }) => {
   // --- TUS FUNCIONALIDADES ---
   const handleOpenDirectory = () => {
     navigation.navigate("Directorio");
+  };
+
+  // --- NUEVA FUNCIONALIDAD: ESCÁNER ---
+  const handleOpenScanner = () => {
+    navigation.navigate("VetScanner");
   };
 
   const handleLogout = async () => {
@@ -67,7 +73,7 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.topIconButton} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         {/* SECCIÓN CUENTA */}
         <Text style={styles.sectionTitle}>Cuenta</Text>
 
@@ -116,6 +122,26 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
+        {/* 👇👇👇 NUEVA SECCIÓN DE PRUEBAS 👇👇👇 */}
+        <Text style={styles.sectionTitle}>Zona de Pruebas</Text>
+
+        <TouchableOpacity
+          style={[styles.optionCard, { backgroundColor: "#E0F2F1" }]} // Un color menta suave
+          onPress={handleOpenScanner}
+        >
+          <Ionicons name="qr-code-outline" size={24} color="#00695C" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.optionTitle, { color: "#00695C" }]}>
+              Modo Veterinario
+            </Text>
+            <Text style={[styles.optionSubtitle, { color: "#004D40" }]}>
+              Probar Escáner QR
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#004D40" />
+        </TouchableOpacity>
+        {/* 👆👆👆 --------------------------- 👆👆👆 */}
+
         {/* SECCIÓN SESIÓN */}
         <Text style={styles.sectionTitle}>Sesión</Text>
 
@@ -133,7 +159,7 @@ const SettingsScreen = ({ navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -178,6 +204,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 40, // Espacio extra al final
   },
   sectionTitle: {
     fontSize: 14,

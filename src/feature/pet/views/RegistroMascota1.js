@@ -1,4 +1,3 @@
-// screens/RegistroMascota1.js
 import React, { useState } from "react";
 import {
   View,
@@ -13,18 +12,28 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { PET_SEX_OPTIONS } from "../../../shared/utils/petConstants";
 
-// Solo letras (con acentos), ñ y espacios
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$/;
-const MAX_AGE = 30; // máximo para el listado de edad
+const MAX_AGE = 30;
+
+const OTHER_TYPES = [
+  { id: "roedor", label: "Roedor", icon: "otter", family: "FontAwesome5" },
+  { id: "ave", label: "Ave", icon: "crow", family: "FontAwesome5" },
+  { id: "reptil", label: "Reptil", icon: "turtle", family: "MaterialCommunityIcons" },
+];
 
 const RegistroMascota1 = ({ navigation, route }) => {
   const [imageUri, setImageUri] = useState(null);
   const initialSpecies = route?.params?.initialSpecies || "perro";
+
+  // Si es 'otro', el usuario debe seleccionar un subtipo.
+  const [otherType, setOtherType] = useState(
+    initialSpecies === "otro" ? null : initialSpecies
+  );
 
   const [name, setName] = useState("");
   const [sex, setSex] = useState("macho");
@@ -33,32 +42,30 @@ const RegistroMascota1 = ({ navigation, route }) => {
   const [microchipId, setMicrochipId] = useState("");
   const [hasTattoo, setHasTattoo] = useState(false);
 
-  const [ageValue, setAgeValue] = useState(""); // valor final (1,2,3...)
+  // NUEVO: Anillado (Solo para aves)
+  const [hasRing, setHasRing] = useState(false);
+  const [ringId, setRingId] = useState("");
+
+  const [ageValue, setAgeValue] = useState(""); 
   const [ageType, setAgeType] = useState("años");
 
   const [errors, setErrors] = useState({});
-
-  // dropdown pequeño de edad
   const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
+  const handleGoBack = () => navigation.goBack();
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (status !== "granted") {
       alert("Necesitamos permiso para acceder a tus fotos.");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.9,
+      allowsEditing: true, // Mejor para fotos de perfil
+      aspect: [1, 1],
+      quality: 0.8,
     });
-
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
     }
@@ -66,22 +73,15 @@ const RegistroMascota1 = ({ navigation, route }) => {
 
   const validate = () => {
     const newErrors = {};
+    if (!name.trim()) newErrors.name = "Ingresa el nombre.";
+    else if (!NAME_REGEX.test(name.trim())) newErrors.name = "Solo letras y espacios.";
+    
+    if (!ageValue.trim()) newErrors.age = "Ingresa la edad.";
+    else if (!/^\d+$/.test(ageValue.trim()) || Number(ageValue) <= 0) newErrors.age = "Edad inválida.";
 
-    if (!name.trim()) {
-      newErrors.name = "Ingresa el nombre del perrito.";
-    } else if (!NAME_REGEX.test(name.trim())) {
-      newErrors.name =
-        "El nombre solo puede contener letras y espacios (sin números ni símbolos).";
+    if (initialSpecies === "otro" && !otherType) {
+        newErrors.otherType = "Selecciona el tipo de mascota.";
     }
-
-    if (!ageValue.trim()) {
-      newErrors.age = "Ingresa la edad de tu mascota.";
-    } else if (!/^\d+$/.test(ageValue.trim())) {
-      newErrors.age = "La edad debe ser un número entero positivo.";
-    } else if (Number(ageValue) <= 0) {
-      newErrors.age = "La edad debe ser mayor que 0.";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -89,13 +89,20 @@ const RegistroMascota1 = ({ navigation, route }) => {
   const handleContinue = () => {
     if (!validate()) return;
 
+    // Determinar la especie final
+    const finalSpecies = initialSpecies === "otro" ? otherType : initialSpecies;
+
     const draftPetStep1 = {
-      especie: initialSpecies,
+      especie: finalSpecies,
+      categoria: initialSpecies, 
       nombre: name.trim(),
       sexo: sex,
       tieneMicrochip: hasMicrochip,
       identificadorMicrochip: microchipId.trim() || null,
       poseeTatuaje: hasTattoo,
+      // Solo incluimos anillado si es ave
+      tieneAnillado: finalSpecies === "ave" ? hasRing : false,
+      identificadorAnillado: (finalSpecies === "ave" && hasRing) ? ringId.trim() : null,
       edadValor: Number(ageValue),
       edadTipo: ageType,
       imageUri: imageUri || null,
@@ -108,31 +115,37 @@ const RegistroMascota1 = ({ navigation, route }) => {
     const isSelected = sex === option.value;
     const iconName = option.value === "macho" ? "mars" : "venus";
     const isMale = option.value === "macho";
-
-    const selectedBackgroundStyle = isSelected
-      ? isMale
-        ? styles.chipMaleSelected
-        : styles.chipFemaleSelected
-      : null;
-
     return (
       <TouchableOpacity
         key={option.value}
-        style={[styles.chip, selectedBackgroundStyle]}
+        style={[styles.chip, isSelected ? (isMale ? styles.chipMaleSelected : styles.chipFemaleSelected) : null]}
         onPress={() => setSex(option.value)}
       >
-        <FontAwesome5
-          name={iconName}
-          size={14}
-          color={isSelected ? "#FFFFFF" : "#607D8B"}
-          style={{ marginRight: 6 }}
-        />
-        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-          {option.label}
-        </Text>
+        <FontAwesome5 name={iconName} size={14} color={isSelected ? "#FFFFFF" : "#607D8B"} style={{ marginRight: 6 }} />
+        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{option.label}</Text>
       </TouchableOpacity>
     );
   };
+
+  const renderOtherTypeOption = (type) => {
+    const isSelected = otherType === type.id;
+    const IconLib = type.family === "MaterialCommunityIcons" ? MaterialCommunityIcons : FontAwesome5;
+    return (
+        <TouchableOpacity 
+            key={type.id} 
+            style={[styles.chip, isSelected && styles.chipSelectedGeneric]}
+            onPress={() => {
+                setOtherType(type.id);
+                setErrors((prev) => ({ ...prev, otherType: undefined }));
+                // Resetear anillado si cambia de ave a otro
+                if (type.id !== 'ave') { setHasRing(false); setRingId(""); }
+            }}
+        >
+            <IconLib name={type.icon} size={14} color={isSelected ? "#FFFFFF" : "#607D8B"} style={{marginRight: 6}} />
+            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{type.label}</Text>
+        </TouchableOpacity>
+    )
+  }
 
   const toggleAgeDropdown = () => {
     Keyboard.dismiss();
@@ -147,307 +160,129 @@ const RegistroMascota1 = ({ navigation, route }) => {
 
   return (
     <View style={styles.screen}>
-      {/* Barra de estado del mismo color que el header */}
       <StatusBar barStyle="light-content" backgroundColor="#4A85A5" />
-
-      {/* HEADER NUEVO (a todo lo ancho) */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={handleGoBack}
-        >
+        <TouchableOpacity style={styles.headerIconButton} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-
         <Text style={styles.headerTitle}>Paso 1 de 3</Text>
-
         <View style={styles.headerIconButton} />
       </View>
 
-      {/* CONTENIDO SCROLLABLE */}
-      <KeyboardAwareScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        enableOnAndroid
-        extraScrollHeight={32}
-        keyboardShouldPersistTaps="handled"
-      >
+      <KeyboardAwareScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} enableOnAndroid extraScrollHeight={32} keyboardShouldPersistTaps="handled">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View>
-            {/* Contenedor de imagen siempre visible */}
             <View style={styles.imagePreviewWrapper}>
-              <TouchableOpacity
-                style={styles.imagePreview}
-                activeOpacity={0.8}
-                onPress={handlePickImage}
-              >
+              <TouchableOpacity style={styles.imagePreview} activeOpacity={0.8} onPress={handlePickImage}>
                 {imageUri ? (
                   <>
-                    <Image
-                      source={{ uri: imageUri }}
-                      style={styles.imagePreviewImage}
-                    />
-                    <TouchableOpacity
-                      style={styles.imageEditButton}
-                      onPress={handlePickImage}
-                    >
-                      <FontAwesome5 name="pen" size={14} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    <Image source={{ uri: imageUri }} style={styles.imagePreviewImage} />
+                    <TouchableOpacity style={styles.imageEditButton} onPress={handlePickImage}><FontAwesome5 name="pen" size={14} color="#FFFFFF" /></TouchableOpacity>
                   </>
                 ) : (
                   <View style={styles.imagePlaceholder}>
                     <FontAwesome5 name="camera" size={28} color="#9CA3AF" />
-                    <Text style={styles.imagePlaceholderText}>
-                      Toca para agregar una foto
-                    </Text>
+                    <Text style={styles.imagePlaceholderText}>Toca para agregar foto</Text>
                   </View>
                 )}
               </TouchableOpacity>
             </View>
 
-            {/* Card formulario */}
             <View style={styles.card}>
               <View style={styles.headerTextBlock}>
-                <Text style={styles.title}>Registrar mascota</Text>
-                <Text style={styles.subtitle}>
-                  Empecemos con los datos básicos de tu perrito.
-                </Text>
+                <Text style={styles.title}>Datos Básicos</Text>
+                <Text style={styles.subtitle}>Cuéntanos sobre tu mascota.</Text>
               </View>
 
-              {/* Nombre */}
+              {initialSpecies === 'otro' && (
+                  <View style={styles.section}>
+                      <Text style={styles.label}>¿Qué tipo de mascota es?</Text>
+                      <View style={styles.rowWrap}>{OTHER_TYPES.map(renderOtherTypeOption)}</View>
+                      {errors.otherType && <Text style={styles.errorText}>{errors.otherType}</Text>}
+                  </View>
+              )}
+
               <View style={styles.section}>
-                <Text style={styles.label}>Nombre del perrito</Text>
-                <TextInput
-                  style={[styles.input, errors.name && styles.inputError]}
-                  placeholder="Ej: Firulais"
-                  value={name}
-                  onChangeText={(text) => {
-                    const cleaned = text.replace(
-                      /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g,
-                      ""
-                    );
-                    setName(cleaned);
-                  }}
-                />
-                {errors.name && (
-                  <Text style={styles.errorText}>{errors.name}</Text>
-                )}
+                <Text style={styles.label}>Nombre</Text>
+                <TextInput style={[styles.input, errors.name && styles.inputError]} placeholder="Ej: Max" value={name} onChangeText={(t) => setName(t.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, ""))}/>
+                {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
               </View>
 
-              {/* Sexo */}
               <View style={styles.section}>
                 <Text style={styles.label}>Sexo</Text>
-                <View style={styles.rowWrap}>
-                  {PET_SEX_OPTIONS.map(renderSexOption)}
-                </View>
+                <View style={styles.rowWrap}>{PET_SEX_OPTIONS.map(renderSexOption)}</View>
               </View>
 
-              {/* Microchip + Tatuaje */}
               <View style={styles.section}>
                 <View style={styles.rowSplit}>
                   <View style={styles.splitColumn}>
-                    <Text style={styles.label}>¿Posee microchip?</Text>
+                    <Text style={styles.label}>Microchip?</Text>
                     <View style={styles.rowWrap}>
-                      <TouchableOpacity
-                        style={[
-                          styles.chip,
-                          hasMicrochip && styles.chipSelected,
-                        ]}
-                        onPress={() => setHasMicrochip(true)}
-                      >
-                        <FontAwesome5
-                          name="microchip"
-                          size={14}
-                          color={hasMicrochip ? "#FFFFFF" : "#607D8B"}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={[
-                            styles.chipText,
-                            hasMicrochip && styles.chipTextSelected,
-                          ]}
-                        >
-                          Sí
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.chip,
-                          !hasMicrochip && styles.chipSelected,
-                        ]}
-                        onPress={() => setHasMicrochip(false)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            !hasMicrochip && styles.chipTextSelected,
-                          ]}
-                        >
-                          No
-                        </Text>
-                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.chip, hasMicrochip && styles.chipSelected]} onPress={() => setHasMicrochip(true)}><Text style={[styles.chipText, hasMicrochip && styles.chipTextSelected]}>Sí</Text></TouchableOpacity>
+                      <TouchableOpacity style={[styles.chip, !hasMicrochip && styles.chipSelected]} onPress={() => setHasMicrochip(false)}><Text style={[styles.chipText, !hasMicrochip && styles.chipTextSelected]}>No</Text></TouchableOpacity>
                     </View>
                   </View>
-
                   <View style={[styles.splitColumn, { marginLeft: 12 }]}>
-                    <Text style={styles.label}>¿Posee tatuaje?</Text>
+                    <Text style={styles.label}>Tatuaje?</Text>
                     <View style={styles.rowWrap}>
-                      <TouchableOpacity
-                        style={[styles.chip, hasTattoo && styles.chipSelected]}
-                        onPress={() => setHasTattoo(true)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            hasTattoo && styles.chipTextSelected,
-                          ]}
-                        >
-                          Sí
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.chip, !hasTattoo && styles.chipSelected]}
-                        onPress={() => setHasTattoo(false)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            !hasTattoo && styles.chipTextSelected,
-                          ]}
-                        >
-                          No
-                        </Text>
-                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.chip, hasTattoo && styles.chipSelected]} onPress={() => setHasTattoo(true)}><Text style={[styles.chipText, hasTattoo && styles.chipTextSelected]}>Sí</Text></TouchableOpacity>
+                      <TouchableOpacity style={[styles.chip, !hasTattoo && styles.chipSelected]} onPress={() => setHasTattoo(false)}><Text style={[styles.chipText, !hasTattoo && styles.chipTextSelected]}>No</Text></TouchableOpacity>
                     </View>
                   </View>
                 </View>
-
-                {/* Input de microchip solo si tiene microchip */}
-                {hasMicrochip && (
-                  <TextInput
-                    style={[styles.input, styles.microchipInput]}
-                    placeholder="Código microchip"
-                    placeholderTextColor="#9CA3AF"
-                    value={microchipId}
-                    onChangeText={(text) =>
-                      setMicrochipId(text.replace(/\D/g, ""))
-                    }
-                    keyboardType="number-pad"
-                  />
-                )}
+                {hasMicrochip && <TextInput style={[styles.input, styles.microchipInput]} placeholder="Código microchip" value={microchipId} onChangeText={(t) => setMicrochipId(t.replace(/\D/g, ""))} keyboardType="number-pad"/>}
               </View>
 
-              {/* Edad */}
+              {/* SECCIÓN ANILLADO (Solo Aves) */}
+              {otherType === 'ave' && (
+                  <View style={styles.section}>
+                    <Text style={styles.label}>¿Posee Anillado?</Text>
+                    <View style={styles.rowWrap}>
+                        <TouchableOpacity style={[styles.chip, hasRing && styles.chipSelected]} onPress={() => setHasRing(true)}><Text style={[styles.chipText, hasRing && styles.chipTextSelected]}>Sí</Text></TouchableOpacity>
+                        <TouchableOpacity style={[styles.chip, !hasRing && styles.chipSelected]} onPress={() => setHasRing(false)}><Text style={[styles.chipText, !hasRing && styles.chipTextSelected]}>No</Text></TouchableOpacity>
+                    </View>
+                    {hasRing && (
+                        <TextInput style={[styles.input, styles.microchipInput]} placeholder="Código de anilla" value={ringId} onChangeText={setRingId} />
+                    )}
+                  </View>
+              )}
+
               <View style={styles.section}>
                 <Text style={styles.label}>Edad</Text>
                 <View style={styles.ageRow}>
-                  {/* Dropdown pequeño de edad */}
                   <View style={styles.ageDropdownWrapper}>
-                    <TouchableOpacity
-                      style={[
-                        styles.input,
-                        styles.inputAge,
-                        errors.age && styles.inputError,
-                      ]}
-                      onPress={toggleAgeDropdown}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={
-                          ageValue
-                            ? styles.ageValueText
-                            : styles.agePlaceholderText
-                        }
-                      >
-                        {ageValue ? ageValue : "Elegir"}
-                      </Text>
-                      <Ionicons
-                        name={isAgeDropdownOpen ? "chevron-up" : "chevron-down"}
-                        size={16}
-                        color="#6B7280"
-                      />
+                    <TouchableOpacity style={[styles.input, styles.inputAge, errors.age && styles.inputError]} onPress={toggleAgeDropdown} activeOpacity={0.8}>
+                      <Text style={ageValue ? styles.ageValueText : styles.agePlaceholderText}>{ageValue || "Elegir"}</Text>
+                      <Ionicons name={isAgeDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color="#6B7280" />
                     </TouchableOpacity>
-
                     {isAgeDropdownOpen && (
                       <View style={styles.ageDropdownList}>
-                        <ScrollView
-                          nestedScrollEnabled
-                          showsVerticalScrollIndicator={true}
-                        >
-                          {Array.from({ length: MAX_AGE }, (_, i) => i + 1).map(
-                            (num) => {
-                              const selected = ageValue === String(num);
-                              return (
-                                <TouchableOpacity
-                                  key={num}
-                                  style={[
-                                    styles.ageDropdownItem,
-                                    selected && styles.ageDropdownItemSelected,
-                                  ]}
-                                  onPress={() => handleSelectAge(num)}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.ageDropdownItemText,
-                                      selected &&
-                                        styles.ageDropdownItemTextSelected,
-                                    ]}
-                                  >
-                                    {num}
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            }
-                          )}
+                        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                          {Array.from({ length: MAX_AGE }, (_, i) => i + 1).map((num) => (
+                            <TouchableOpacity key={num} style={[styles.ageDropdownItem, ageValue === String(num) && styles.ageDropdownItemSelected]} onPress={() => handleSelectAge(num)}>
+                              <Text style={[styles.ageDropdownItemText, ageValue === String(num) && styles.ageDropdownItemTextSelected]}>{num}</Text>
+                            </TouchableOpacity>
+                          ))}
                         </ScrollView>
                       </View>
                     )}
                   </View>
-
-                  {/* Años / meses */}
                   <View style={styles.ageOptions}>
-                    {["años", "meses"].map((type) => {
-                      const isSelected = ageType === type;
-                      return (
-                        <TouchableOpacity
-                          key={type}
-                          style={[
-                            styles.chip,
-                            styles.chipSmall,
-                            isSelected && styles.chipSelected,
-                          ]}
-                          onPress={() => setAgeType(type)}
-                        >
-                          <Text
-                            style={[
-                              styles.chipText,
-                              isSelected && styles.chipTextSelected,
-                            ]}
-                          >
-                            {type}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                    {["años", "meses"].map((type) => (
+                      <TouchableOpacity key={type} style={[styles.chip, styles.chipSmall, ageType === type && styles.chipSelected]} onPress={() => setAgeType(type)}>
+                        <Text style={[styles.chipText, ageType === type && styles.chipTextSelected]}>{type}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
-                {errors.age && (
-                  <Text style={styles.errorText}>{errors.age}</Text>
-                )}
+                {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
               </View>
 
-              {/* Botón continuar */}
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={handleContinue}
-              >
+              <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
                 <Text style={styles.primaryButtonText}>Continuar</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-
             <View style={{ height: 24 }} />
           </View>
         </TouchableWithoutFeedback>
@@ -459,286 +294,50 @@ const RegistroMascota1 = ({ navigation, route }) => {
 export default RegistroMascota1;
 
 const styles = StyleSheet.create({
-  // Contenedor raíz
-  screen: {
-    flex: 1,
-    backgroundColor: "#E3F2FD",
-  },
-
-  // HEADER NUEVO (igual que en RegistroMascota)
-  header: {
-    paddingTop: Platform.OS === "ios" ? 52 : 32,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#4A85A5",
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  headerIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    flex: 1,
-    marginHorizontal: 12,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-  },
-
-  // Scroll
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-
-  // Imagen
-  imagePreviewWrapper: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  imagePreview: {
-    width: "100%",
-    maxWidth: 500,
-    marginBottom: 1,
-    marginTop: 1,
-    height: 200,
-    borderRadius: 24,
-    backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    overflow: "hidden",
-  },
-  imagePreviewImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  imagePlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imagePlaceholderText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  imageEditButton: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(15, 23, 42, 0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Card formulario
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    marginTop: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 20,
-    elevation: 3,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  headerTextBlock: {
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  section: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 6,
-  },
-  input: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    backgroundColor: "#F9FAFB",
-  },
-  microchipInput: {
-    marginTop: 10,
-  },
-  inputAge: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 42,
-  },
-  ageValueText: {
-    fontSize: 14,
-    color: "#111827",
-  },
-  agePlaceholderText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-  },
-  errorText: {
-    marginTop: 4,
-    fontSize: 11,
-    color: "#EF4444",
-  },
-
-  rowWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
-  },
-  ageRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-
-  // wrapper del dropdown de edad
-  ageDropdownWrapper: {
-    flex: 0.45,
-    marginRight: 8,
-    position: "relative",
-  },
-  ageDropdownList: {
-    position: "absolute",
-    bottom: "100%",
-    left: 0,
-    right: 0,
-    marginBottom: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
-    maxHeight: 160,
-    overflow: "hidden",
-    zIndex: 50,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  ageDropdownItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  ageDropdownItemSelected: {
-    backgroundColor: "#DBEAFE",
-  },
-  ageDropdownItemText: {
-    fontSize: 14,
-    color: "#111827",
-  },
-  ageDropdownItemTextSelected: {
-    fontWeight: "600",
-  },
-
-  ageOptions: {
-    flexDirection: "row",
-    flex: 1,
-  },
-
-  rowSplit: {
-    flexDirection: "row",
-  },
-  splitColumn: {
-    flex: 1,
-  },
-
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginRight: 8,
-    marginBottom: 8,
-    backgroundColor: "#F9FAFB",
-  },
-  chipSmall: {
-    paddingHorizontal: 10,
-  },
-  chipSelected: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
-  },
-  chipMaleSelected: {
-    backgroundColor: "#3B82F6",
-    borderColor: "#3B82F6",
-  },
-  chipFemaleSelected: {
-    backgroundColor: "#EC4899",
-    borderColor: "#EC4899",
-  },
-  chipText: {
-    fontSize: 13,
-    color: "#4B5563",
-  },
-  chipTextSelected: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-
-  primaryButton: {
-    marginTop: 8,
-    marginBottom: 20,
-    alignSelf: "flex-end",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2563EB",
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 13,
-    marginRight: 6,
-  },
+  screen: { flex: 1, backgroundColor: "#E3F2FD" },
+  header: { paddingTop: Platform.OS === "ios" ? 52 : 32, paddingHorizontal: 20, paddingBottom: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#4A85A5", borderBottomLeftRadius: 15, borderBottomRightRadius: 15, elevation: 6 },
+  headerIconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  headerTitle: { flex: 1, marginHorizontal: 12, fontSize: 16, fontWeight: "700", color: "#FFFFFF", textAlign: "center" },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
+  imagePreviewWrapper: { alignItems: "center", marginBottom: 16 },
+  imagePreview: { width: "100%", maxWidth: 500, marginBottom: 1, marginTop: 1, height: 200, borderRadius: 24, backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0", overflow: "hidden" },
+  imagePreviewImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  imagePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
+  imagePlaceholderText: { marginTop: 8, fontSize: 12, color: "#6B7280", fontWeight: "500" },
+  imageEditButton: { position: "absolute", bottom: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(15, 23, 42, 0.85)", alignItems: "center", justifyContent: "center" },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 20, marginTop: 1, paddingHorizontal: 18, paddingVertical: 20, elevation: 3 },
+  headerTextBlock: { alignItems: "center", marginBottom: 18 },
+  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  subtitle: { marginTop: 4, fontSize: 12, color: "#6B7280", textAlign: "center" },
+  section: { marginBottom: 14 },
+  label: { fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 6 },
+  input: { borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, backgroundColor: "#F9FAFB" },
+  microchipInput: { marginTop: 10 },
+  inputAge: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 42 },
+  ageValueText: { fontSize: 14, color: "#111827" },
+  agePlaceholderText: { fontSize: 14, color: "#9CA3AF" },
+  inputError: { borderColor: "#EF4444" },
+  errorText: { marginTop: 4, fontSize: 11, color: "#EF4444" },
+  rowWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
+  ageRow: { flexDirection: "row", alignItems: "flex-start" },
+  ageDropdownWrapper: { flex: 0.45, marginRight: 8, position: "relative" },
+  ageDropdownList: { position: "absolute", bottom: "100%", left: 0, right: 0, marginBottom: 4, borderRadius: 10, borderWidth: 1, borderColor: "#D1D5DB", backgroundColor: "#FFFFFF", maxHeight: 160, overflow: "hidden", zIndex: 50, elevation: 8 },
+  ageDropdownItem: { paddingHorizontal: 12, paddingVertical: 8 },
+  ageDropdownItemSelected: { backgroundColor: "#DBEAFE" },
+  ageDropdownItemText: { fontSize: 14, color: "#111827" },
+  ageDropdownItemTextSelected: { fontWeight: "600" },
+  ageOptions: { flexDirection: "row", flex: 1 },
+  rowSplit: { flexDirection: "row" },
+  splitColumn: { flex: 1 },
+  chip: { flexDirection: "row", alignItems: "center", borderRadius: 999, borderWidth: 1, borderColor: "#E5E7EB", paddingHorizontal: 14, paddingVertical: 6, marginRight: 8, marginBottom: 8, backgroundColor: "#F9FAFB" },
+  chipSmall: { paddingHorizontal: 10 },
+  chipSelected: { backgroundColor: "#10B981", borderColor: "#10B981" },
+  chipMaleSelected: { backgroundColor: "#3B82F6", borderColor: "#3B82F6" },
+  chipFemaleSelected: { backgroundColor: "#EC4899", borderColor: "#EC4899" },
+  chipSelectedGeneric: { backgroundColor: "#8B5CF6", borderColor: "#8B5CF6" },
+  chipText: { fontSize: 13, color: "#4B5563" },
+  chipTextSelected: { color: "#FFFFFF", fontWeight: "600" },
+  primaryButton: { marginTop: 8, marginBottom: 20, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", backgroundColor: "#2563EB", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10 },
+  primaryButtonText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13, marginRight: 6 },
 });
