@@ -62,7 +62,7 @@ const institutions = [
   {
     id: 5,
     category: "Fundaciones",
-    name: "FURESAS",
+    name: "FURESA",
     phone: "23479300",
     whatsapp: "60786629",
     email: "info@furesa.com.sv",
@@ -76,7 +76,7 @@ const institutions = [
     id: 6,
     category: "Fundaciones",
     name: "FHMD CatDog",
-    phone: "60630269",
+    phone: "78660465",
     whatsapp: "",
     email: "donafcatdogsv@hotmail.com",
     address: "Calle a Huizúcar, cerca del Redondel Utila, Antiguo Cuscatlán.",
