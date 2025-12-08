@@ -17,6 +17,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../firebase/config";
 import { getUserFromStorage } from "../../../shared/utils/storage";
 import { COL_MASCOTAS } from "../../../shared/utils/collections";
+import { subscribeOwnerEvents } from "../../../services/calendarEvents";
 
 const avatarPlaceholder = require("../../../../assets/logo.png");
 
@@ -123,6 +124,7 @@ const HomeScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       let unsubscribePets;
+      let unsubscribeOwnerEvents;
 
       const loadData = async () => {
         try {
@@ -137,6 +139,8 @@ const HomeScreen = ({ navigation }) => {
             setPets([]);
             setUpcomingUserEvents([]);
             setNextVetEvent(null);
+            setLoadingPets(false);
+            setLoadingEvents(false);
             return;
           }
 
@@ -173,7 +177,7 @@ const HomeScreen = ({ navigation }) => {
             }
           );
 
-          // === Cargar eventos desde AsyncStorage para el Home ===
+          // === Cargar recordatorios personales desde AsyncStorage para el Home ===
           try {
             const eventsJson = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
             let allEvents = [];
@@ -209,20 +213,66 @@ const HomeScreen = ({ navigation }) => {
                 return a.dt - b.dt;
               });
 
-            const userEvents = processed.filter((x) => x.ev.source === "user");
-            const vetEvents = processed.filter((x) => x.ev.source === "vet");
-
-            // hasta 3 eventos del usuario
-            setUpcomingUserEvents(userEvents.slice(0, 3).map((x) => x.ev));
-            // 1 próxima cita del vet
-            setNextVetEvent(vetEvents.length ? vetEvents[0].ev : null);
+            // hasta 3 próximos recordatorios personales
+            setUpcomingUserEvents(processed.slice(0, 3).map((x) => x.ev));
           } catch (errEv) {
             console.log("Error cargando eventos en Home:", errEv);
             setUpcomingUserEvents([]);
-            setNextVetEvent(null);
           } finally {
             setLoadingEvents(false);
           }
+
+          // === Suscribirse a citas del vet en Firestore (para mostrar la más cercana) ===
+          unsubscribeOwnerEvents = subscribeOwnerEvents(
+            stored.id,
+            (fireEvents) => {
+              try {
+                const finalStatuses = [
+                  "COMPLETADO",
+                  "CANCELADO_VET",
+                  "CANCELADO_OWNER",
+                  "RECHAZADO_DUENIO",
+                ];
+
+                const mapped = (fireEvents || [])
+                  .filter(
+                    (ev) =>
+                      ev.type === "APPOINTMENT" &&
+                      !finalStatuses.includes(ev.status || "") &&
+                      ev.dateISO
+                  )
+                  .map((ev) => {
+                    const frontend = {
+                      id: ev.id,
+                      title: ev.title || "Cita médica",
+                      date: ev.dateISO || null,
+                      time: ev.time || null,
+                      location: ev.description || ev.location || null,
+                      type: "vet_appointment",
+                      source: "vet",
+                      status: ev.status || "PENDIENTE_DUENIO",
+                    };
+                    return {
+                      ev: frontend,
+                      dt: parseEventDateTime(frontend),
+                    };
+                  })
+                  .filter((x) => x.dt);
+
+                const now = new Date();
+                now.setSeconds(0, 0, 0);
+
+                const upcoming = mapped
+                  .filter((x) => x.dt >= now)
+                  .sort((a, b) => a.dt - b.dt);
+
+                setNextVetEvent(upcoming.length > 0 ? upcoming[0].ev : null);
+              } catch (err) {
+                console.log("Error procesando citas del vet para Home:", err);
+                setNextVetEvent(null);
+              }
+            }
+          );
         } catch (error) {
           console.log("Error al cargar datos en HomeScreen:", error);
           setPets([]);
@@ -239,6 +289,7 @@ const HomeScreen = ({ navigation }) => {
 
       return () => {
         if (unsubscribePets) unsubscribePets();
+        if (unsubscribeOwnerEvents) unsubscribeOwnerEvents();
       };
     }, [])
   );

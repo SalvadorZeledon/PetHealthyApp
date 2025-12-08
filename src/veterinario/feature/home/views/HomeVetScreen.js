@@ -1,5 +1,5 @@
 // veterinario/feature/home/views/HomeVetScreen.js
-import React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // 👈 NUEVO
 
-// 👇 lee la sesión donde guardamos fotoPerfilUrl
+// lee la sesión donde guardamos fotoPerfilUrl
 import { getUserFromStorage } from "../../../../shared/utils/storage";
 
 const avatarPlaceholder = require("../../../../assets/logo.png");
@@ -20,21 +21,33 @@ const avatarPlaceholder = require("../../../../assets/logo.png");
 const HomeVetScreen = ({ navigation }) => {
   const [avatarUri, setAvatarUri] = useState(null);
 
-  // Cargar/recargar avatar desde AsyncStorage
+  // Cargar/recargar avatar desde AsyncStorage / sesión
   const loadAvatar = useCallback(async () => {
     try {
       const stored = await getUserFromStorage();
+      console.log("👨‍⚕️ Vet en storage (HomeVetScreen):", stored);
 
+      let uri = null;
+
+      // 1) primero intentamos con lo que haya en la sesión
       if (
         stored &&
         stored.rol === "veterinario" &&
         typeof stored.fotoPerfilUrl === "string" &&
         stored.fotoPerfilUrl.length > 0
       ) {
-        setAvatarUri(stored.fotoPerfilUrl);
-      } else {
-        setAvatarUri(null);
+        uri = stored.fotoPerfilUrl;
       }
+
+      // 2) si no hay en la sesión, usamos la clave global @vetAvatarUrl
+      if (!uri) {
+        const fallback = await AsyncStorage.getItem("@vetAvatarUrl");
+        if (fallback) {
+          uri = fallback;
+        }
+      }
+
+      setAvatarUri(uri || null);
     } catch (error) {
       console.log("Error cargando avatar del veterinario:", error);
       setAvatarUri(null);
@@ -61,7 +74,6 @@ const HomeVetScreen = ({ navigation }) => {
     navigation.navigate("Settings");
   };
 
-  // 👇 NUEVA FUNCIÓN PARA EL CLICK
   const handleOpenScanner = () => {
     navigation.navigate("VetScanner");
   };
@@ -102,12 +114,10 @@ const HomeVetScreen = ({ navigation }) => {
 
       {/* CONTENIDO PRINCIPAL */}
       <ScrollView contentContainerStyle={styles.content}>
-        
-        {/* 👇 AHORA ESTA TARJETA ES TOCABLE (TouchableOpacity) */}
-        <TouchableOpacity 
-            style={styles.mainCard} 
-            activeOpacity={0.9} 
-            onPress={handleOpenScanner} // 👈 Acción al tocar
+        <TouchableOpacity
+          style={styles.mainCard}
+          activeOpacity={0.9}
+          onPress={handleOpenScanner}
         >
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardIconWrapper}>
@@ -116,20 +126,17 @@ const HomeVetScreen = ({ navigation }) => {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.mainCardTitle}>Escaneo de pacientes</Text>
               <Text style={styles.mainCardSubtitle}>
-                Toca aquí para escanear el código QR de las mascotas y ver su historial.
+                Toca aquí para escanear el código QR de las mascotas y ver su
+                historial.
               </Text>
             </View>
           </View>
 
-          {/* Placeholder visual de cámara */}
           <View style={styles.placeholderArea}>
             <Ionicons name="camera" size={42} color="#D1C4E9" />
-            <Text style={styles.placeholderText}>
-              Iniciar Escáner
-            </Text>
+            <Text style={styles.placeholderText}>Iniciar Escáner</Text>
           </View>
         </TouchableOpacity>
-
       </ScrollView>
     </View>
   );
@@ -243,7 +250,7 @@ const styles = StyleSheet.create({
   placeholderText: {
     marginTop: 8,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: "#6A1B9A",
     textAlign: "center",
   },

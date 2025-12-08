@@ -8,11 +8,19 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { collection, query, where, onSnapshot, getDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDoc,
+  doc,
+} from "firebase/firestore";
 
 import { db } from "../../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../../shared/utils/collections";
@@ -29,9 +37,11 @@ const FILTERS = [
 const VetPatientsScreen = ({ navigation }) => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Estado para el filtro seleccionado
   const [selectedFilter, setSelectedFilter] = useState("all");
+  // Buscador por nombre
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleOpenSettings = () => {
     navigation.navigate("Settings");
@@ -45,8 +55,8 @@ const VetPatientsScreen = ({ navigation }) => {
       const fetchLinkedPatients = async () => {
         try {
           // Solo mostrar loading si no hay datos previos para evitar parpadeos
-          if(patients.length === 0) setLoading(true);
-          
+          if (patients.length === 0) setLoading(true);
+
           const vetUser = await getUserFromStorage();
           if (!vetUser || !vetUser.id) {
             setLoading(false);
@@ -59,26 +69,25 @@ const VetPatientsScreen = ({ navigation }) => {
           );
 
           unsubscribe = onSnapshot(q, async (snapshot) => {
-            const petIds = snapshot.docs.map(doc => doc.data().petId);
-            
+            const petIds = snapshot.docs.map((doc) => doc.data().petId);
+
             if (petIds.length === 0) {
-                setPatients([]);
-                setLoading(false);
-                return;
+              setPatients([]);
+              setLoading(false);
+              return;
             }
 
             const petsData = [];
             for (const pid of petIds) {
-                const petDoc = await getDoc(doc(db, COL_MASCOTAS, pid));
-                if (petDoc.exists()) {
-                    petsData.push({ id: petDoc.id, ...petDoc.data() });
-                }
+              const petDoc = await getDoc(doc(db, COL_MASCOTAS, pid));
+              if (petDoc.exists()) {
+                petsData.push({ id: petDoc.id, ...petDoc.data() });
+              }
             }
-            
+
             setPatients(petsData);
             setLoading(false);
           });
-
         } catch (error) {
           console.error("Error cargando pacientes:", error);
           setLoading(false);
@@ -95,11 +104,20 @@ const VetPatientsScreen = ({ navigation }) => {
 
   // --- LÓGICA DE FILTRADO ---
   const getFilteredPatients = () => {
-    if (selectedFilter === 'all') return patients;
-    if (selectedFilter === 'perro') return patients.filter(p => p.especie === 'perro');
-    if (selectedFilter === 'gato') return patients.filter(p => p.especie === 'gato');
-    // Para "otro", excluimos perros y gatos
-    return patients.filter(p => p.especie !== 'perro' && p.especie !== 'gato');
+    let list = patients;
+
+    if (selectedFilter === "perro") {
+      list = list.filter((p) => p.especie === "perro");
+    } else if (selectedFilter === "gato") {
+      list = list.filter((p) => p.especie === "gato");
+    } else if (selectedFilter === "otro") {
+      list = list.filter((p) => p.especie !== "perro" && p.especie !== "gato");
+    }
+
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return list;
+
+    return list.filter((p) => (p.nombre || "").toLowerCase().includes(term));
   };
 
   const filteredList = getFilteredPatients();
@@ -115,7 +133,10 @@ const VetPatientsScreen = ({ navigation }) => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={[styles.iconCircle]} onPress={handleOpenSettings}>
+          <TouchableOpacity
+            style={[styles.iconCircle]}
+            onPress={handleOpenSettings}
+          >
             <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
           </TouchableOpacity>
         </View>
@@ -123,72 +144,99 @@ const VetPatientsScreen = ({ navigation }) => {
 
       {/* CONTENIDO */}
       <ScrollView contentContainerStyle={styles.content}>
-        
         {/* BARRA DE FILTROS */}
         <View style={styles.filtersRow}>
-            {FILTERS.map((f) => {
-                const active = selectedFilter === f.key;
-                return (
-                    <TouchableOpacity
-                        key={f.key}
-                        style={[styles.filterChip, active && styles.filterChipActive]}
-                        onPress={() => setSelectedFilter(f.key)}
-                    >
-                        <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                            {f.label}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
+          {FILTERS.map((f) => {
+            const active = selectedFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setSelectedFilter(f.key)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    active && styles.filterChipTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
+        {/* BUSCADOR */}
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar paciente por nombre..."
+          placeholderTextColor="#9CA3AF"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+
         {loading && patients.length === 0 ? (
-            <ActivityIndicator size="large" color="#7B1FA2" style={{marginTop: 50}} />
+          <ActivityIndicator
+            size="large"
+            color="#7B1FA2"
+            style={{ marginTop: 50 }}
+          />
         ) : filteredList.length === 0 ? (
-            <View style={styles.emptyWrapper}>
-                <View style={styles.placeholderCard}>
-                    <Ionicons name="paw-outline" size={40} color="#7B1FA2" />
-                    <Text style={styles.placeholderTitle}>
-                        {patients.length === 0 ? "Sin pacientes aún" : "No hay resultados"}
-                    </Text>
-                    <Text style={styles.placeholderText}>
-                        {patients.length === 0 
-                            ? "Escanea el código QR de una mascota para agregarla a tu lista de pacientes." 
-                            : "No hay mascotas de este tipo en tu lista."}
-                    </Text>
-                </View>
+          <View style={styles.emptyWrapper}>
+            <View style={styles.placeholderCard}>
+              <Ionicons name="paw-outline" size={40} color="#7B1FA2" />
+              <Text style={styles.placeholderTitle}>
+                {patients.length === 0
+                  ? "Sin pacientes aún"
+                  : "No hay resultados"}
+              </Text>
+              <Text style={styles.placeholderText}>
+                {patients.length === 0
+                  ? "Escanea el código QR de una mascota para agregarla a tu lista de pacientes."
+                  : "No hay mascotas de este tipo o nombre en tu lista."}
+              </Text>
             </View>
+          </View>
         ) : (
-            <View style={styles.gridContainer}>
-                {filteredList.map((pet) => (
-                    <View key={pet.id} style={styles.petItem}>
-                        <TouchableOpacity
-                            activeOpacity={0.9}
-                            style={styles.petCard}
-                            onPress={() => navigation.navigate("PetProfile", { petId: pet.id, viewMode: 'veterinarian' })}
-                        >
-                            {pet.fotoUrl ? (
-                                <Image
-                                    source={{ uri: pet.fotoUrl }}
-                                    style={styles.petImage}
-                                    contentFit="cover"
-                                    transition={200}
-                                />
-                            ) : (
-                                <View style={styles.petImagePlaceholder}>
-                                    <Ionicons name="paw-outline" size={30} color="#4B5563" />
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                        <Text style={styles.petName} numberOfLines={1}>{pet.nombre}</Text>
-                        <Text style={styles.petBreed} numberOfLines={1}>
-                            {pet.especie ? pet.especie.charAt(0).toUpperCase() + pet.especie.slice(1) : "Mascota"}
-                        </Text>
+          <View style={styles.gridContainer}>
+            {filteredList.map((pet) => (
+              <View key={pet.id} style={styles.petItem}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.petCard}
+                  onPress={() =>
+                    navigation.navigate("PetProfile", {
+                      petId: pet.id,
+                      viewMode: "veterinarian",
+                    })
+                  }
+                >
+                  {pet.fotoUrl ? (
+                    <Image
+                      source={{ uri: pet.fotoUrl }}
+                      style={styles.petImage}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <View style={styles.petImagePlaceholder}>
+                      <Ionicons name="paw-outline" size={30} color="#4B5563" />
                     </View>
-                ))}
-            </View>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.petName} numberOfLines={1}>
+                  {pet.nombre}
+                </Text>
+                <Text style={styles.petBreed} numberOfLines={1}>
+                  {pet.especie
+                    ? pet.especie.charAt(0).toUpperCase() + pet.especie.slice(1)
+                    : "Mascota"}
+                </Text>
+              </View>
+            ))}
+          </View>
         )}
-        
       </ScrollView>
     </View>
   );
@@ -208,32 +256,107 @@ const styles = StyleSheet.create({
     backgroundColor: "#7B1FA2",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF" },
   headerSubtitle: { marginTop: 2, fontSize: 12, color: "#E1BEE7" },
   headerRight: { flexDirection: "row" },
-  iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center", elevation: 3 },
-  
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+  },
+
   content: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 16 },
 
   // --- FILTROS ---
-  filtersRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "#D1C4E9", backgroundColor: "#FFFFFF", marginRight: 8, marginBottom: 8 },
+  filtersRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#D1C4E9",
+    backgroundColor: "#FFFFFF",
+    marginRight: 8,
+    marginBottom: 8,
+  },
   filterChipActive: { backgroundColor: "#7B1FA2", borderColor: "#7B1FA2" },
   filterChipText: { fontSize: 13, color: "#5E35B1", fontWeight: "500" },
   filterChipTextActive: { color: "#FFFFFF", fontWeight: "600" },
-  
-  emptyWrapper: { marginTop: 20 },
-  placeholderCard: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 30, alignItems: "center", elevation: 2 },
-  placeholderTitle: { marginTop: 10, fontSize: 16, fontWeight: "600", color: "#4A148C" },
-  placeholderText: { marginTop: 6, fontSize: 13, color: "#7E57C2", textAlign: "center" },
 
-  gridContainer: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  // buscador
+  searchInput: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#D1C4E9",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 14,
+    backgroundColor: "#FFFFFF",
+    fontSize: 13,
+  },
+
+  emptyWrapper: { marginTop: 20 },
+  placeholderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 30,
+    alignItems: "center",
+    elevation: 2,
+  },
+  placeholderTitle: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4A148C",
+  },
+  placeholderText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#7E57C2",
+    textAlign: "center",
+  },
+
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
   petItem: { width: "48%", marginBottom: 18, alignItems: "center" },
-  petCard: { width: "100%", aspectRatio: 0.95, backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden", elevation: 3, marginBottom: 8 },
+  petCard: {
+    width: "100%",
+    aspectRatio: 0.95,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    overflow: "hidden",
+    elevation: 3,
+    marginBottom: 8,
+  },
   petImage: { width: "100%", height: "100%", backgroundColor: "#E1BEE7" },
-  petImagePlaceholder: { flex: 1, backgroundColor: "#E1BEE7", alignItems: "center", justifyContent: "center" },
-  petName: { fontSize: 14, fontWeight: "700", color: "#4A148C", textAlign: "center" },
-  petBreed: { fontSize: 12, color: "#7E57C2", textAlign: "center" },
+  petImagePlaceholder: {
+    flex: 1,
+    backgroundColor: "#E1BEE7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  petName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#4A148C",
+    textAlign: "center",
+  },
+  petBreed: {
+    fontSize: 12,
+    color: "#7E57C2",
+    textAlign: "center",
+  },
 });

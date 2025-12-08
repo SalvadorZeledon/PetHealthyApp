@@ -17,16 +17,12 @@ const SettingsScreen = ({ navigation }) => {
     navigation.goBack();
   };
 
-  const handleOpenProfile = () => {
-    navigation.navigate("UserInfo");
-  };
-
-  // --- FUNCIONALIDAD DE IVÁN ---
+  // --- ACERCA DE NOSOTROS ---
   const handleOpenAboutUs = () => {
     navigation.navigate("AboutUs");
   };
 
-  // --- TUS FUNCIONALIDADES ---
+  // --- SERVICIOS EXTERNOS ---
   const handleOpenDirectory = () => {
     navigation.navigate("Directorio");
   };
@@ -69,21 +65,26 @@ const SettingsScreen = ({ navigation }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* SECCIÓN CUENTA */}
-        <Text style={styles.sectionTitle}>Cuenta</Text>
+        {/* 1) SECCIÓN SERVICIOS EXTERNOS */}
+        <Text style={styles.sectionTitle}>Servicios externos</Text>
 
-        <TouchableOpacity style={styles.optionCard} onPress={handleOpenProfile}>
-          <Ionicons name="person-circle-outline" size={24} color="#365b6d" />
+        <TouchableOpacity
+          style={styles.optionCard}
+          onPress={handleOpenDirectory}
+        >
+          <Ionicons name="book-outline" size={24} color="#365b6d" />
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Perfil</Text>
+            <Text style={styles.optionTitle}>Directorio</Text>
             <Text style={styles.optionSubtitle}>
-              Ver y editar tu información personal.
+              Instituciones para denuncias.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
-        {/* BOTÓN DE IVÁN: ACERCA DE NOSOTROS */}
+        {/* 2) SECCIÓN ACERCA DE NOSOTROS */}
+        <Text style={styles.sectionTitle}>Acerca de nosotros</Text>
+
         <TouchableOpacity style={styles.optionCard} onPress={handleOpenAboutUs}>
           <Ionicons
             name="information-circle-outline"
@@ -99,25 +100,7 @@ const SettingsScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
         </TouchableOpacity>
 
-        {/* SECCIÓN SERVICIOS EXTERNOS */}
-        <Text style={styles.sectionTitle}>Servicios externos</Text>
-
-        {/* SOLO DIRECTORIO */}
-        <TouchableOpacity
-          style={styles.optionCard}
-          onPress={handleOpenDirectory}
-        >
-          <Ionicons name="book-outline" size={24} color="#365b6d" />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.optionTitle}>Directorio</Text>
-            <Text style={styles.optionSubtitle}>
-              Instituciones para denuncias.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#90A4AE" />
-        </TouchableOpacity>
-
-        {/* SECCIÓN SESIÓN */}
+        {/* 3) SECCIÓN CERRAR SESIÓN */}
         <Text style={styles.sectionTitle}>Sesión</Text>
 
         <TouchableOpacity

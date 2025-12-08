@@ -10,17 +10,32 @@ import {
   Modal,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// 👉 YA NO usamos AsyncStorage para los eventos, van a Firestore
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { getUserFromStorage } from "../../../../shared/utils/storage"; // ajusta si tu ruta es distinta
+import { getUserFromStorage } from "../../../../shared/utils/storage";
 import {
   subscribeVetEvents,
   createVetEvent,
+  vetAcceptOwnerProposal,
+  vetCompleteEvent,
+  vetCancelEvent,
 } from "../../../../services/calendarEvents";
+import { openOrCreateChatForEvent } from "../../../../services/appointmentChatService";
+
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "../../../../../firebase/config";
+import { COL_MASCOTAS } from "../../../../shared/utils/collections";
 
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS = [
@@ -86,8 +101,76 @@ const parseTimeToMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
+// evento pasado (fecha + hora, si hay)
+const isEventPast = (dateISO, timeStr) => {
+  if (!dateISO) return false;
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+  base.setSeconds(0);
+  base.setMilliseconds(0);
+
+  let h = 23;
+  let min = 59;
+  if (timeStr) {
+    const [hm, period] = timeStr.split(" ");
+    const [hh, mm] = hm.split(":").map((n) => parseInt(n, 10));
+    h = hh;
+    min = mm || 0;
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+  }
+
+  base.setHours(h, min, 0, 0);
+  return base < new Date();
+};
+
+// mapping de estado
+const getStatusInfo = (status, requestedBy) => {
+  switch (status) {
+    case "PENDIENTE_DUENIO":
+      return {
+        label: "Pendiente de respuesta del dueño",
+        color: "#F9A825",
+      };
+    case "ACEPTADO":
+      return { label: "Cita confirmada", color: "#2E7D32" };
+    case "RECHAZADO_DUENIO":
+      return { label: "Rechazada por el dueño", color: "#C62828" };
+    case "PENDIENTE_REPROGRAMACION":
+      if (requestedBy === "OWNER") {
+        return {
+          label: "Dueño pidió cambio de horario",
+          color: "#FB8C00",
+        };
+      }
+      if (requestedBy === "VET") {
+        return {
+          label: "Propusiste un nuevo horario",
+          color: "#1565C0",
+        };
+      }
+      return { label: "Cambio de cita pendiente", color: "#FB8C00" };
+    case "COMPLETADO":
+      return { label: "Cita realizada", color: "#00897B" };
+    case "CANCELADO_VET":
+      return { label: "Cancelada por ti", color: "#6D4C41" };
+    case "CANCELADO_OWNER":
+      return { label: "Cancelada por el dueño", color: "#6D4C41" };
+    default:
+      return { label: "Sin estado", color: "#607D8B" };
+  }
+};
+
+const finalStatuses = [
+  "COMPLETADO",
+  "CANCELADO_VET",
+  "CANCELADO_OWNER",
+  "RECHAZADO_DUENIO",
+];
+
 const VetAppointmentsScreen = ({ navigation }) => {
   const [vetId, setVetId] = useState(null);
+  const [vetPhone, setVetPhone] = useState(null);
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
   const [daysStrip, setDaysStrip] = useState([]);
@@ -95,6 +178,12 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
   const [events, setEvents] = useState([]);
   const [eventsLoaded, setEventsLoaded] = useState(false);
+
+  // Pacientes vinculados al vet (para asignar citas)
+  const [availablePatients, setAvailablePatients] = useState([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [selectedPetMeta, setSelectedPetMeta] = useState(null);
+  const [patientSearch, setPatientSearch] = useState("");
 
   // Modal nueva cita
   const [showNewEventModal, setShowNewEventModal] = useState(false);
@@ -106,7 +195,6 @@ const VetAppointmentsScreen = ({ navigation }) => {
   const [timePeriod, setTimePeriod] = useState("AM");
   const [timeError, setTimeError] = useState("");
 
-  const [patientName, setPatientName] = useState("");
   const [manualNotes, setManualNotes] = useState(""); // notas internas / observaciones
 
   // Campos extra para medicación
@@ -139,7 +227,8 @@ const VetAppointmentsScreen = ({ navigation }) => {
           );
         }
 
-        setVetId(possibleId || "VET_DEMO"); // fallback demo
+        setVetId(possibleId || "VET_DEMO");
+        setVetPhone(stored.telefono || stored.phone || null);
       } catch (error) {
         console.log("Error cargando sesión de vet:", error);
       }
@@ -148,12 +237,68 @@ const VetAppointmentsScreen = ({ navigation }) => {
     loadVetId();
   }, []);
 
+  // Cargar pacientes vinculados (vet_patients + mascotas)
+  useEffect(() => {
+    if (!vetId) return;
+
+    let unsubscribe;
+    const fetchLinkedPatients = async () => {
+      try {
+        setLoadingPatients(true);
+
+        const q = query(
+          collection(db, "vet_patients"),
+          where("vetId", "==", vetId)
+        );
+
+        unsubscribe = onSnapshot(q, async (snapshot) => {
+          const petIds = snapshot.docs.map((d) => d.data().petId);
+          if (petIds.length === 0) {
+            setAvailablePatients([]);
+            setLoadingPatients(false);
+            return;
+          }
+
+          const petsData = [];
+          for (const pid of petIds) {
+            const petDoc = await getDoc(doc(db, COL_MASCOTAS, pid));
+            if (petDoc.exists()) {
+              const data = petDoc.data();
+              petsData.push({
+                id: petDoc.id,
+                nombre: data.nombre || "Mascota",
+                especie: data.especie || "",
+                ownerId: data.ownerId || data.ownerUID || null,
+                ownerPhone:
+                  data.ownerPhone ||
+                  data.telefonoDueno ||
+                  data.telefono ||
+                  null,
+              });
+            }
+          }
+
+          setAvailablePatients(petsData);
+          setLoadingPatients(false);
+        });
+      } catch (error) {
+        console.log("Error cargando pacientes para calendario:", error);
+        setLoadingPatients(false);
+      }
+    };
+
+    fetchLinkedPatients();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [vetId]);
+
   // Suscripción a eventos del vet en Firestore
   useEffect(() => {
     if (!vetId) return;
 
     const unsubscribe = subscribeVetEvents(vetId, (fireEvents) => {
-      // Ordenamos por fecha y hora en el cliente
       const sorted = [...fireEvents].sort((a, b) => {
         if (a.dateISO === b.dateISO) {
           return (
@@ -166,17 +311,27 @@ const VetAppointmentsScreen = ({ navigation }) => {
 
       const mapped = sorted.map((ev) => {
         const isMedication = ev.type === "MEDICATION";
+
         return {
           id: ev.id,
+          rawType: ev.type,
           type: isMedication ? "meds" : "vet_appointment",
           title: ev.title,
           petName: ev.petName || "",
-          time: ev.time,
-          date: ev.dateISO,
+          time: ev.time || null,
+          date: ev.dateISO || null,
+          dateISO: ev.dateISO || null,
           location: ev.description || ev.location || null,
           source: "vet",
-          status: ev.status === "COMPLETADO" ? "done" : "pending",
-          vetPlaceId: null,
+          status: ev.status || (isMedication ? "ACEPTADO" : "PENDIENTE_DUENIO"),
+          requestedBy: ev.requestedBy || null,
+          proposedDateISO: ev.proposedDateISO || null,
+          proposedTime: ev.proposedTime || null,
+          ownerPhone: ev.ownerPhone || null,
+          vetPhone: ev.vetPhone || null,
+          ownerChangeRequestsCount: ev.ownerChangeRequestsCount || 0,
+          ownerId: ev.ownerId || null,
+          vetId: ev.vetId || vetId,
           medicationName: ev.medicationName || null,
           medicationFrequency: ev.medicationFrequency || null,
           medicationDuration: ev.medicationDuration || null,
@@ -254,6 +409,15 @@ const VetAppointmentsScreen = ({ navigation }) => {
     navigation.navigate("Settings");
   };
 
+  // lista filtrada de pacientes para el selector
+  const filteredPatients = useMemo(() => {
+    const term = patientSearch.trim().toLowerCase();
+    if (!term) return availablePatients;
+    return availablePatients.filter((p) =>
+      (p.nombre || "").toLowerCase().includes(term)
+    );
+  }, [availablePatients, patientSearch]);
+
   const openNewEventModal = () => {
     if (!selectedDateISO) return;
 
@@ -271,11 +435,12 @@ const VetAppointmentsScreen = ({ navigation }) => {
     setTimeMinute("00");
     setTimePeriod("AM");
     setTimeError("");
-    setPatientName("");
     setManualNotes("");
     setMedicationName("");
     setMedicationFrequency("");
     setMedicationDuration("");
+    setSelectedPetMeta(null);
+    setPatientSearch("");
     setShowNewEventModal(true);
   };
 
@@ -299,17 +464,27 @@ const VetAppointmentsScreen = ({ navigation }) => {
       return;
     }
 
-    const trimmedPatient = patientName.trim();
-    if (!trimmedPatient) {
+    if (!selectedPetMeta) {
       Alert.alert(
         "Paciente requerido",
-        "Debes seleccionar o escribir el nombre del paciente (mascota)."
+        "Debes seleccionar un paciente (mascota) de tu lista."
       );
       return;
     }
 
+    const trimmedPatient = (selectedPetMeta.nombre || "").trim();
+    if (!trimmedPatient) {
+      Alert.alert(
+        "Paciente requerido",
+        "Debes seleccionar un paciente válido."
+      );
+      return;
+    }
+
+    const isMedicationEvent = eventCategory === "meds";
+
     // Si es medicación, validamos campos básicos
-    if (eventCategory === "meds") {
+    if (isMedicationEvent) {
       if (!medicationName.trim()) {
         Alert.alert(
           "Medicamento requerido",
@@ -319,55 +494,73 @@ const VetAppointmentsScreen = ({ navigation }) => {
       }
     }
 
-    const h = parseInt(timeHour, 10);
-    const m = parseInt(timeMinute, 10);
-    if (isNaN(h) || isNaN(m) || h < 1 || h > 12 || m < 0 || m > 59) {
-      setTimeError("Hora no válida. Revisa el horario seleccionado.");
-      return;
-    }
+    let timeStr = null;
 
-    if (isDateInPast(selectedDateISO)) {
-      Alert.alert(
-        "Fecha no válida",
-        "No puedes crear citas en fechas anteriores a hoy."
-      );
-      return;
-    }
+    // Validaciones de hora SOLO para citas médicas normales
+    if (!isMedicationEvent) {
+      const h = parseInt(timeHour, 10);
+      const m = parseInt(timeMinute, 10);
+      if (isNaN(h) || isNaN(m) || h < 1 || h > 12 || m < 0 || m > 59) {
+        setTimeError("Hora no válida. Revisa el horario seleccionado.");
+        return;
+      }
 
-    const todayISO = new Date().toISOString().split("T")[0];
-    if (selectedDateISO === todayISO) {
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      const selectedMinutes = time12hToMinutes(h, m, timePeriod);
+      if (isDateInPast(selectedDateISO)) {
+        Alert.alert(
+          "Fecha no válida",
+          "No puedes crear citas en fechas anteriores a hoy."
+        );
+        return;
+      }
 
-      if (selectedMinutes <= nowMinutes) {
-        setTimeError("No puedes crear una cita en una hora que ya pasó hoy.");
+      const todayISO = new Date().toISOString().split("T")[0];
+      if (selectedDateISO === todayISO) {
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const selectedMinutes = time12hToMinutes(h, m, timePeriod);
+
+        if (selectedMinutes <= nowMinutes) {
+          setTimeError("No puedes crear una cita en una hora que ya pasó hoy.");
+          return;
+        }
+      }
+
+      const hh = h.toString().padStart(2, "0");
+      const mm = m.toString().padStart(2, "0");
+      timeStr = `${hh}:${mm} ${timePeriod}`;
+    } else {
+      if (isDateInPast(selectedDateISO)) {
+        Alert.alert(
+          "Fecha no válida",
+          "No puedes iniciar un tratamiento en una fecha pasada."
+        );
         return;
       }
     }
 
-    const hh = h.toString().padStart(2, "0");
-    const mm = m.toString().padStart(2, "0");
-    const timeStr = `${hh}:${mm} ${timePeriod}`;
-
     try {
       const payload = {
         vetId,
-        ownerId: null, // 👉 luego lo rellenaremos con el dueño real
-        petId: null, // 👉 luego lo rellenaremos con la mascota real
+        ownerId: selectedPetMeta.ownerId || null,
+        petId: selectedPetMeta.id || selectedPetMeta.petId || null,
         petName: trimmedPatient,
 
-        type: eventCategory === "meds" ? "MEDICATION" : "APPOINTMENT",
+        type: isMedicationEvent ? "MEDICATION" : "APPOINTMENT",
         title: trimmedTitle,
         description: manualNotes.trim() || null,
         dateISO: selectedDateISO,
         time: timeStr,
 
-        medicationName: eventCategory === "meds" ? medicationName.trim() : null,
-        medicationFrequency:
-          eventCategory === "meds" ? medicationFrequency.trim() : null,
-        medicationDuration:
-          eventCategory === "meds" ? medicationDuration.trim() : null,
+        medicationName: isMedicationEvent ? medicationName.trim() : null,
+        medicationFrequency: isMedicationEvent
+          ? medicationFrequency.trim()
+          : null,
+        medicationDuration: isMedicationEvent
+          ? medicationDuration.trim()
+          : null,
+
+        ownerPhone: selectedPetMeta.ownerPhone || null,
+        vetPhone: vetPhone || null,
       };
 
       await createVetEvent(payload);
@@ -381,38 +574,89 @@ const VetAppointmentsScreen = ({ navigation }) => {
     }
   };
 
-  const handleToggleDone = (id) => {
-    // 👉 Más adelante haremos update a Firestore (status COMPLETADO).
-    // Por ahora solo lo cambiamos en local para no complicar.
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === id && e.source === "vet"
-          ? { ...e, status: e.status === "done" ? "pending" : "done" }
-          : e
-      )
-    );
+  // --------- Acciones del veterinario sobre eventos ---------
+
+  const handleMarkCompleted = async (event) => {
+    try {
+      await vetCompleteEvent(event.id);
+    } catch (error) {
+      console.log("Error marcando cita como completada:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo marcar la cita como completada. Intenta nuevamente."
+      );
+    }
   };
 
-  const handleDeleteEvent = (id) => {
-    const ev = events.find((e) => e.id === id && e.source === "vet");
-
-    if (!ev) return;
-
+  const handleCancelEvent = (event) => {
     Alert.alert(
-      "Eliminar cita",
-      `¿Seguro que quieres eliminar la cita "${ev.title}"?`,
+      "Cancelar cita",
+      `¿Seguro que quieres cancelar la cita "${event.title}"?`,
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: "No", style: "cancel" },
         {
-          text: "Eliminar",
+          text: "Sí, cancelar",
           style: "destructive",
-          onPress: () => {
-            // 👉 Luego esto será un deleteDoc en Firestore.
-            setEvents((prev) => prev.filter((e) => e.id !== id));
+          onPress: async () => {
+            try {
+              await vetCancelEvent(event.id);
+            } catch (error) {
+              console.log("Error cancelando cita:", error);
+              Alert.alert(
+                "Error",
+                "No se pudo cancelar la cita. Intenta nuevamente."
+              );
+            }
           },
         },
       ]
     );
+  };
+
+  const handleAcceptOwnerProposal = async (event) => {
+    try {
+      await vetAcceptOwnerProposal(event.id);
+    } catch (error) {
+      console.log("Error aceptando propuesta del dueño:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo aceptar la nueva fecha propuesta por el dueño."
+      );
+    }
+  };
+
+  const handleCallOwner = (event) => {
+    if (!event.ownerPhone) {
+      Alert.alert(
+        "Teléfono no disponible",
+        "El número de teléfono del propietario no está registrado en esta cita."
+      );
+      return;
+    }
+    Linking.openURL(`tel:${event.ownerPhone}`).catch((err) =>
+      console.log("Error abriendo marcador:", err)
+    );
+  };
+
+  const handleOpenChat = async (event) => {
+    try {
+      await openOrCreateChatForEvent({
+        eventId: event.id,
+        ownerId: event.ownerId || null,
+        vetId: event.vetId || vetId || null,
+      });
+
+      navigation.navigate("AppointmentChat", {
+        eventId: event.id,
+        fromRole: "VET",
+      });
+    } catch (error) {
+      console.log("Error abriendo chat de cita:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo abrir el chat de la cita. Intenta nuevamente."
+      );
+    }
   };
 
   const getEventVisuals = (ev) => {
@@ -811,15 +1055,56 @@ const VetAppointmentsScreen = ({ navigation }) => {
         ) : (
           eventsForSelectedDay.map((ev) => {
             const visuals = getEventVisuals(ev);
-            const isDone = ev.status === "done";
+            const isDone = ev.status === "COMPLETADO";
+            const statusInfo = getStatusInfo(ev.status, ev.requestedBy);
+            const overdue = isEventPast(ev.dateISO || ev.date, ev.time);
+            const isFinal = finalStatuses.includes(ev.status);
+
+            const cardStyles = [styles.eventCard];
+            if (ev.type === "vet_appointment" && overdue && !isFinal) {
+              cardStyles.push(styles.eventCardPast);
+            }
+            if (ev.status === "RECHAZADO_DUENIO") {
+              cardStyles.push(styles.eventCardRejected);
+            }
+            if (
+              ev.status === "CANCELADO_VET" ||
+              ev.status === "CANCELADO_OWNER"
+            ) {
+              cardStyles.push(styles.eventCardCancelled);
+            }
+
+            // contacto sólo cuando tiene sentido
+            const showContact =
+              ev.type === "vet_appointment" &&
+              (ev.status === "ACEPTADO" ||
+                ev.status === "PENDIENTE_REPROGRAMACION" ||
+                (overdue && !isFinal));
+
+            // Mostrar botón de llamada SOLO para citas confirmadas (ACEPTADO)
+            const showCall =
+              ev.type === "vet_appointment" && ev.status === "ACEPTADO";
 
             return (
               <TouchableOpacity
                 key={ev.id}
-                style={styles.eventCard}
+                style={cardStyles}
                 activeOpacity={0.9}
               >
                 <View style={{ flex: 1 }}>
+                  {/* Badge de estado */}
+                  <Text
+                    style={[
+                      styles.statusBadge,
+                      {
+                        borderColor: statusInfo.color,
+                        color: statusInfo.color,
+                      },
+                    ]}
+                  >
+                    {statusInfo.label}
+                  </Text>
+
                   <Text
                     style={[styles.eventTitle, isDone && styles.eventTextDone]}
                   >
@@ -853,8 +1138,35 @@ const VetAppointmentsScreen = ({ navigation }) => {
                   <Text
                     style={[styles.eventDetail, isDone && styles.eventTextDone]}
                   >
-                    {ev.time} · {ev.location || "Clínica no especificada"}
+                    {ev.type === "meds"
+                      ? ev.medicationFrequency
+                        ? `Pauta: ${ev.medicationFrequency}`
+                        : "Pauta según indicación"
+                      : `${ev.time || "Sin hora"} · ${
+                          ev.location || "Clínica no especificada"
+                        }`}
                   </Text>
+
+                  {ev.status === "PENDIENTE_REPROGRAMACION" &&
+                    ev.proposedDateISO &&
+                    ev.proposedTime && (
+                      <Text
+                        style={[
+                          styles.eventDetail,
+                          isDone && styles.eventTextDone,
+                        ]}
+                      >
+                        Cambio solicitado para {ev.proposedDateISO} ·{" "}
+                        {ev.proposedTime}
+                      </Text>
+                    )}
+
+                  {ev.type === "vet_appointment" && overdue && !isFinal && (
+                    <Text style={styles.eventPastText}>
+                      Esta cita ya pasó. Considera reprogramarla o actualizar su
+                      estado.
+                    </Text>
+                  )}
                 </View>
 
                 <View style={styles.eventMeta}>
@@ -876,31 +1188,88 @@ const VetAppointmentsScreen = ({ navigation }) => {
                     />
                   </View>
 
+                  {/* Contacto: llamada + chat */}
+                  <View style={styles.eventContactRow}>
+                    {showCall && ev.ownerPhone && (
+                      <TouchableOpacity
+                        style={styles.smallIconButton}
+                        onPress={() => handleCallOwner(ev)}
+                      >
+                        <Ionicons
+                          name="call-outline"
+                          size={18}
+                          color="#00796B"
+                        />
+                      </TouchableOpacity>
+                    )}
+
+                    {showContact && (
+                      <TouchableOpacity
+                        style={styles.smallIconButton}
+                        onPress={() => handleOpenChat(ev)}
+                      >
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={18}
+                          color="#5E35B1"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Acciones sobre la cita */}
                   <View style={styles.eventActionsRow}>
-                    <TouchableOpacity
-                      style={styles.smallIconButton}
-                      onPress={() => handleToggleDone(ev.id)}
-                    >
-                      <Ionicons
-                        name={
-                          isDone
-                            ? "checkmark-circle"
-                            : "checkmark-circle-outline"
-                        }
-                        size={18}
-                        color={isDone ? "#43A047" : "#607D8B"}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.smallIconButton}
-                      onPress={() => handleDeleteEvent(ev.id)}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={18}
-                        color="#E53935"
-                      />
-                    </TouchableOpacity>
+                    {/* Aceptar propuesta de cambio del dueño */}
+                    {ev.type === "vet_appointment" &&
+                      ev.status === "PENDIENTE_REPROGRAMACION" &&
+                      ev.requestedBy === "OWNER" && (
+                        <TouchableOpacity
+                          style={styles.smallIconButton}
+                          onPress={() => handleAcceptOwnerProposal(ev)}
+                        >
+                          <Ionicons
+                            name="checkmark-done-outline"
+                            size={18}
+                            color="#2E7D32"
+                          />
+                        </TouchableOpacity>
+                      )}
+
+                    {/* Marcar como COMPLETADO */}
+                    {ev.type === "vet_appointment" &&
+                      ["ACEPTADO", "PENDIENTE_REPROGRAMACION"].includes(
+                        ev.status
+                      ) && (
+                        <TouchableOpacity
+                          style={styles.smallIconButton}
+                          onPress={() => handleMarkCompleted(ev)}
+                        >
+                          <Ionicons
+                            name="checkmark-circle-outline"
+                            size={18}
+                            color="#2E7D32"
+                          />
+                        </TouchableOpacity>
+                      )}
+
+                    {/* Cancelar cita */}
+                    {ev.type === "vet_appointment" &&
+                      [
+                        "PENDIENTE_DUENIO",
+                        "ACEPTADO",
+                        "PENDIENTE_REPROGRAMACION",
+                      ].includes(ev.status) && (
+                        <TouchableOpacity
+                          style={styles.smallIconButton}
+                          onPress={() => handleCancelEvent(ev)}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color="#E53935"
+                          />
+                        </TouchableOpacity>
+                      )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -916,211 +1285,314 @@ const VetAppointmentsScreen = ({ navigation }) => {
         animationType="fade"
         onRequestClose={() => setShowNewEventModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Nuevo evento</Text>
-            </View>
+            <ScrollView
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalTitle}>Nuevo evento</Text>
+              </View>
 
-            <Text style={styles.modalSubtitle}>
-              {selectedDateISO
-                ? `Para el ${formattedSelectedDate}`
-                : "Selecciona una fecha en el calendario."}
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedDateISO
+                  ? `Para el ${formattedSelectedDate}`
+                  : "Selecciona una fecha en el calendario."}
+              </Text>
 
-            {/* PACIENTE */}
-            <Text style={styles.modalLabel}>
-              Paciente (nombre de la mascota)
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Ej: Max, Luna, Bruno..."
-              placeholderTextColor="#9CA3AF"
-              value={patientName}
-              onChangeText={setPatientName}
-            />
+              {/* PACIENTE */}
+              <Text style={styles.modalLabel}>Paciente</Text>
+              {loadingPatients ? (
+                <ActivityIndicator size="small" color="#7B1FA2" />
+              ) : availablePatients.length === 0 ? (
+                <Text style={styles.modalHelperText}>
+                  Aún no tienes pacientes vinculados. Escanea el código QR de
+                  una mascota para agregarla a tu lista.
+                </Text>
+              ) : (
+                <>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Buscar por nombre..."
+                    placeholderTextColor="#9CA3AF"
+                    value={patientSearch}
+                    onChangeText={setPatientSearch}
+                  />
 
-            {/* MOTIVO */}
-            <Text style={styles.modalLabel}>Motivo del evento</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Ej: Vacuna anual, control postoperatorio..."
-              placeholderTextColor="#9CA3AF"
-              value={eventTitle}
-              onChangeText={setEventTitle}
-            />
-
-            {/* CATEGORÍA */}
-            <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-              Tipo de evento
-            </Text>
-            <View style={styles.modalChipsRow}>
-              {[
-                { value: "vet_appointment", label: "Cita médica" },
-                { value: "meds", label: "Medicación" },
-              ].map((opt) => {
-                const selected = eventCategory === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[
-                      styles.modalChip,
-                      selected && styles.modalChipSelected,
-                    ]}
-                    onPress={() => setEventCategory(opt.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.modalChipText,
-                        selected && styles.modalChipTextSelected,
-                      ]}
+                  <View style={{ height: 180, marginTop: 6 }}>
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={true}
+                      contentContainerStyle={{ paddingBottom: 8 }}
                     >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      {filteredPatients.map((pet) => {
+                        const selected =
+                          selectedPetMeta?.id && selectedPetMeta.id === pet.id;
+                        return (
+                          <TouchableOpacity
+                            key={pet.id}
+                            style={[
+                              styles.petRow,
+                              selected && styles.petRowSelected,
+                            ]}
+                            onPress={() =>
+                              setSelectedPetMeta({
+                                ...pet,
+                                petId: pet.id,
+                              })
+                            }
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={[
+                                  styles.petRowName,
+                                  selected && styles.petRowNameSelected,
+                                ]}
+                              >
+                                {pet.nombre}
+                              </Text>
+                              {pet.especie ? (
+                                <Text
+                                  style={[
+                                    styles.petRowSub,
+                                    selected && styles.petRowSubSelected,
+                                  ]}
+                                >
+                                  {pet.especie}
+                                </Text>
+                              ) : null}
+                            </View>
+                            {selected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={18}
+                                color="#7B1FA2"
+                              />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                </>
+              )}
 
-            {/* HORA */}
-            <Text style={[styles.modalLabel, { marginTop: 10 }]}>Hora</Text>
-            <View style={styles.timeRow}>
-              <View style={styles.timeStepper}>
-                <TouchableOpacity
-                  style={styles.timeStepperButton}
-                  onPress={decrementHour}
-                >
-                  <Ionicons name="chevron-back" size={16} color="#455A64" />
-                </TouchableOpacity>
-                <Text style={styles.timeStepperText}>{timeHour}</Text>
-                <TouchableOpacity
-                  style={styles.timeStepperButton}
-                  onPress={incrementHour}
-                >
-                  <Ionicons name="chevron-forward" size={16} color="#455A64" />
-                </TouchableOpacity>
-              </View>
+              {/* MOTIVO */}
+              <Text style={styles.modalLabel}>Motivo del evento</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ej: Vacuna anual, control postoperatorio..."
+                placeholderTextColor="#9CA3AF"
+                value={eventTitle}
+                onChangeText={setEventTitle}
+              />
 
-              <Text style={styles.timeColon}>:</Text>
-
-              <View style={styles.timeStepper}>
-                <TouchableOpacity
-                  style={styles.timeStepperButton}
-                  onPress={decrementMinute}
-                >
-                  <Ionicons name="chevron-back" size={16} color="#455A64" />
-                </TouchableOpacity>
-                <Text style={styles.timeStepperText}>{timeMinute}</Text>
-                <TouchableOpacity
-                  style={styles.timeStepperButton}
-                  onPress={incrementMinute}
-                >
-                  <Ionicons name="chevron-forward" size={16} color="#455A64" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.periodToggle}>
-                {["AM", "PM"].map((p) => {
-                  const selected = timePeriod === p;
+              {/* CATEGORÍA */}
+              <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                Tipo de evento
+              </Text>
+              <View style={styles.modalChipsRow}>
+                {[
+                  { value: "vet_appointment", label: "Cita médica" },
+                  { value: "meds", label: "Medicación" },
+                ].map((opt) => {
+                  const selected = eventCategory === opt.value;
                   return (
                     <TouchableOpacity
-                      key={p}
+                      key={opt.value}
                       style={[
-                        styles.periodChip,
-                        selected && styles.periodChipSelected,
+                        styles.modalChip,
+                        selected && styles.modalChipSelected,
                       ]}
-                      onPress={() => {
-                        setTimeError("");
-                        setTimePeriod(p);
-                      }}
+                      onPress={() => setEventCategory(opt.value)}
                     >
                       <Text
                         style={[
-                          styles.periodChipText,
-                          selected && styles.periodChipTextSelected,
+                          styles.modalChipText,
+                          selected && styles.modalChipTextSelected,
                         ]}
                       >
-                        {p}
+                        {opt.label}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-            </View>
 
-            {timeError ? (
-              <Text style={styles.timeErrorText}>{timeError}</Text>
-            ) : null}
+              {/* HORA: solo para citas médicas */}
+              {eventCategory !== "meds" && (
+                <>
+                  <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                    Hora
+                  </Text>
+                  <View style={styles.timeRow}>
+                    <View style={styles.timeStepper}>
+                      <TouchableOpacity
+                        style={styles.timeStepperButton}
+                        onPress={decrementHour}
+                      >
+                        <Ionicons
+                          name="chevron-back"
+                          size={16}
+                          color="#455A64"
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.timeStepperText}>{timeHour}</Text>
+                      <TouchableOpacity
+                        style={styles.timeStepperButton}
+                        onPress={incrementHour}
+                      >
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color="#455A64"
+                        />
+                      </TouchableOpacity>
+                    </View>
 
-            <Text style={styles.timeHint}>
-              Nota: ajusta la hora según la agenda de la clínica y confirma con
-              el propietario.
-            </Text>
+                    <Text style={styles.timeColon}>:</Text>
 
-            {/* CAMPOS EXTRA PARA MEDICACIÓN */}
-            {eventCategory === "meds" && (
-              <>
-                <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-                  Nombre del medicamento
-                </Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Ej: Carprofeno 50mg"
-                  placeholderTextColor="#9CA3AF"
-                  value={medicationName}
-                  onChangeText={setMedicationName}
-                />
+                    <View style={styles.timeStepper}>
+                      <TouchableOpacity
+                        style={styles.timeStepperButton}
+                        onPress={decrementMinute}
+                      >
+                        <Ionicons
+                          name="chevron-back"
+                          size={16}
+                          color="#455A64"
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.timeStepperText}>{timeMinute}</Text>
+                      <TouchableOpacity
+                        style={styles.timeStepperButton}
+                        onPress={incrementMinute}
+                      >
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color="#455A64"
+                        />
+                      </TouchableOpacity>
+                    </View>
 
-                <Text style={styles.modalLabel}>Frecuencia (cada cuánto)</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Ej: 2 veces al día, cada 8 horas..."
-                  placeholderTextColor="#9CA3AF"
-                  value={medicationFrequency}
-                  onChangeText={setMedicationFrequency}
-                />
+                    <View style={styles.periodToggle}>
+                      {["AM", "PM"].map((p) => {
+                        const selected = timePeriod === p;
+                        return (
+                          <TouchableOpacity
+                            key={p}
+                            style={[
+                              styles.periodChip,
+                              selected && styles.periodChipSelected,
+                            ]}
+                            onPress={() => {
+                              setTimeError("");
+                              setTimePeriod(p);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.periodChipText,
+                                selected && styles.periodChipTextSelected,
+                              ]}
+                            >
+                              {p}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
 
-                <Text style={styles.modalLabel}>Duración del tratamiento</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Ej: 7 días, 1 mes..."
-                  placeholderTextColor="#9CA3AF"
-                  value={medicationDuration}
-                  onChangeText={setMedicationDuration}
-                />
-              </>
-            )}
+                  {timeError ? (
+                    <Text style={styles.timeErrorText}>{timeError}</Text>
+                  ) : null}
 
-            {/* NOTAS INTERNAS / CLÍNICA */}
-            <Text style={[styles.modalLabel, { marginTop: 10 }]}>
-              Notas internas / indicaciones
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Ej: traer exámenes, ayuno previo, sala 2, etc."
-              placeholderTextColor="#9CA3AF"
-              value={manualNotes}
-              onChangeText={setManualNotes}
-            />
+                  <Text style={styles.timeHint}>
+                    Nota: ajusta la hora según la agenda de la clínica y
+                    confirma con el propietario.
+                  </Text>
+                </>
+              )}
 
-            {/* BOTONES MODAL */}
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={styles.modalSecondaryBtn}
-                onPress={() => setShowNewEventModal(false)}
-              >
-                <Text style={styles.modalSecondaryText}>Cancelar</Text>
-              </TouchableOpacity>
+              {/* CAMPOS EXTRA PARA MEDICACIÓN */}
+              {eventCategory === "meds" && (
+                <>
+                  <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                    Nombre del medicamento
+                  </Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Ej: Carprofeno 50mg"
+                    placeholderTextColor="#9CA3AF"
+                    value={medicationName}
+                    onChangeText={setMedicationName}
+                  />
 
-              <TouchableOpacity
-                style={styles.modalPrimaryBtn}
-                onPress={handleSaveNewEvent}
-              >
-                <Text style={styles.modalPrimaryText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
+                  <Text style={styles.modalLabel}>
+                    Frecuencia (cada cuánto)
+                  </Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Ej: 2 veces al día, cada 8 horas..."
+                    placeholderTextColor="#9CA3AF"
+                    value={medicationFrequency}
+                    onChangeText={setMedicationFrequency}
+                  />
+
+                  <Text style={styles.modalLabel}>
+                    Duración del tratamiento
+                  </Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Ej: 7 días, 1 mes..."
+                    placeholderTextColor="#9CA3AF"
+                    value={medicationDuration}
+                    onChangeText={setMedicationDuration}
+                  />
+                </>
+              )}
+
+              {/* NOTAS INTERNAS / CLÍNICA */}
+              <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                Notas internas / indicaciones
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ej: traer exámenes, ayuno previo, sala 2, etc."
+                placeholderTextColor="#9CA3AF"
+                value={manualNotes}
+                onChangeText={setManualNotes}
+                multiline={true}
+                numberOfLines={3}
+              />
+
+              {/* BOTONES MODAL */}
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={styles.modalSecondaryBtn}
+                  onPress={() => setShowNewEventModal(false)}
+                >
+                  <Text style={styles.modalSecondaryText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalPrimaryBtn}
+                  onPress={handleSaveNewEvent}
+                >
+                  <Text style={styles.modalPrimaryText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {renderMonthPicker()}
@@ -1349,6 +1821,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
+  eventCardPast: {
+    borderWidth: 1,
+    borderColor: "#E53935",
+    backgroundColor: "#FFEBEE",
+  },
+  eventCardRejected: {
+    opacity: 0.7,
+  },
+  eventCardCancelled: {
+    opacity: 0.7,
+  },
   eventTitle: {
     fontSize: 15,
     fontWeight: "600",
@@ -1365,6 +1848,11 @@ const styles = StyleSheet.create({
   eventTextDone: {
     color: "#B0BEC5",
     textDecorationLine: "line-through",
+  },
+  eventPastText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#E53935",
   },
   eventMeta: {
     marginLeft: 8,
@@ -1396,8 +1884,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 6,
   },
+  eventContactRow: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
   smallIconButton: {
     marginLeft: 4,
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    marginTop: 2,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+    fontSize: 11,
   },
   modalOverlay: {
     flex: 1,
@@ -1405,12 +1907,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    width: "100%",
+    paddingVertical: 20,
   },
   modalCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
+    maxHeight: "90%",
   },
   modalHeaderRow: {
     flexDirection: "row",
@@ -1443,6 +1953,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     backgroundColor: "#F9FAFB",
   },
+  modalHelperText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#6B7280",
+  },
   modalChipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1472,6 +1987,7 @@ const styles = StyleSheet.create({
   },
   modalButtonsRow: {
     marginTop: 14,
+    marginBottom: 4,
     flexDirection: "row",
     justifyContent: "flex-end",
   },
@@ -1626,5 +2142,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     flexDirection: "row",
     justifyContent: "flex-end",
+  },
+  // filas de paciente en el modal
+  petRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#F9FAFB",
+    marginBottom: 4,
+  },
+  petRowSelected: {
+    backgroundColor: "#EDE7F6",
+  },
+  petRowName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  petRowNameSelected: {
+    color: "#4A148C",
+  },
+  petRowSub: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
+  petRowSubSelected: {
+    color: "#7E57C2",
   },
 });
