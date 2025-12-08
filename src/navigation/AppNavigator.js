@@ -12,6 +12,9 @@ import CompleteProfileScreen from "../feature/profile/views/CompleteProfileScree
 import ProfilePhotoScreen from "../feature/profile/views/ProfilePhotoScreen";
 import VetLoginScreen from "../feature/auth/views/VetLoginScreen";
 
+// --- HOME VETERINARIO (FALTABA ESTE) ---
+import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
+
 // --- PERFIL ---
 import UserInfoScreen from "../feature/profile/views/UserInfoScreen";
 import SettingsScreen from "../feature/settings/views/SettingsScreen";
@@ -39,6 +42,8 @@ import VetMapScreen from "../feature/directory/views/VetMapScreen";
 // --- VETERINARIO (Scanner y Consulta) ---
 import VetScannerScreen from "../veterinario/feature/patients/views/VetScannerScreen";
 import VetConsultationScreen from "../veterinario/feature/patients/views/VetConsultationScreen";
+// NEW: importar la pantalla de chat de citas
+import AppointmentChatScreen from "../feature/chat/views/AppointmentChatScreen";
 
 // 👇 ¡IMPORTANTE! FALTABA ESTA LÍNEA PARA QUE NO TE DE ERROR 👇
 import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
@@ -62,7 +67,7 @@ const AppNavigator = () => {
         component={VetLoginScreen}
         options={{ headerShown: false }}
       />
-      
+
       {/* Home temporal */}
       <Stack.Screen
         name="HomeVetScreen"
@@ -106,17 +111,20 @@ const AppNavigator = () => {
       <Stack.Screen name="VetMap" component={VetMapScreen} />
 
       {/* 👇 PANTALLAS DE VETERINARIO (SCANNER Y CONSULTA) 👇 */}
-      <Stack.Screen 
-        name="VetScanner" 
-        component={VetScannerScreen} 
-        options={{ headerShown: false }} 
+      <Stack.Screen
+        name="VetScanner"
+        component={VetScannerScreen}
+        options={{ headerShown: false }}
       />
-      
-      <Stack.Screen 
-        name="VetConsultation" 
-        component={VetConsultationScreen} 
-        options={{ headerShown: false }} 
+
+      {/* 👇👇 2. AGREGAMOS LA PANTALLA AL STACK 👇👇 */}
+      <Stack.Screen
+        name="VetConsultation"
+        component={VetConsultationScreen}
+        options={{ headerShown: false }}
       />
+      {/* Registro de pantalla: chat de cita */}
+      <Stack.Screen name="AppointmentChat" component={AppointmentChatScreen} />
 
       {/* ===================== LEGALES ===================== */}
       <Stack.Screen name="Terms" component={TermsScreen} />
