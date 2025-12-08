@@ -13,11 +13,15 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+// 👇 1. AGREGAMOS doc y getDoc para consultar Firebase
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebase/config";
-import { getUserFromStorage } from "../../../shared/utils/storage";
-import { COL_MASCOTAS } from "../../../shared/utils/collections";
+// 👇 2. AGREGAMOS saveUserToStorage para guardar la data fresca
+import { getUserFromStorage, saveUserToStorage } from "../../../shared/utils/storage";
+// 👇 3. AGREGAMOS COL_USUARIOS para saber dónde buscar
+import { COL_MASCOTAS, COL_USUARIOS } from "../../../shared/utils/collections";
 
+// ESTA LÍNEA NO SE TOCA, SE MANTIENE TU IMAGEN ORIGINAL
 const avatarPlaceholder = require("../../../../assets/logo.png");
 
 const EVENTS_STORAGE_KEY = "@appointments_events";
@@ -140,15 +144,37 @@ const HomeScreen = ({ navigation }) => {
             return;
           }
 
-          setUser(stored);
+          // 👇 4. MODIFICACIÓN AQUÍ: Lógica para asegurar la foto fresca desde Firebase
+          let currentUserData = stored;
+          let currentPhotoUri = null;
 
-          // foto local
-          if (stored.id) {
-            const localPhoto = await AsyncStorage.getItem(
-              `@userPhoto_${stored.id}`
-            );
-            setPhotoUri(localPhoto || null);
+          try {
+              // Intentamos buscar en Firebase la data más reciente
+              const userRef = doc(db, COL_USUARIOS, stored.id);
+              const userSnap = await getDoc(userRef);
+              if(userSnap.exists()){
+                  const freshData = userSnap.data();
+                  // Si Firebase tiene foto, esa es la buena
+                  if(freshData.fotoPerfilUrl) {
+                      currentPhotoUri = freshData.fotoPerfilUrl;
+                  }
+                  // Actualizamos la data local
+                  currentUserData = { ...currentUserData, ...freshData };
+                  await saveUserToStorage(currentUserData);
+              }
+          } catch (e) {
+              console.log("Error contactando Firebase para foto, usando local", e);
           }
+          
+          // Si Firebase no nos dio foto, probamos el caché local antiguo (fallback)
+          if (!currentPhotoUri && stored.id) {
+             const localPhoto = await AsyncStorage.getItem(`@userPhoto_${stored.id}`);
+             currentPhotoUri = localPhoto || null;
+          }
+
+          setUser(currentUserData);
+          setPhotoUri(currentPhotoUri);
+          // 👆 FIN DE LA MODIFICACIÓN DE LA FOTO
 
           // mascotas de este usuario
           const q = query(

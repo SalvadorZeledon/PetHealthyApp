@@ -31,7 +31,6 @@ import {
 const logo = require("../../../../assets/logoPH.png");
 
 const LoginScreen = ({ navigation }) => {
-  // 👇 usar el tema
   const { colors, mode } = useTheme();
   const isDark = mode === "dark";
 
@@ -47,7 +46,6 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const passwordInputRef = useRef(null);
 
-  // 🔹 Modal + cooldown para correo no verificado
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationCooldown, setVerificationCooldown] = useState(0);
   const [unverifiedUser, setUnverifiedUser] = useState(null);
@@ -233,8 +231,13 @@ const LoginScreen = ({ navigation }) => {
   };
 
   const handleVetLoginPress = () => {
-    // Nuevo flujo: ir a la pantalla de login para veterinarios
+    // Flujo normal: ir a la pantalla de login para veterinarios
     navigation.navigate("VetLogin");
+  };
+  
+  const handleVerificationCheck = () => {
+    setShowVerificationModal(false);
+    handleLogin(); // Vuelve a intentar el proceso de login
   };
 
   const handleResendVerification = async () => {
@@ -299,7 +302,7 @@ const LoginScreen = ({ navigation }) => {
               <Text
                 style={[
                   styles.appName,
-                  { color: colors.accent }, // antes #365b6d
+                  { color: colors.accent },
                 ]}
               >
                 PetHealthyApp
@@ -307,7 +310,7 @@ const LoginScreen = ({ navigation }) => {
               <Text
                 style={[
                   styles.appSubtitle,
-                  { color: colors.success }, // antes #558B2F
+                  { color: colors.success },
                 ]}
               >
                 Tu clínica veterinaria en el bolsillo 🐶💚
@@ -334,7 +337,7 @@ const LoginScreen = ({ navigation }) => {
               <Text
                 style={[
                   styles.cardTitle,
-                  { color: colors.text }, // antes #263238
+                  { color: colors.text },
                 ]}
               >
                 Iniciar sesión
@@ -342,7 +345,7 @@ const LoginScreen = ({ navigation }) => {
               <Text
                 style={[
                   styles.cardSubtitle,
-                  { color: colors.subtitle }, // antes #607D8B
+                  { color: colors.subtitle },
                 ]}
               >
                 Ingresa con tu correo para ver la información de tus mascotas y
@@ -489,6 +492,15 @@ const LoginScreen = ({ navigation }) => {
           <View
             style={[styles.modalCard, { backgroundColor: colors.modalCard }]}
           >
+            {/* 👇 NUEVO BOTÓN CERRAR (X) */}
+            <TouchableOpacity 
+                style={styles.modalCloseButton} 
+                onPress={() => setShowVerificationModal(false)}
+            >
+                <Ionicons name="close-outline" size={24} color={colors.subtitle} />
+            </TouchableOpacity>
+
+
             <Ionicons
               name="mail-open-outline"
               size={40}
@@ -541,8 +553,9 @@ const LoginScreen = ({ navigation }) => {
               )}
             </TouchableOpacity>
 
+            {/* ✅ CORRECCIÓN: Botón Ya Verifiqué -> llama a la función de reintento de login */}
             <TouchableOpacity
-              onPress={handleVetLoginPress}
+              onPress={handleVerificationCheck} 
               style={{ marginTop: 8 }}
             >
               <Text
@@ -760,16 +773,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  modalSecondaryButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
   modalSecondaryButtonText: {
     color: "#1E88E5",
     fontSize: 13,
     fontWeight: "600",
     textAlign: "center",
   },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 5,
+    zIndex: 10,
+  }
 });
 
 export default LoginScreen;

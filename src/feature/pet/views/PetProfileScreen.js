@@ -1,4 +1,3 @@
-// src/feature/pet/views/PetProfileScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -10,11 +9,11 @@ import {
   Platform,
   Modal,
   Linking,
-  Pressable
+  Alert // Importante para el menú de opciones
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, onSnapshot, collection, query, orderBy } from "firebase/firestore"; 
+import { doc, onSnapshot, collection, query, orderBy, getDoc } from "firebase/firestore"; 
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 import QRCode from 'react-native-qrcode-svg';
 import * as Brightness from 'expo-brightness';
@@ -26,11 +25,16 @@ const contextoLabels = { adentro: "Dentro de casa", afuera: "Fuera de casa", mix
 const frecuenciaLabels = { nulo: "Casi nunca", regular: "A veces", diario: "Diario" };
 const relacionLabels = { juegan: "Juegan mucho", se_pelean: "A veces se pelean", no_unidos: "No son muy unidos", conviven_bien: "Conviven sin problema" };
 
+// DATOS IBA EL SALVADOR
+const IBA_PHONE = "22103334";
+const IBA_EMAIL = "denuncias@iba.gob.sv";
+
 const PetProfileScreen = ({ navigation, route }) => {
   const { petId, viewMode } = route.params || {};
   const isVet = viewMode === 'veterinarian'; 
 
   const [pet, setPet] = useState(null);
+  const [owner, setOwner] = useState(null);
   const [history, setHistory] = useState(null);
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +43,7 @@ const PetProfileScreen = ({ navigation, route }) => {
   const [qrVisible, setQrVisible] = useState(false);
   const [previousBrightness, setPreviousBrightness] = useState(null);
 
-  // Estado para el Modal de Detalles de Consulta
+  // Estado Modal Detalles
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
 
@@ -48,13 +52,28 @@ const PetProfileScreen = ({ navigation, route }) => {
     setLoading(true);
 
     // 1. Perfil
-    const unsubscribePet = onSnapshot(doc(db, COL_MASCOTAS, petId), (docSnap) => {
-      if (docSnap.exists()) setPet({ id: docSnap.id, ...docSnap.data() });
-      else navigation.goBack();
+    const unsubscribePet = onSnapshot(doc(db, COL_MASCOTAS, petId), async (docSnap) => {
+      if (docSnap.exists()) {
+        const petData = { id: docSnap.id, ...docSnap.data() };
+        setPet(petData);
+
+        if (petData.ownerId) {
+            try {
+                const userDoc = await getDoc(doc(db, "users", petData.ownerId));
+                if (userDoc.exists()) {
+                    setOwner(userDoc.data());
+                }
+            } catch (error) {
+                console.log("Error cargando dueño:", error);
+            }
+        }
+      } else {
+        navigation.goBack();
+      }
       setLoading(false);
     });
 
-    // 2. Historial Inicial (Registro)
+    // 2. Historial Inicial
     const unsubscribeHistory = onSnapshot(doc(db, COL_MASCOTAS, petId, "historial", "inicial"), (docSnap) => {
       if (docSnap.exists()) setHistory({ id: docSnap.id, ...docSnap.data() });
     });
@@ -86,7 +105,40 @@ const PetProfileScreen = ({ navigation, route }) => {
     setQrVisible(false);
   };
 
-  // Abrir detalles de consulta
+  const handleCallOwner = () => {
+      if (owner?.telefono) {
+          Linking.openURL(`tel:${owner.telefono}`);
+      } else {
+          Dialog.show({ type: ALERT_TYPE.WARNING, title: "Sin teléfono", textBody: "El dueño no tiene un número registrado.", button: "Ok" });
+      }
+  };
+
+  // 👇 LÓGICA DE DENUNCIA IBA
+  const handleReportAbuse = () => {
+    Alert.alert(
+        "⚠️ Reportar Maltrato Animal",
+        "Selecciona el canal para contactar al Instituto de Bienestar Animal (IBA).",
+        [
+            {
+                text: "Cancelar",
+                style: "cancel"
+            },
+            {
+                text: "Enviar Correo",
+                onPress: () => {
+                    const subject = `Denuncia posible maltrato - Mascota: ${pet.nombre}`;
+                    const body = `Estimados IBA,\n\nComo médico veterinario, reporto un posible caso de maltrato o negligencia.\n\nDatos de la mascota:\nID: ${pet.id}\nNombre: ${pet.nombre}\nEspecie: ${pet.especie}\n\nObservaciones:\n`;
+                    Linking.openURL(`mailto:${IBA_EMAIL}?subject=${subject}&body=${body}`);
+                }
+            },
+            {
+                text: "Llamar al IBA",
+                onPress: () => Linking.openURL(`tel:${IBA_PHONE}`)
+            }
+        ]
+    );
+  };
+
   const openConsultationDetails = (consulta) => {
     setSelectedConsultation(consulta);
     setDetailsVisible(true);
@@ -114,7 +166,7 @@ const PetProfileScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       
-      {/* --- MODAL QR --- */}
+      {/* MODAL QR */}
       <Modal visible={qrVisible} transparent animationType="fade" onRequestClose={handleCloseQR}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -125,7 +177,7 @@ const PetProfileScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      {/* --- MODAL DETALLES DE CONSULTA (REPORTE COMPLETO) --- */}
+      {/* MODAL DETALLES */}
       <Modal visible={detailsVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.detailModalContainer}>
             <View style={styles.detailHeader}>
@@ -137,7 +189,6 @@ const PetProfileScreen = ({ navigation, route }) => {
             
             {selectedConsultation && (
                 <ScrollView contentContainerStyle={styles.detailContent}>
-                    {/* Encabezado Médico */}
                     <View style={styles.reportHeader}>
                         <View style={{flexDirection:'row', justifyContent:'space-between'}}>
                             <Text style={styles.reportDate}>{formatDate(selectedConsultation.fecha)}</Text>
@@ -150,7 +201,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                         </View>
                     </View>
 
-                    {/* Signos Vitales */}
                     {selectedConsultation.datosClinicos?.peso && (
                         <View style={styles.detailSection}>
                             <Text style={styles.detailLabel}>Peso del paciente:</Text>
@@ -158,7 +208,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                         </View>
                     )}
 
-                    {/* Datos Clínicos */}
                     <View style={styles.detailSection}>
                         <Text style={styles.detailLabel}>Motivo de Consulta:</Text>
                         <Text style={styles.detailValue}>{selectedConsultation.datosClinicos?.motivo}</Text>
@@ -185,7 +234,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                         </View>
                     )}
 
-                    {/* Tratamientos */}
                     {(selectedConsultation.tratamientos?.vacunas?.length > 0 || selectedConsultation.tratamientos?.desparacitantes?.length > 0) && (
                         <View style={styles.detailSection}>
                             <Text style={styles.sectionTitleSmall}>Tratamientos Aplicados</Text>
@@ -204,7 +252,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                         </View>
                     )}
 
-                    {/* Adjuntos */}
                     {selectedConsultation.archivos && selectedConsultation.archivos.length > 0 && (
                         <View style={styles.detailSection}>
                             <Text style={styles.sectionTitleSmall}>Resultados y Anexos</Text>
@@ -228,7 +275,7 @@ const PetProfileScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      {/* --- HEADER PRINCIPAL --- */}
+      {/* HEADER PRINCIPAL */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerIconButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
@@ -253,6 +300,7 @@ const PetProfileScreen = ({ navigation, route }) => {
           <View style={styles.photoWrapper}>
             {pet.fotoUrl ? <Image source={{ uri: pet.fotoUrl }} style={styles.petImage} contentFit="cover" /> : <View style={styles.petImagePlaceholder}><Ionicons name="paw-outline" size={40} color="#4B5563" /></View>}
           </View>
+
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
             <View style={{flex: 1, paddingRight: 10}}>
               <Text style={styles.petName}>{pet.nombre}</Text>
@@ -264,11 +312,29 @@ const PetProfileScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             )}
           </View>
+
+          {/* DUEÑO (Visible solo Vet) */}
+          {isVet && owner && (
+              <View style={styles.ownerCard}>
+                  <View style={{flexDirection:'row', alignItems:'center'}}>
+                      <Ionicons name="person-circle" size={36} color="#7B1FA2" />
+                      <View style={{marginLeft: 10, flex: 1}}>
+                          <Text style={styles.ownerLabel}>Propietario</Text>
+                          <Text style={styles.ownerName}>{owner.fullName || owner.nombre || "Sin nombre"}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.callButton} onPress={handleCallOwner}>
+                          <Ionicons name="call" size={20} color="#FFF" />
+                      </TouchableOpacity>
+                  </View>
+              </View>
+          )}
+
           <View style={styles.infoRow}>
             <View style={styles.infoItem}><Text style={styles.infoLabel}>Sexo</Text><Text style={styles.infoValue}>{pet.sexo === "macho" ? "Macho" : "Hembra"}</Text></View>
             <View style={styles.infoItem}><Text style={styles.infoLabel}>Microchip</Text><Text style={styles.infoValue}>{formatBool(pet.tieneMicrochip)}</Text></View>
           </View>
           <View style={styles.infoRow}>
+            <View style={styles.infoItem}><Text style={styles.infoLabel}>Peso Base</Text><Text style={styles.infoValue}>{pet.peso ? `${pet.peso} Kg/Lb` : "N/A"}</Text></View>
             <View style={styles.infoItem}><Text style={styles.infoLabel}>Tatuaje</Text><Text style={styles.infoValue}>{formatBool(pet.poseeTatuaje)}</Text></View>
           </View>
           {pet.especie === 'ave' && (
@@ -278,7 +344,7 @@ const PetProfileScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {/* 2. HISTORIAL ORIGINAL (INTACTO) */}
+        {/* 2. HISTORIAL ORIGINAL */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Historial médico</Text>
           {!history ? (
@@ -326,7 +392,7 @@ const PetProfileScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {/* --- SEPARADOR VISUAL --- */}
+        {/* SEPARADOR VISUAL */}
         {consultations.length > 0 && (
             <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 10}}>
                 <View style={{flex: 1, height: 1, backgroundColor: '#B0BEC5'}} />
@@ -335,10 +401,9 @@ const PetProfileScreen = ({ navigation, route }) => {
             </View>
         )}
 
-        {/* --- 3. LISTA DE CONSULTAS (RESUMEN + BOTÓN DETALLES) --- */}
+        {/* 3. LISTA DE CONSULTAS */}
         {consultations.map((consulta, index) => (
             <View key={consulta.id || index} style={styles.consultationCard}>
-                {/* Header Consulta: Fecha, Dr. y Junta */}
                 <View style={styles.consultationHeader}>
                     <View style={{flexDirection:'row', alignItems:'center'}}>
                         <Ionicons name="calendar" size={16} color="#FFF" style={{marginRight:6}}/>
@@ -346,12 +411,10 @@ const PetProfileScreen = ({ navigation, route }) => {
                     </View>
                     <View style={{alignItems:'flex-end'}}>
                         <Text style={styles.consultationVet}>Dr. {consulta.veterinario?.nombre}</Text>
-                        {/* 👇 AQUI ESTA LA JUNTA */}
                         <Text style={styles.consultationJunta}>Junta: {consulta.veterinario?.junta}</Text>
                     </View>
                 </View>
                 
-                {/* Body Consulta (Resumen) */}
                 <View style={styles.consultationBody}>
                     <View style={styles.dataRow}>
                         <Text style={styles.label}>Motivo:</Text>
@@ -365,7 +428,6 @@ const PetProfileScreen = ({ navigation, route }) => {
                         </Text>
                     </View>
 
-                    {/* Botón para ver TODO */}
                     <TouchableOpacity style={styles.detailsButton} onPress={() => openConsultationDetails(consulta)}>
                         <Text style={styles.detailsButtonText}>Ver Detalles Completos</Text>
                         <Ionicons name="chevron-forward" size={16} color="#7B1FA2" />
@@ -373,6 +435,14 @@ const PetProfileScreen = ({ navigation, route }) => {
                 </View>
             </View>
         ))}
+
+        {/* 👇 BOTÓN DE DENUNCIA IBA (SOLO VETERINARIOS) */}
+        {isVet && (
+            <TouchableOpacity style={styles.reportButton} onPress={handleReportAbuse}>
+                <Ionicons name="warning" size={24} color="#FFF" style={{marginRight: 10}} />
+                <Text style={styles.reportButtonText}>REPORTAR MALTRATO AL IBA</Text>
+            </TouchableOpacity>
+        )}
 
         <View style={{height: 40}} />
       </ScrollView>
@@ -396,6 +466,16 @@ const styles = StyleSheet.create({
   petImagePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   petName: { fontSize: 22, fontWeight: "700", color: "#111827" },
   petSubInfo: { marginTop: 4, fontSize: 13, color: "#6B7280" },
+  
+  // ESTILOS NUEVOS
+  ownerCard: { backgroundColor: '#F3E5F5', padding: 10, borderRadius: 12, marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#7B1FA2' },
+  ownerLabel: { fontSize: 10, color: '#7B1FA2', fontWeight: 'bold', textTransform: 'uppercase' },
+  ownerName: { fontSize: 16, color: '#333', fontWeight: '600' },
+  callButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center' },
+
+  reportButton: { flexDirection: 'row', backgroundColor: '#D32F2F', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 20, elevation: 4 },
+  reportButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
+
   infoRow: { flexDirection: "row", marginTop: 12 },
   infoItem: { flex: 1 },
   infoLabel: { fontSize: 12, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.5 },
@@ -420,7 +500,7 @@ const styles = StyleSheet.create({
   consultationHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: 'center', backgroundColor: "#7B1FA2", paddingVertical: 10, paddingHorizontal: 12 },
   consultationDate: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   consultationVet: { fontSize: 12, color: "#FFFFFF", fontWeight: '700' },
-  consultationJunta: { fontSize: 10, color: "#E1BEE7" }, // Estilo para la Junta
+  consultationJunta: { fontSize: 10, color: "#E1BEE7" }, 
   consultationClinic: { fontSize: 10, color: "#E1BEE7" },
   consultationBody: { padding: 12 },
   dataRow: { flexDirection: 'row', marginBottom: 4 },

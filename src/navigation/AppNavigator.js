@@ -1,4 +1,3 @@
-// src/navigation/AppNavigator.js
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -39,8 +38,10 @@ import VetMapScreen from "../feature/directory/views/VetMapScreen";
 
 // --- VETERINARIO (Scanner y Consulta) ---
 import VetScannerScreen from "../veterinario/feature/patients/views/VetScannerScreen";
-// 👇👇 1. AGREGAMOS EL IMPORT DE LA CONSULTA 👇👇
 import VetConsultationScreen from "../veterinario/feature/patients/views/VetConsultationScreen";
+
+// 👇 ¡IMPORTANTE! FALTABA ESTA LÍNEA PARA QUE NO TE DE ERROR 👇
+import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";
@@ -111,7 +112,6 @@ const AppNavigator = () => {
         options={{ headerShown: false }} 
       />
       
-      {/* 👇👇 2. AGREGAMOS LA PANTALLA AL STACK 👇👇 */}
       <Stack.Screen 
         name="VetConsultation" 
         component={VetConsultationScreen} 
