@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,7 +21,9 @@ import {
   subscribeOwnerEvents,
   ownerAcceptEvent,
   ownerRejectEvent,
+  ownerHideEvent,
 } from "../../../services/calendarEvents";
+import { openOrCreateChatForEvent } from "../../../services/appointmentChatService";
 
 const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS = [
@@ -87,36 +90,50 @@ const parseTimeToMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
+// evento pasado (fecha + hora, si hay)
+const isEventPast = (dateISO, timeStr) => {
+  if (!dateISO) return false;
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+  base.setSeconds(0);
+  base.setMilliseconds(0);
+
+  let h = 23;
+  let min = 59;
+  if (timeStr) {
+    const [hm, period] = timeStr.split(" ");
+    const [hh, mm] = hm.split(":").map((n) => parseInt(n, 10));
+    h = hh;
+    min = mm || 0;
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+  }
+
+  base.setHours(h, min, 0, 0);
+  return base < new Date();
+};
+
+const finalStatuses = [
+  "COMPLETADO",
+  "CANCELADO_VET",
+  "CANCELADO_OWNER",
+  "RECHAZADO_DUENIO",
+];
+
 // Eventos por defecto (solo para demo local del usuario)
 const buildDefaultEvents = () => {
   const today = new Date();
   const todayISO = today.toISOString().split("T")[0];
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const tomorrowISO = tomorrow.toISOString().split("T")[0];
-
   return [
     {
-      id: "1",
+      id: "demo1",
       type: "personal_vet_visit",
       title: "Visita al veterinario (personal)",
       petName: "Max",
       time: "10:30 AM",
       date: todayISO,
       location: "Clínica PetHealthy",
-      source: "user",
-      status: "pending",
-      vetPlaceId: null,
-    },
-    {
-      id: "2",
-      type: "walk",
-      title: "Paseo al parque",
-      petName: "Luna",
-      time: "5:00 PM",
-      date: todayISO,
-      location: "Parque Central",
       source: "user",
       status: "pending",
       vetPlaceId: null,
@@ -129,20 +146,6 @@ const AppointmentsScreen = ({ navigation }) => {
 
   const [userRole, setUserRole] = useState("cliente");
   const [ownerId, setOwnerId] = useState(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const stored = await getUserFromStorage();
-      console.log("🧩 Usuario en storage:", stored);
-      // aquí usa la propiedad correcta
-      setOwnerId(stored?.uid || stored?.id || null);
-    };
-    loadUser();
-  }, []);
-
-  useEffect(() => {
-    console.log("🎯 ownerId que se usará para Firestore:", ownerId);
-  }, [ownerId]);
 
   const [selectedDateISO, setSelectedDateISO] = useState(null);
   const [daysStrip, setDaysStrip] = useState([]);
@@ -179,6 +182,7 @@ const AppointmentsScreen = ({ navigation }) => {
 
         const uid = stored?.uid || stored?.id || stored?.userId || null;
         if (uid) setOwnerId(uid);
+        console.log("🧩 Usuario dueño:", stored);
       } catch (err) {
         console.log("Error cargando usuario en AppointmentsScreen:", err);
       }
@@ -235,27 +239,42 @@ const AppointmentsScreen = ({ navigation }) => {
     if (!ownerId) return;
 
     const unsubscribe = subscribeOwnerEvents(ownerId, (fireEvents) => {
-      console.log("🔥 Eventos recibidos de Firestore:", fireEvents);
-      const mapped = (fireEvents || []).map((ev) => {
-        const isMedication = ev.type === "MEDICATION";
-        return {
-          id: ev.id, // ID de Firestore (importante para aceptar/rechazar)
-          type: isMedication ? "meds" : "vet_appointment",
-          title:
-            ev.title ||
-            (isMedication ? "Recordatorio de medicación" : "Cita médica"),
-          petName: ev.petName || null,
-          time: ev.time || null,
-          date: ev.dateISO || null,
-          location: ev.description || null,
-          source: "vet",
-          status: ev.status || "PENDIENTE_DUENIO",
-          vetPlaceId: ev.vetPlaceId || null,
-          medicationName: ev.medicationName || null,
-          medicationFrequency: ev.medicationFrequency || null,
-          medicationDuration: ev.medicationDuration || null,
-        };
-      });
+      console.log("🔥 Eventos recibidos de Firestore (owner):", fireEvents);
+
+      const mapped = (fireEvents || [])
+        .filter((ev) => ev.visibleToOwner !== false) // por si manejamos basurero en backend
+        .map((ev) => {
+          const isMedication = ev.type === "MEDICATION";
+          return {
+            id: ev.id, // ID de Firestore
+            type: isMedication ? "meds" : "vet_appointment",
+            title:
+              ev.title ||
+              (isMedication ? "Recordatorio de medicación" : "Cita médica"),
+            petName: ev.petName || null,
+            time: ev.time || null,
+            date: ev.dateISO || null,
+            location: ev.description || ev.location || null,
+            source: "vet",
+            status: ev.status || "PENDIENTE_DUENIO",
+            vetPlaceId: ev.vetPlaceId || null,
+
+            // Campos extra para flujos nuevos
+            medicationName: ev.medicationName || null,
+            medicationFrequency: ev.medicationFrequency || null,
+            medicationDuration: ev.medicationDuration || null,
+
+            requestedBy: ev.requestedBy || null,
+            proposedDateISO: ev.proposedDateISO || null,
+            proposedTime: ev.proposedTime || null,
+            ownerChangeRequestsCount: ev.ownerChangeRequestsCount || 0,
+
+            vetPhone: ev.vetPhone || null,
+            ownerPhone: ev.ownerPhone || null,
+            vetId: ev.vetId || null,
+            ownerId: ev.ownerId || ownerId,
+          };
+        });
 
       setVetEvents(mapped);
     });
@@ -392,11 +411,11 @@ const AppointmentsScreen = ({ navigation }) => {
     };
   };
 
-  const getVetStatusVisuals = (status) => {
+  const getVetStatusVisuals = (status, requestedBy) => {
     switch (status) {
       case "PENDIENTE_DUENIO":
         return {
-          label: "Pendiente de tu respuesta",
+          label: "Responde a tu veterinario",
           bg: "#FFF3E0",
           color: "#FB8C00",
         };
@@ -408,7 +427,7 @@ const AppointmentsScreen = ({ navigation }) => {
         };
       case "RECHAZADO_DUENIO":
         return {
-          label: "Rechazada por ti",
+          label: "Rechazaste esta cita",
           bg: "#FFEBEE",
           color: "#E53935",
         };
@@ -418,9 +437,35 @@ const AppointmentsScreen = ({ navigation }) => {
           bg: "#ECEFF1",
           color: "#546E7A",
         };
+      case "CANCELADO_OWNER":
+        return {
+          label: "Cancelada por ti",
+          bg: "#ECEFF1",
+          color: "#546E7A",
+        };
+      case "PENDIENTE_REPROGRAMACION":
+        if (requestedBy === "OWNER") {
+          return {
+            label: "Esperando respuesta del veterinario",
+            bg: "#FFF8E1",
+            color: "#F9A825",
+          };
+        }
+        if (requestedBy === "VET") {
+          return {
+            label: "El veterinario propuso nueva fecha",
+            bg: "#E3F2FD",
+            color: "#1E88E5",
+          };
+        }
+        return {
+          label: "Cambio de cita pendiente",
+          bg: "#FFF8E1",
+          color: "#F9A825",
+        };
       case "COMPLETADO":
         return {
-          label: "Completada",
+          label: "Cita realizada",
           bg: "#E3F2FD",
           color: "#1E88E5",
         };
@@ -605,6 +650,65 @@ const AppointmentsScreen = ({ navigation }) => {
               Alert.alert(
                 "Error",
                 "No se pudo rechazar la cita. Inténtalo nuevamente."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCallVet = (ev) => {
+    if (!ev.vetPhone) {
+      Alert.alert(
+        "Teléfono no disponible",
+        "No tenemos el teléfono de la clínica para esta cita."
+      );
+      return;
+    }
+    Linking.openURL(`tel:${ev.vetPhone}`).catch((err) =>
+      console.log("Error abriendo marcador:", err)
+    );
+  };
+
+  const handleOpenChat = async (ev) => {
+    try {
+      await openOrCreateChatForEvent({
+        eventId: ev.id,
+        ownerId: ev.ownerId || ownerId,
+        vetId: ev.vetId || null,
+      });
+
+      navigation.navigate("AppointmentChat", {
+        eventId: ev.id,
+        fromRole: "OWNER",
+      });
+    } catch (error) {
+      console.log("Error abriendo chat de cita:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo abrir el chat de la cita. Intenta nuevamente."
+      );
+    }
+  };
+
+  const handleHideVetEvent = (ev) => {
+    Alert.alert(
+      "Eliminar de tu vista",
+      "Esta cita ya está rechazada. ¿Querés quitarla de tu calendario?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await ownerHideEvent(ev.id);
+            } catch (error) {
+              console.log("Error ocultando evento:", error);
+              Alert.alert(
+                "Error",
+                "No se pudo eliminar la cita de tu vista. Intenta nuevamente."
               );
             }
           },
@@ -984,15 +1088,49 @@ const AppointmentsScreen = ({ navigation }) => {
             const visuals = getEventVisuals(ev);
             const isDone = ev.status === "done";
             const vetStatus =
-              ev.source === "vet" ? getVetStatusVisuals(ev.status) : null;
+              ev.source === "vet"
+                ? getVetStatusVisuals(ev.status, ev.requestedBy)
+                : null;
+
+            const overdue =
+              ev.source === "vet" &&
+              ev.type === "vet_appointment" &&
+              isEventPast(ev.date, ev.time);
+            const isFinal =
+              ev.source === "vet" && finalStatuses.includes(ev.status);
+
+            const cardStyles = [styles.eventCard];
+            if (ev.source === "vet" && overdue && !isFinal) {
+              cardStyles.push(styles.eventCardPast);
+            }
+            if (
+              ev.source === "vet" &&
+              (ev.status === "RECHAZADO_DUENIO" ||
+                ev.status === "CANCELADO_VET" ||
+                ev.status === "CANCELADO_OWNER")
+            ) {
+              cardStyles.push(styles.eventCardInactive);
+            }
+
+            // 👇 AHORA también muestra contacto en PENDIENTE_DUENIO
+            const showContact =
+              ev.source === "vet" &&
+              ev.type === "vet_appointment" &&
+              (ev.status === "ACEPTADO" ||
+                ev.status === "PENDIENTE_DUENIO" ||
+                ev.status === "PENDIENTE_REPROGRAMACION" ||
+                ev.status === "CANCELADO_VET" || // ✅ también mostrar contacto si la clínica canceló
+                (overdue && !isFinal));
+
+            const changeCount = ev.ownerChangeRequestsCount || 0;
 
             return (
               <TouchableOpacity
                 key={ev.id}
-                style={styles.eventCard}
-                activeOpacity={ev.vetPlaceId ? 0.9 : 1}
+                style={cardStyles}
+                activeOpacity={ev.vetPlaceId && ev.source === "vet" ? 0.9 : 1}
                 onPress={
-                  ev.vetPlaceId
+                  ev.vetPlaceId && ev.source === "vet"
                     ? () =>
                         navigation.navigate("VetDetail", {
                           placeId: ev.vetPlaceId,
@@ -1057,6 +1195,21 @@ const AppointmentsScreen = ({ navigation }) => {
                     </Text>
                   )}
 
+                  {/* info de cambio propuesto */}
+                  {ev.source === "vet" &&
+                    ev.status === "PENDIENTE_REPROGRAMACION" &&
+                    ev.proposedDateISO &&
+                    ev.proposedTime && (
+                      <Text
+                        style={[
+                          styles.eventDetail,
+                          isDone && styles.eventTextDone,
+                        ]}
+                      >
+                        Propuesta: {ev.proposedDateISO} · {ev.proposedTime}
+                      </Text>
+                    )}
+
                   {vetStatus && (
                     <View
                       style={[
@@ -1076,6 +1229,23 @@ const AppointmentsScreen = ({ navigation }) => {
                         {vetStatus.label}
                       </Text>
                     </View>
+                  )}
+
+                  {ev.source === "vet" &&
+                    overdue &&
+                    !isFinal &&
+                    ev.type === "vet_appointment" && (
+                      <Text style={styles.overdueText}>
+                        Esta cita ya pasó. Podés hablar con la clínica para
+                        reprogramarla.
+                      </Text>
+                    )}
+
+                  {ev.source === "vet" && changeCount >= 2 && !isFinal && (
+                    <Text style={styles.limitText}>
+                      Ya realizaste el máximo de cambios. Lo ideal es llamar a
+                      la clínica.
+                    </Text>
                   )}
                 </View>
 
@@ -1113,6 +1283,35 @@ const AppointmentsScreen = ({ navigation }) => {
                     />
                   </View>
 
+                  {/* Contacto con la clínica */}
+                  {ev.source === "vet" && showContact && (
+                    <View style={styles.eventContactRow}>
+                      {ev.vetPhone && (
+                        <TouchableOpacity
+                          style={styles.smallIconButton}
+                          onPress={() => handleCallVet(ev)}
+                        >
+                          <Ionicons
+                            name="call-outline"
+                            size={18}
+                            color="#00796B"
+                          />
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.smallIconButton}
+                        onPress={() => handleOpenChat(ev)}
+                      >
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={18}
+                          color="#5E35B1"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   {/* Acciones según el origen */}
                   {ev.source === "user" && (
                     <View style={styles.eventActionsRow}>
@@ -1143,25 +1342,70 @@ const AppointmentsScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  {ev.source === "vet" && ev.status === "PENDIENTE_DUENIO" && (
-                    <View style={styles.eventActionsRow}>
-                      <TouchableOpacity
-                        style={styles.smallOutlineButton}
-                        onPress={() => handleRejectVetEvent(ev)}
-                      >
-                        <Text style={styles.smallOutlineButtonText}>
-                          Rechazar
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.smallFilledButton}
-                        onPress={() => handleAcceptVetEvent(ev)}
-                      >
-                        <Text style={styles.smallFilledButtonText}>
-                          Aceptar
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                  {ev.source === "vet" && (
+                    <>
+                      {/* acciones de estado */}
+                      <View style={styles.eventActionsRow}>
+                        {/* Basurero para citas rechazadas */}
+                        {ev.status === "RECHAZADO_DUENIO" && (
+                          <TouchableOpacity
+                            style={styles.smallIconButton}
+                            onPress={() => handleHideVetEvent(ev)}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color="#E53935"
+                            />
+                          </TouchableOpacity>
+                        )}
+
+                        {/* Aceptar / rechazar cuando está pendiente */}
+                        {ev.status === "PENDIENTE_DUENIO" && (
+                          <>
+                            <TouchableOpacity
+                              style={styles.smallOutlineButton}
+                              onPress={() => handleRejectVetEvent(ev)}
+                            >
+                              <Text style={styles.smallOutlineButtonText}>
+                                Rechazar
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.smallFilledButton}
+                              onPress={() => handleAcceptVetEvent(ev)}
+                            >
+                              <Text style={styles.smallFilledButtonText}>
+                                Aceptar
+                              </Text>
+                            </TouchableOpacity>
+                          </>
+                        )}
+
+                        {/* Vet propuso nueva fecha */}
+                        {ev.status === "PENDIENTE_REPROGRAMACION" &&
+                          ev.requestedBy === "VET" && (
+                            <>
+                              <TouchableOpacity
+                                style={styles.smallOutlineButton}
+                                onPress={() => handleRejectVetEvent(ev)}
+                              >
+                                <Text style={styles.smallOutlineButtonText}>
+                                  No puedo
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.smallFilledButton}
+                                onPress={() => handleAcceptVetEvent(ev)}
+                              >
+                                <Text style={styles.smallFilledButtonText}>
+                                  Aceptar nueva fecha
+                                </Text>
+                              </TouchableOpacity>
+                            </>
+                          )}
+                      </View>
+                    </>
                   )}
                 </View>
               </TouchableOpacity>
@@ -1623,6 +1867,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
+  eventCardPast: {
+    borderWidth: 1,
+    borderColor: "#E53935",
+    backgroundColor: "#FFEBEE",
+  },
+  eventCardInactive: {
+    opacity: 0.7,
+  },
   eventTitle: {
     fontSize: 15,
     fontWeight: "600",
@@ -1696,6 +1948,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 6,
   },
+  eventContactRow: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
   smallIconButton: {
     marginLeft: 4,
   },
@@ -1723,6 +1979,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  overdueText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#E53935",
+  },
+  limitText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#FB8C00",
   },
   modalOverlay: {
     flex: 1,

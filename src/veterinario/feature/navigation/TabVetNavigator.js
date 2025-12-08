@@ -1,6 +1,5 @@
 // src/veterinario/feature/navigation/TabVetNavigator.js
 import React from "react";
-import { Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -18,19 +17,14 @@ const TabVetNavigator = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
 
-        // 🎨 PALETA MORADA (consistente con login vet)
+        // 🎨 Colores vet (morados)
         tabBarActiveTintColor: "#7B1FA2",
         tabBarInactiveTintColor: "#B39DDB",
+
+        // 🔹 MISMA CONFIG BÁSICA QUE EL TAB DEL USUARIO
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          borderTopColor: "#E1BEE7",
-          borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 70 : 60,
-          paddingBottom: Platform.OS === "ios" ? 12 : 8,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
+          borderTopColor: "#E0E0E0",
         },
 
         tabBarIcon: ({ color, size, focused }) => {

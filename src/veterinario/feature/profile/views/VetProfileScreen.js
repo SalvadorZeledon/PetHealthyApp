@@ -83,8 +83,7 @@ const VetProfileScreen = ({ navigation }) => {
           return;
         }
 
-        setSessionUser(stored);
-
+        // todavía no seteamos sessionUser, esperamos a fusionar con datos de Firestore
         const juntaNumber =
           stored.juntanumber || stored.juntaNumber || stored.junta;
 
@@ -97,11 +96,11 @@ const VetProfileScreen = ({ navigation }) => {
         }
 
         const vetsRef = collection(db, COL_VETERINARIOS);
-        const q = query(
+        const qVet = query(
           vetsRef,
           where("juntanumber", "==", String(juntaNumber))
         );
-        const snap = await getDocs(q);
+        const snap = await getDocs(qVet);
 
         if (snap.empty) {
           Alert.alert(
@@ -123,7 +122,7 @@ const VetProfileScreen = ({ navigation }) => {
           email: data.email || "",
           phone: data.phone || "",
           juntanumber: data.juntanumber || String(juntaNumber),
-          dui: data.dui || "", // opcional, si lo agregas a la colección
+          dui: data.dui || "",
           fotoPerfilUrl: data.fotoPerfilUrl || null,
           rol: data.rol || "veterinario",
         };
@@ -131,7 +130,7 @@ const VetProfileScreen = ({ navigation }) => {
         setVetData(merged);
         setOriginalData(merged);
 
-        // Foto (primero local cache, luego Cloudinary)
+        // Foto (cache local primero, luego Cloudinary)
         const localPhoto = await AsyncStorage.getItem(
           `@vetPhoto_${docSnap.id}`
         );
@@ -141,6 +140,32 @@ const VetProfileScreen = ({ navigation }) => {
           setPhotoUri(merged.fotoPerfilUrl);
         } else {
           setPhotoUri(null);
+        }
+
+        // 🔁 SINCRONIZAR SESIÓN PARA HomeVetScreen
+        try {
+          const updatedSession = {
+            ...stored,
+            rol: "veterinario",
+            fullname: merged.fullname || stored.fullname,
+            clinic: merged.clinic || stored.clinic,
+            city: merged.city || stored.city,
+            phone: merged.phone || stored.phone,
+            juntanumber: merged.juntanumber || stored.juntanumber,
+            fotoPerfilUrl:
+              merged.fotoPerfilUrl ||
+              stored.fotoPerfilUrl ||
+              localPhoto ||
+              null,
+          };
+
+          await saveUserToStorage(updatedSession);
+          setSessionUser(updatedSession);
+          console.log("✅ Sesión vet sincronizada con foto:", updatedSession);
+        } catch (syncErr) {
+          console.log("Error sincronizando sesión de vet:", syncErr);
+          // si falla la sync, al menos guardamos la versión original
+          setSessionUser(stored);
         }
       } catch (error) {
         console.log("Error cargando perfil veterinario:", error);
@@ -281,6 +306,7 @@ const VetProfileScreen = ({ navigation }) => {
 
       // Subir foto a Cloudinary si es local
       let fotoUrl = vetData.fotoPerfilUrl || null;
+
       if (photoUri && !photoUri.startsWith("http")) {
         const uploadedUrl = await uploadImageToCloudinary(photoUri);
         fotoUrl = uploadedUrl;
@@ -297,6 +323,10 @@ const VetProfileScreen = ({ navigation }) => {
 
       if (fotoUrl) {
         updates.fotoPerfilUrl = fotoUrl;
+      }
+
+      if (fotoUrl) {
+        await AsyncStorage.setItem("@vetAvatarUrl", fotoUrl);
       }
 
       await updateDoc(vetRef, updates);
