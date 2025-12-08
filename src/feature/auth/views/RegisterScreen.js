@@ -481,6 +481,14 @@ const RegisterScreen = ({ navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            {/* 👇 NUEVO BOTÓN CERRAR (X) */}
+            <TouchableOpacity 
+                style={styles.modalCloseButton} 
+                onPress={() => setShowVerificationModal(false)}
+            >
+                <Ionicons name="close-outline" size={24} color="#6B7280" />
+            </TouchableOpacity>
+
             <Ionicons
               name="mail-open-outline"
               size={40}
@@ -751,6 +759,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
+  // 👇 ESTILO NUEVO PARA EL BOTÓN CERRAR
+  modalCloseButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 5,
+    zIndex: 10,
+  }
 });
 
 export default RegisterScreen;
