@@ -1,4 +1,3 @@
-// src/veterinario/feature/patients/views/VetPatientsScreen.js
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -8,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
-  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,7 +18,9 @@ import {
   onSnapshot,
   getDoc,
   doc,
+  deleteDoc,
 } from "firebase/firestore";
+import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 
 import { db } from "../../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../../shared/utils/collections";
@@ -37,14 +37,58 @@ const FILTERS = [
 const VetPatientsScreen = ({ navigation }) => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Estado para el filtro seleccionado
   const [selectedFilter, setSelectedFilter] = useState("all");
-  // Buscador por nombre
-  const [searchTerm, setSearchTerm] = useState("");
+
+  // 👇 NUEVO: modo eliminar
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
 
   const handleOpenSettings = () => {
     navigation.navigate("Settings");
+  };
+
+  const toggleDeleteMode = () => {
+    setIsDeleteMode((prev) => !prev);
+  };
+
+  // 👇 NUEVO: quitar paciente (eliminar vínculo vet_patients)
+  const handleDeletePatient = (patient) => {
+    if (!patient.linkId) {
+      console.warn("Paciente sin linkId, no se puede borrar el vínculo");
+      return;
+    }
+
+    Dialog.show({
+      type: ALERT_TYPE.WARNING,
+      title: "Quitar paciente",
+      // CORREGIDO: Se agregaron backticks (`) para que funcione la variable
+      textBody: `¿Deseas quitar a ${patient.nombre} de tu lista de pacientes?`,
+      button: "Quitar",
+      onPressButton: async () => {
+        try {
+          Dialog.hide();
+          await deleteDoc(doc(db, "vet_patients", patient.linkId));
+
+          Dialog.show({
+            type: ALERT_TYPE.SUCCESS,
+            title: "Paciente retirado",
+            // CORREGIDO: Se agregaron backticks (`) aquí también
+            textBody: `${patient.nombre} ya no está en tu lista de pacientes.`,
+            button: "Ok",
+          });
+
+          // Opcional: salir del modo eliminar después de borrar
+          // setIsDeleteMode(false);
+        } catch (error) {
+          console.error("Error al quitar paciente:", error);
+          Dialog.show({
+            type: ALERT_TYPE.DANGER,
+            title: "Error",
+            textBody: "No se pudo quitar el paciente.",
+            button: "Cerrar",
+          });
+        }
+      },
+    });
   };
 
   // Cargar pacientes
@@ -54,7 +98,6 @@ const VetPatientsScreen = ({ navigation }) => {
 
       const fetchLinkedPatients = async () => {
         try {
-          // Solo mostrar loading si no hay datos previos para evitar parpadeos
           if (patients.length === 0) setLoading(true);
 
           const vetUser = await getUserFromStorage();
@@ -69,19 +112,27 @@ const VetPatientsScreen = ({ navigation }) => {
           );
 
           unsubscribe = onSnapshot(q, async (snapshot) => {
-            const petIds = snapshot.docs.map((doc) => doc.data().petId);
+            // 👇 Guardamos también el id del vínculo (linkId)
+            const links = snapshot.docs.map((d) => ({
+              linkId: d.id,
+              petId: d.data().petId,
+            }));
 
-            if (petIds.length === 0) {
+            if (links.length === 0) {
               setPatients([]);
               setLoading(false);
               return;
             }
 
             const petsData = [];
-            for (const pid of petIds) {
-              const petDoc = await getDoc(doc(db, COL_MASCOTAS, pid));
+            for (const link of links) {
+              const petDoc = await getDoc(doc(db, COL_MASCOTAS, link.petId));
               if (petDoc.exists()) {
-                petsData.push({ id: petDoc.id, ...petDoc.data() });
+                petsData.push({
+                  id: petDoc.id, // id de la mascota
+                  linkId: link.linkId, // id del vínculo vet_patients
+                  ...petDoc.data(),
+                });
               }
             }
 
@@ -98,26 +149,21 @@ const VetPatientsScreen = ({ navigation }) => {
 
       return () => {
         if (unsubscribe) unsubscribe();
+        setIsDeleteMode(false); // reset modo eliminar al salir
       };
     }, [])
   );
 
   // --- LÓGICA DE FILTRADO ---
   const getFilteredPatients = () => {
-    let list = patients;
-
-    if (selectedFilter === "perro") {
-      list = list.filter((p) => p.especie === "perro");
-    } else if (selectedFilter === "gato") {
-      list = list.filter((p) => p.especie === "gato");
-    } else if (selectedFilter === "otro") {
-      list = list.filter((p) => p.especie !== "perro" && p.especie !== "gato");
-    }
-
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return list;
-
-    return list.filter((p) => (p.nombre || "").toLowerCase().includes(term));
+    if (selectedFilter === "all") return patients;
+    if (selectedFilter === "perro")
+      return patients.filter((p) => p.especie === "perro");
+    if (selectedFilter === "gato")
+      return patients.filter((p) => p.especie === "gato");
+    return patients.filter(
+      (p) => p.especie !== "perro" && p.especie !== "gato"
+    );
   };
 
   const filteredList = getFilteredPatients();
@@ -133,8 +179,28 @@ const VetPatientsScreen = ({ navigation }) => {
           </Text>
         </View>
         <View style={styles.headerRight}>
+          {/* BOTÓN MODO ELIMINAR */}
           <TouchableOpacity
-            style={[styles.iconCircle]}
+            style={[
+              styles.iconCircle,
+              isDeleteMode ? styles.iconCircleDanger : styles.iconCircleWhite,
+            ]}
+            onPress={toggleDeleteMode}
+          >
+            <Ionicons
+              name={isDeleteMode ? "close" : "trash-outline"}
+              size={20}
+              color={isDeleteMode ? "#FFFFFF" : "#6A1B9A"}
+            />
+          </TouchableOpacity>
+
+          {/* BOTÓN SETTINGS */}
+          <TouchableOpacity
+            style={[
+              styles.iconCircle,
+              styles.iconCircleWhite,
+              { marginLeft: 8 },
+            ]}
             onPress={handleOpenSettings}
           >
             <Ionicons name="settings-outline" size={20} color="#6A1B9A" />
@@ -167,15 +233,6 @@ const VetPatientsScreen = ({ navigation }) => {
           })}
         </View>
 
-        {/* BUSCADOR */}
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar paciente por nombre..."
-          placeholderTextColor="#9CA3AF"
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-        />
-
         {loading && patients.length === 0 ? (
           <ActivityIndicator
             size="large"
@@ -194,7 +251,7 @@ const VetPatientsScreen = ({ navigation }) => {
               <Text style={styles.placeholderText}>
                 {patients.length === 0
                   ? "Escanea el código QR de una mascota para agregarla a tu lista de pacientes."
-                  : "No hay mascotas de este tipo o nombre en tu lista."}
+                  : "No hay mascotas de este tipo en tu lista."}
               </Text>
             </View>
           </View>
@@ -204,13 +261,20 @@ const VetPatientsScreen = ({ navigation }) => {
               <View key={pet.id} style={styles.petItem}>
                 <TouchableOpacity
                   activeOpacity={0.9}
-                  style={styles.petCard}
-                  onPress={() =>
-                    navigation.navigate("PetProfile", {
-                      petId: pet.id,
-                      viewMode: "veterinarian",
-                    })
-                  }
+                  style={[
+                    styles.petCard,
+                    isDeleteMode && styles.petCardDeleteMode,
+                  ]}
+                  onPress={() => {
+                    if (isDeleteMode) {
+                      handleDeletePatient(pet);
+                    } else {
+                      navigation.navigate("PetProfile", {
+                        petId: pet.id,
+                        viewMode: "veterinarian",
+                      });
+                    }
+                  }}
                 >
                   {pet.fotoUrl ? (
                     <Image
@@ -224,13 +288,21 @@ const VetPatientsScreen = ({ navigation }) => {
                       <Ionicons name="paw-outline" size={30} color="#4B5563" />
                     </View>
                   )}
+
+                  {/* Overlay rojo cuando está en modo eliminar */}
+                  {isDeleteMode && (
+                    <View style={styles.deleteOverlay}>
+                      <Ionicons name="trash" size={32} color="#FFFFFF" />
+                    </View>
+                  )}
                 </TouchableOpacity>
                 <Text style={styles.petName} numberOfLines={1}>
                   {pet.nombre}
                 </Text>
                 <Text style={styles.petBreed} numberOfLines={1}>
                   {pet.especie
-                    ? pet.especie.charAt(0).toUpperCase() + pet.especie.slice(1)
+                    ? pet.especie.charAt(0).toUpperCase() +
+                      pet.especie.slice(1)
                     : "Mascota"}
                 </Text>
               </View>
@@ -264,21 +336,31 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF" },
   headerSubtitle: { marginTop: 2, fontSize: 12, color: "#E1BEE7" },
-  headerRight: { flexDirection: "row" },
+  headerRight: { flexDirection: "row", alignItems: "center" },
+
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+  },
+  iconCircleWhite: {
+    backgroundColor: "#FFFFFF",
+  },
+  iconCircleDanger: {
+    backgroundColor: "#EF4444",
   },
 
   content: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 16 },
 
   // --- FILTROS ---
-  filtersRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
+  filtersRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -292,18 +374,6 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: "#7B1FA2", borderColor: "#7B1FA2" },
   filterChipText: { fontSize: 13, color: "#5E35B1", fontWeight: "500" },
   filterChipTextActive: { color: "#FFFFFF", fontWeight: "600" },
-
-  // buscador
-  searchInput: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#D1C4E9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 14,
-    backgroundColor: "#FFFFFF",
-    fontSize: 13,
-  },
 
   emptyWrapper: { marginTop: 20 },
   placeholderCard: {
@@ -340,6 +410,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     elevation: 3,
     marginBottom: 8,
+    position: "relative",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  petCardDeleteMode: {
+    borderColor: "#EF4444",
+  },
+  deleteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(239, 68, 68, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 20,
   },
   petImage: { width: "100%", height: "100%", backgroundColor: "#E1BEE7" },
   petImagePlaceholder: {
@@ -354,9 +437,5 @@ const styles = StyleSheet.create({
     color: "#4A148C",
     textAlign: "center",
   },
-  petBreed: {
-    fontSize: 12,
-    color: "#7E57C2",
-    textAlign: "center",
-  },
+  petBreed: { fontSize: 12, color: "#7E57C2", textAlign: "center" },
 });

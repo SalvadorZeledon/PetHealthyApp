@@ -45,8 +45,7 @@ import VetConsultationScreen from "../veterinario/feature/patients/views/VetCons
 // NEW: importar la pantalla de chat de citas
 import AppointmentChatScreen from "../feature/chat/views/AppointmentChatScreen";
 
-// 👇 ¡IMPORTANTE! FALTABA ESTA LÍNEA PARA QUE NO TE DE ERROR 👇
-import HomeVetScreen from "../veterinario/feature/home/views/HomeVetScreen";
+
 
 // --- INFO LEGAL ---
 import TermsScreen from "../feature/settings/views/TermsScreen";

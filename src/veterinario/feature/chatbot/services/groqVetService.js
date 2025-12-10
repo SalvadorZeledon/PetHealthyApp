@@ -1,6 +1,6 @@
 // src/services/groqService.js
 
-const API_KEY = " TU_API_KEY_DE_GROQ_AQUI ";
+const API_KEY = "AQUI_VA_TU_API_KEY";
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // Sistema de restricciones veterinarias
@@ -79,7 +79,7 @@ export const getAIResponse = async (messages) => {
         messages: [
           {
             role: "system",
-            content: VETERINARY_RESTRICTIONS,
+            content: VETERINARY_VET_RESTRICTIONS,
           },
           ...formattedMessages,
         ],

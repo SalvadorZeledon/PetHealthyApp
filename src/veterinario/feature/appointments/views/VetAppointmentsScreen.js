@@ -33,6 +33,8 @@ import {
   onSnapshot,
   getDoc,
   doc,
+  // 👇 IMPORTANTE: Agregamos documentId para filtrar por IDs en tiempo real
+  documentId 
 } from "firebase/firestore";
 import { db } from "../../../../../firebase/config";
 import { COL_MASCOTAS } from "../../../../shared/utils/collections";
@@ -207,7 +209,7 @@ const VetAppointmentsScreen = ({ navigation }) => {
   const [monthCursor, setMonthCursor] = useState(() => new Date());
 
   // ========================
-  //   CARGAR VET + SUSCRIPCIÓN
+  //    CARGAR VET + SUSCRIPCIÓN
   // ========================
   useEffect(() => {
     const loadVetId = async () => {
@@ -237,52 +239,80 @@ const VetAppointmentsScreen = ({ navigation }) => {
     loadVetId();
   }, []);
 
-  // Cargar pacientes vinculados (vet_patients + mascotas)
+  // ================================================================
+  // CAMBIO PRINCIPAL: Cargar pacientes vinculados EN TIEMPO REAL
+  // ================================================================
   useEffect(() => {
     if (!vetId) return;
 
-    let unsubscribe;
+    let unsubscribeLinks;
+    let unsubscribePets; // Variable para manejar la suscripción anidada
+
     const fetchLinkedPatients = async () => {
       try {
         setLoadingPatients(true);
 
-        const q = query(
+        // 1. Escuchar la colección de RELACIONES (vet_patients)
+        const qLinks = query(
           collection(db, "vet_patients"),
           where("vetId", "==", vetId)
         );
 
-        unsubscribe = onSnapshot(q, async (snapshot) => {
+        unsubscribeLinks = onSnapshot(qLinks, (snapshot) => {
           const petIds = snapshot.docs.map((d) => d.data().petId);
+
+          // Limpiar listener de mascotas previo si existía para evitar duplicados
+          if (unsubscribePets) {
+            unsubscribePets();
+            unsubscribePets = null;
+          }
+
           if (petIds.length === 0) {
             setAvailablePatients([]);
             setLoadingPatients(false);
             return;
           }
 
-          const petsData = [];
-          for (const pid of petIds) {
-            const petDoc = await getDoc(doc(db, COL_MASCOTAS, pid));
-            if (petDoc.exists()) {
-              const data = petDoc.data();
-              petsData.push({
-                id: petDoc.id,
-                nombre: data.nombre || "Mascota",
-                especie: data.especie || "",
-                ownerId: data.ownerId || data.ownerUID || null,
-                ownerPhone:
-                  data.ownerPhone ||
-                  data.telefonoDueno ||
-                  data.telefono ||
-                  null,
-              });
-            }
-          }
+          // 2. Escuchar la colección de MASCOTAS usando los IDs obtenidos.
+          // Usamos 'documentId()' 'in' [ids] para filtrar solo las mascotas relevantes.
+          const qPets = query(
+            collection(db, COL_MASCOTAS),
+            where(documentId(), "in", petIds)
+          );
 
-          setAvailablePatients(petsData);
-          setLoadingPatients(false);
+          unsubscribePets = onSnapshot(
+            qPets,
+            (petsSnapshot) => {
+              const petsData = petsSnapshot.docs.map((petDoc) => {
+                const data = petDoc.data();
+                return {
+                  id: petDoc.id,
+                  nombre: data.nombre || "Mascota",
+                  especie: data.especie || "",
+                  ownerId: data.ownerId || data.ownerUID || null,
+                  ownerPhone:
+                    data.ownerPhone ||
+                    data.telefonoDueno ||
+                    data.telefono ||
+                    null,
+                };
+              });
+
+              setAvailablePatients(petsData);
+              setLoadingPatients(false);
+            },
+            (error) => {
+              console.log("Error cargando datos de mascotas:", error);
+              setLoadingPatients(false);
+            }
+          );
+        }, (error) => {
+             console.log("Error cargando enlaces de pacientes:", error);
+             setLoadingPatients(false);
         });
+
       } catch (error) {
-        console.log("Error cargando pacientes para calendario:", error);
+        console.log("Error inicializando listener de pacientes:", error);
         setLoadingPatients(false);
       }
     };
@@ -290,7 +320,8 @@ const VetAppointmentsScreen = ({ navigation }) => {
     fetchLinkedPatients();
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeLinks) unsubscribeLinks();
+      if (unsubscribePets) unsubscribePets();
     };
   }, [vetId]);
 

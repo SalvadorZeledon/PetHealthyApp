@@ -141,10 +141,22 @@ const ChatbotVetScreen = ({ navigation }) => {
                 msg.sender === "user" ? styles.userBubble : styles.aiBubble,
               ]}
             >
-              <Text style={styles.chatSender}>
+              <Text
+                style={[
+                  styles.chatSender,
+                  msg.sender === "user" && styles.chatSenderUser,
+                ]}
+              >
                 {msg.sender === "user" ? "Tú" : "PetHealthyBot"}
               </Text>
-              <Text style={styles.chatText}>{msg.text}</Text>
+              <Text
+                style={[
+                  styles.chatText,
+                  msg.sender === "user" && styles.chatTextUser,
+                ]}
+              >
+                {msg.text}
+              </Text>
             </View>
           ))}
         </ScrollView>
@@ -285,12 +297,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     marginBottom: 4,
-    color: "#4527A0",
+    color: "#4527A0", // para burbuja del bot
+  },
+  // 👇 nuevo: color para el título "Tú" en tu burbuja
+  chatSenderUser: {
+    color: "#EDE7F6", // lila claro sobre morado oscuro
   },
 
   chatText: {
     fontSize: 14,
-    color: "#311B92",
+    color: "#311B92", // para texto del bot
+  },
+  // 👇 nuevo: texto blanco para tus mensajes
+  chatTextUser: {
+    color: "#FFFFFF",
   },
 
   inputContainer: {

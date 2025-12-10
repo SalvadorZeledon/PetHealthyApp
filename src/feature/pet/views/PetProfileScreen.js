@@ -9,11 +9,11 @@ import {
   Platform,
   Modal,
   Linking,
-  Alert // Importante para el menú de opciones
+  Alert
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { doc, onSnapshot, collection, query, orderBy, getDoc } from "firebase/firestore"; 
+import { doc, onSnapshot, collection, query, orderBy, getDoc } from "firebase/firestore";
 import { ALERT_TYPE, Dialog } from "react-native-alert-notification";
 import QRCode from 'react-native-qrcode-svg';
 import * as Brightness from 'expo-brightness';
@@ -31,7 +31,7 @@ const IBA_EMAIL = "denuncias@iba.gob.sv";
 
 const PetProfileScreen = ({ navigation, route }) => {
   const { petId, viewMode } = route.params || {};
-  const isVet = viewMode === 'veterinarian'; 
+  const isVet = viewMode === 'veterinarian';
 
   const [pet, setPet] = useState(null);
   const [owner, setOwner] = useState(null);
@@ -57,11 +57,16 @@ const PetProfileScreen = ({ navigation, route }) => {
         const petData = { id: docSnap.id, ...docSnap.data() };
         setPet(petData);
 
+        // Cargar datos del dueño
         if (petData.ownerId) {
             try {
-                const userDoc = await getDoc(doc(db, "users", petData.ownerId));
+                // 👇 AQUÍ ESTABA EL ERROR: Cambié "users" por "usuarios"
+                const userDoc = await getDoc(doc(db, "usuarios", petData.ownerId));
+                
                 if (userDoc.exists()) {
                     setOwner(userDoc.data());
+                } else {
+                    console.log("El documento del dueño no existe en 'usuarios'");
                 }
             } catch (error) {
                 console.log("Error cargando dueño:", error);
@@ -113,21 +118,18 @@ const PetProfileScreen = ({ navigation, route }) => {
       }
   };
 
-  // 👇 LÓGICA DE DENUNCIA IBA
   const handleReportAbuse = () => {
     Alert.alert(
         "⚠️ Reportar Maltrato Animal",
         "Selecciona el canal para contactar al Instituto de Bienestar Animal (IBA).",
         [
-            {
-                text: "Cancelar",
-                style: "cancel"
-            },
+            { text: "Cancelar", style: "cancel" },
             {
                 text: "Enviar Correo",
                 onPress: () => {
+                    const ownerName = getOwnerName();
                     const subject = `Denuncia posible maltrato - Mascota: ${pet.nombre}`;
-                    const body = `Estimados IBA,\n\nComo médico veterinario, reporto un posible caso de maltrato o negligencia.\n\nDatos de la mascota:\nID: ${pet.id}\nNombre: ${pet.nombre}\nEspecie: ${pet.especie}\n\nObservaciones:\n`;
+                    const body = `Estimados IBA,\n\nComo médico veterinario, reporto un posible caso de maltrato o negligencia.\n\nDatos de la mascota:\nID: ${pet.id}\nNombre: ${pet.nombre}\nEspecie: ${pet.especie}\nPropietario: ${ownerName}\n\nObservaciones:\n`;
                     Linking.openURL(`mailto:${IBA_EMAIL}?subject=${subject}&body=${body}`);
                 }
             },
@@ -160,12 +162,19 @@ const PetProfileScreen = ({ navigation, route }) => {
 
   const formatBool = (value) => (value ? "Sí" : "No");
 
+  // Función auxiliar ajustada a tus campos de Firebase (nombre, nombres)
+  const getOwnerName = () => {
+    if (!owner) return "Nombre no disponible";
+    // Tu imagen muestra que usas 'nombre' o 'nombres'
+    return owner.nombre || owner.nombres || owner.fullName || owner.displayName || owner.email || "Sin Nombre";
+  };
+
   if (loading && !pet) return <ActivityIndicator size="large" color="#365b6d" style={{flex:1}} />;
   if (!pet) return null;
 
   return (
     <View style={styles.container}>
-      
+     
       {/* MODAL QR */}
       <Modal visible={qrVisible} transparent animationType="fade" onRequestClose={handleCloseQR}>
         <View style={styles.modalOverlay}>
@@ -186,7 +195,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                     <Ionicons name="close" size={28} color="#333" />
                 </TouchableOpacity>
             </View>
-            
+           
             {selectedConsultation && (
                 <ScrollView contentContainerStyle={styles.detailContent}>
                     <View style={styles.reportHeader}>
@@ -254,14 +263,33 @@ const PetProfileScreen = ({ navigation, route }) => {
 
                     {selectedConsultation.archivos && selectedConsultation.archivos.length > 0 && (
                         <View style={styles.detailSection}>
-                            <Text style={styles.sectionTitleSmall}>Resultados y Anexos</Text>
-                            <View style={{flexDirection:'row', flexWrap:'wrap', marginTop:8}}>
-                                {selectedConsultation.archivos.map((file, i) => (
-                                    <TouchableOpacity key={i} style={styles.bigFileButton} onPress={() => Linking.openURL(file.url)}>
-                                        <Ionicons name={file.type==='pdf'?"document-text":"image"} size={24} color="#FFF" />
-                                        <Text style={styles.bigFileText} numberOfLines={1}>{file.name || "Ver Archivo"}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <Text style={styles.sectionTitleSmall}>Archivos Adjuntos</Text>
+                            <View style={{marginTop:8}}>
+                                {selectedConsultation.archivos.map((file, i) => {
+                                    const isPdf = file.type === 'pdf' || (file.name && file.name.toLowerCase().endsWith('.pdf'));
+                                    return (
+                                        <View key={i} style={styles.fileRowContainer}>
+                                            <View style={styles.fileInfo}>
+                                                <Ionicons 
+                                                    name={isPdf ? "document-text" : "image"} 
+                                                    size={24} 
+                                                    color={isPdf ? "#E53935" : "#1976D2"} 
+                                                />
+                                                <Text style={styles.fileNameText} numberOfLines={1}>
+                                                    {file.name || "Sin nombre"}
+                                                </Text>
+                                            </View>
+
+                                            <TouchableOpacity 
+                                                style={styles.downloadButton}
+                                                onPress={() => Linking.openURL(file.url)}
+                                            >
+                                                <Ionicons name="cloud-download-outline" size={20} color="#FFF" />
+                                                <Text style={styles.downloadButtonText}>Abrir/Descargar</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    );
+                                })}
                             </View>
                         </View>
                     )}
@@ -294,7 +322,7 @@ const PetProfileScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        
+       
         {/* 1. TARJETA PERFIL */}
         <View style={styles.card}>
           <View style={styles.photoWrapper}>
@@ -313,18 +341,26 @@ const PetProfileScreen = ({ navigation, route }) => {
             )}
           </View>
 
-          {/* DUEÑO (Visible solo Vet) */}
+          {/* 👇 PERFIL DUEÑO */}
           {isVet && owner && (
               <View style={styles.ownerCard}>
-                  <View style={{flexDirection:'row', alignItems:'center'}}>
-                      <Ionicons name="person-circle" size={36} color="#7B1FA2" />
-                      <View style={{marginLeft: 10, flex: 1}}>
-                          <Text style={styles.ownerLabel}>Propietario</Text>
-                          <Text style={styles.ownerName}>{owner.fullName || owner.nombre || "Sin nombre"}</Text>
+                  <View style={styles.ownerHeader}>
+                      <Ionicons name="person" size={16} color="#7B1FA2" />
+                      <Text style={styles.ownerTitle}>DATOS DEL PROPIETARIO</Text>
+                  </View>
+                  <View style={styles.ownerContentRow}>
+                      <View style={{flex:1}}>
+                          <Text style={styles.ownerName}>{getOwnerName()}</Text>
+                          <Text style={styles.ownerPhoneText}>
+                             {owner.telefono ? `Tel: ${owner.telefono}` : "Sin teléfono registrado"}
+                          </Text>
                       </View>
-                      <TouchableOpacity style={styles.callButton} onPress={handleCallOwner}>
-                          <Ionicons name="call" size={20} color="#FFF" />
-                      </TouchableOpacity>
+                      
+                      {owner.telefono && (
+                          <TouchableOpacity style={styles.callButton} onPress={handleCallOwner}>
+                              <Ionicons name="call" size={22} color="#FFF" />
+                          </TouchableOpacity>
+                      )}
                   </View>
               </View>
           )}
@@ -414,7 +450,7 @@ const PetProfileScreen = ({ navigation, route }) => {
                         <Text style={styles.consultationJunta}>Junta: {consulta.veterinario?.junta}</Text>
                     </View>
                 </View>
-                
+               
                 <View style={styles.consultationBody}>
                     <View style={styles.dataRow}>
                         <Text style={styles.label}>Motivo:</Text>
@@ -436,12 +472,20 @@ const PetProfileScreen = ({ navigation, route }) => {
             </View>
         ))}
 
-        {/* 👇 BOTÓN DE DENUNCIA IBA (SOLO VETERINARIOS) */}
+        {/* 👇 ALERTA DE MALTRATO */}
         {isVet && (
-            <TouchableOpacity style={styles.reportButton} onPress={handleReportAbuse}>
-                <Ionicons name="warning" size={24} color="#FFF" style={{marginRight: 10}} />
-                <Text style={styles.reportButtonText}>REPORTAR MALTRATO AL IBA</Text>
-            </TouchableOpacity>
+            <View style={styles.dangerZone}>
+                <View style={{flexDirection:'row', alignItems:'center', marginBottom:8}}>
+                    <Ionicons name="shield-checkmark" size={20} color="#B71C1C" />
+                    <Text style={styles.dangerTitle}>Zona de Protección Animal</Text>
+                </View>
+                <Text style={styles.dangerText}>Si detectas signos de maltrato o negligencia en esta mascota, contacta directamente a las autoridades.</Text>
+                
+                <TouchableOpacity style={styles.reportButtonEnhanced} onPress={handleReportAbuse}>
+                    <Ionicons name="warning" size={22} color="#FFF" style={{marginRight: 10}} />
+                    <Text style={styles.reportButtonText}>REPORTAR AL IBA</Text>
+                </TouchableOpacity>
+            </View>
         )}
 
         <View style={{height: 40}} />
@@ -466,15 +510,22 @@ const styles = StyleSheet.create({
   petImagePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   petName: { fontSize: 22, fontWeight: "700", color: "#111827" },
   petSubInfo: { marginTop: 4, fontSize: 13, color: "#6B7280" },
-  
-  // ESTILOS NUEVOS
-  ownerCard: { backgroundColor: '#F3E5F5', padding: 10, borderRadius: 12, marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#7B1FA2' },
-  ownerLabel: { fontSize: 10, color: '#7B1FA2', fontWeight: 'bold', textTransform: 'uppercase' },
-  ownerName: { fontSize: 16, color: '#333', fontWeight: '600' },
-  callButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center' },
+ 
+  // ESTILOS NUEVOS PROPIETARIO
+  ownerCard: { backgroundColor: '#F3E5F5', padding: 12, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#E1BEE7' },
+  ownerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  ownerTitle: { fontSize: 11, color: '#7B1FA2', fontWeight: 'bold', marginLeft: 6, letterSpacing: 0.5 },
+  ownerContentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ownerName: { fontSize: 16, color: '#333', fontWeight: '700' },
+  ownerPhoneText: { fontSize: 14, color: '#4CAF50', fontWeight: '600', marginTop: 2 },
+  callButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center', elevation: 2 },
 
-  reportButton: { flexDirection: 'row', backgroundColor: '#D32F2F', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 20, elevation: 4 },
-  reportButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
+  // ESTILOS NUEVOS DENUNCIA (Danger Zone)
+  dangerZone: { backgroundColor: '#FFEBEE', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#FFCDD2', marginTop: 10 },
+  dangerTitle: { fontSize: 14, fontWeight: '700', color: '#B71C1C', marginLeft: 6 },
+  dangerText: { fontSize: 12, color: '#B71C1C', marginBottom: 12, lineHeight: 18 },
+  reportButtonEnhanced: { flexDirection: 'row', backgroundColor: '#D32F2F', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  reportButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 },
 
   infoRow: { flexDirection: "row", marginTop: 12 },
   infoItem: { flex: 1 },
@@ -494,20 +545,20 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 11, color: "#0369A1", fontWeight: "500" },
   miniQrButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: "#4A85A5", elevation: 2 },
   miniQrText: { fontSize: 12, fontWeight: "600", color: "#4A85A5", marginLeft: 6 },
-  
+ 
   // CONSULTAS LISTA
   consultationCard: { backgroundColor: "#FFFFFF", borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: "#E1BEE7", overflow: 'hidden', elevation: 2 },
   consultationHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: 'center', backgroundColor: "#7B1FA2", paddingVertical: 10, paddingHorizontal: 12 },
   consultationDate: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   consultationVet: { fontSize: 12, color: "#FFFFFF", fontWeight: '700' },
-  consultationJunta: { fontSize: 10, color: "#E1BEE7" }, 
+  consultationJunta: { fontSize: 10, color: "#E1BEE7" },
   consultationClinic: { fontSize: 10, color: "#E1BEE7" },
   consultationBody: { padding: 12 },
   dataRow: { flexDirection: 'row', marginBottom: 4 },
   dataBlock: { marginBottom: 8 },
   label: { fontSize: 12, fontWeight: '700', color: '#7B1FA2', marginRight: 5 },
   value: { fontSize: 13, color: '#333', flex: 1 },
-  
+ 
   // BOTÓN VER DETALLES
   detailsButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F3E5F5' },
   detailsButtonText: { fontSize: 13, color: '#7B1FA2', fontWeight: '700', marginRight: 4 },
@@ -518,7 +569,7 @@ const styles = StyleSheet.create({
   detailHeaderTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
   closeIcon: { position: 'absolute', right: 16, top: 12, padding: 4 },
   detailContent: { padding: 20 },
-  
+ 
   reportHeader: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
   reportDate: { fontSize: 14, color: '#666' },
   reportTag: { fontSize: 12, fontWeight: 'bold', color: '#7B1FA2', backgroundColor: '#F3E5F5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
@@ -531,13 +582,17 @@ const styles = StyleSheet.create({
   detailLabel: { fontSize: 12, color: '#7B1FA2', fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
   detailValue: { fontSize: 15, color: '#333', lineHeight: 22 },
   detailValueLarge: { fontSize: 18, fontWeight: '700', color: '#333' },
-  
+ 
   sectionTitleSmall: { fontSize: 15, fontWeight: '700', color: '#333', marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 6 },
   treatmentRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   treatmentText: { fontSize: 14, color: '#444', marginLeft: 8 },
-  
-  bigFileButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#9575CD', padding: 12, borderRadius: 10, marginRight: 10, marginBottom: 10, flexGrow: 1, maxWidth: '48%' },
-  bigFileText: { color: '#FFF', fontWeight: '600', marginLeft: 8, fontSize: 13, flex: 1 },
+ 
+  // ESTILOS NUEVOS PARA ARCHIVOS
+  fileRowContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F5F5F5', borderRadius: 10, padding: 10, marginBottom: 8 },
+  fileInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  fileNameText: { fontSize: 13, color: '#333', marginLeft: 8, flexShrink: 1 },
+  downloadButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4CAF50', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginLeft: 8 },
+  downloadButtonText: { color: '#FFF', fontWeight: '600', fontSize: 12, marginLeft: 4 },
 
   closeModalButton: { backgroundColor: '#333', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   closeModalText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
